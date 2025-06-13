@@ -30,15 +30,16 @@
 
         {#if Option.isSome(openBook)}
           {#if openBook.value === book.name}
-            <ul class="pl-4 mt-1 space-y-1 text-sm text-gray-600">
+            <div class="pl-4 mt-2 grid grid-cols-5 gap-2 text-sm text-gray-600">
               {#each book.chapters as chapter}
-                <li>
-                  <button onclick={() => goto(`/${book.name.toLowerCase()}/${chapter.chapter}`)}>
-                    {chapter.chapter}
-                  </button>
-                </li>
+                <button
+                  class="bg-white hover:bg-gray-300 rounded px-2 py-1 transition"
+                  onclick={() => goto(`/${book.name.toLowerCase()}/${chapter.chapter}`)}
+                >
+                  {chapter.chapter}
+                </button>
               {/each}
-            </ul>
+            </div>
           {/if}
         {/if}
       </li>
