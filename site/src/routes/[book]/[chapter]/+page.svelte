@@ -5,6 +5,7 @@
   import Sidebar from "$lib/components/Sidebar.svelte";
   import ChapterDetail from "$lib/components/ChapterDetail.svelte";
 	import type { PageProps } from './$types';
+	import ChapterPicker from "$lib/components/ChapterPicker.svelte";
 
 	const bible: Bible = bibleData;
 
@@ -12,6 +13,7 @@
 </script>
 
 <div class="flex h-screen">
+  <ChapterPicker {bible} />
   <Sidebar {bible} class="w-64 border-r border-gray-200 p-4" />
 
   <div class="flex-1 p-6 overflow-auto">
