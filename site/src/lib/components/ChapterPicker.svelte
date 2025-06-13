@@ -12,6 +12,14 @@
 
   const allChapters: Chapter[] = bible.books.flatMap((book: Book) => book.chapters);
 
+  const handleSubmit = (book: string, chapter: number) => {
+    goto(`/${book}/${chapter}`, { invalidateAll: true });
+    query = "";
+    isOpen = false;
+  }
+
+  const head = <T>(xs: T[]) => xs.length === 0 ? Option.none() : Option.some(xs[0])
+
   const searchChapter = (chapters: Chapter[], q: string) => {
   const query = q.toLowerCase().trim();
     return chapters
@@ -45,18 +53,33 @@
     query = "";
     goto(`/${name.toLowerCase()}/1`);
   }
+
+  function removeTrailingNumber(input: string): string {
+    return input.replace(/\s\d+$/, "");
+  }
 </script>
 
 {#if isOpen}
   <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-4">
-      <input
-        bind:this={inputRef}
-        type="text"
-        bind:value={query}
-        placeholder="Type a book name..."
-        class="w-full p-2 border border-gray-300 rounded mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
+      <form on:submit|preventDefault={() => {
+            const chapter: Option.Option<Chapter> = head(searchChapter(allChapters, query));
+            const name = removeTrailingNumber(chapter.value.name);
+            if (Option.isSome(chapter)) {
+              handleSubmit(name, chapter.value.chapter)
+            } else {
+              console.error("could not find chapter");
+            }
+          }
+        }>
+        <input
+          bind:this={inputRef}
+          type="text"
+          bind:value={query}
+          placeholder="Type a book name..."
+          class="w-full p-2 border border-gray-300 rounded mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </form>
       {#each searchChapter(allChapters, query) as book}
         <p>{book.name}</p>
       {/each}
