@@ -1,5 +1,14 @@
 import adapter from "@sveltejs/adapter-static";
 import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
+import { readFileSync } from 'fs';
+
+export function chapterToPath(c) {
+  const name = c.name.replace(/\s*\d+$/, '');
+  return `/${name.toLowerCase()}/${c.chapter}`;
+}
+
+const bibleData = JSON.parse(readFileSync('./src/lib/translations/stv.json', 'utf-8'));
+const bibleRoutes = bibleData.books.flatMap((book) => book.chapters.map(chapterToPath));
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -15,8 +24,7 @@ const config = {
     prerender: {
       entries: [
         '/',
-        '/genesis/1',
-        '/genesis/2',
+        ...bibleRoutes
       ]
     }
   },

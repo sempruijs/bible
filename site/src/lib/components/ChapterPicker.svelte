@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Option } from "effect";
   import { onMount } from "svelte";
-  import { type Bible, type Chapter, type Book } from "$lib/types";
+  import { type Bible, type Chapter, type Book, chapterToPath } from "$lib/types";
   import { goto } from "$app/navigation";
 
   const { bible } = $props<{ bible: Bible }>();
@@ -12,8 +12,9 @@
 
   const allChapters: Chapter[] = bible.books.flatMap((book: Book) => book.chapters);
 
-  const handleSubmit = (book: string, chapter: number) => {
-    goto(`/${book}/${chapter}`, { invalidateAll: true });
+  const handleSubmit = (c: Chapter) => {
+    const path = chapterToPath(c);
+    goto(path);
     query = "";
     isOpen = false;
   };
@@ -65,9 +66,8 @@
       <form onsubmit={(e) => {
             e.preventDefault();
             const chapter: Option.Option<Chapter> = head(searchChapter(allChapters, query));
-            const name = removeTrailingNumber(chapter.value.name);
             if (Option.isSome(chapter)) {
-              handleSubmit(name, chapter.value.chapter)
+              handleSubmit(chapter.value);
             } else {
               console.error("could not find chapter");
             }

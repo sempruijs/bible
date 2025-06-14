@@ -5,6 +5,7 @@ import topLevelAwait from "vite-plugin-top-level-await";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { bible } from "./src/lib/translations/stv.json";
 
 export default defineConfig({
   plugins: [
