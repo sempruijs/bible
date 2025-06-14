@@ -19,6 +19,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.png', 'icon-512.png', 'icon-192.png', 'icon-180.png'],
+      workbox: {
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024 // 10 MiB
+      },
       manifest: {
         name: 'Pure bible',
         short_name: 'Bible',

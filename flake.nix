@@ -1,5 +1,5 @@
 {
-  description = "My cardano dApp";
+  description = "Fast open source bible app";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
@@ -21,7 +21,7 @@
           in
           {
             app = pkgs.buildNpmPackage {
-              npmDepsHash = "sha256-gmYBvvbLGfnCzVND9JIfwkK+22f/qFB6XHioMreqxBM=";
+              npmDepsHash = "sha256-kKjBFyF9N94A0r1nY/ZTH33+dcnI9+33nECB+e1X93I=";
               NODE_OPTIONS = "--openssl-legacy-provider";
               src = ./site;
               pname = packageJSON.name;
