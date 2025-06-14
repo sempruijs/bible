@@ -16,7 +16,7 @@
     goto(`/${book}/${chapter}`, { invalidateAll: true });
     query = "";
     isOpen = false;
-  }
+  };
 
   const head = <T>(xs: T[]) => xs.length === 0 ? Option.none() : Option.some(xs[0])
 
@@ -62,7 +62,8 @@
 {#if isOpen}
   <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-4">
-      <form on:submit|preventDefault={() => {
+      <form onsubmit={(e) => {
+            e.preventDefault();
             const chapter: Option.Option<Chapter> = head(searchChapter(allChapters, query));
             const name = removeTrailingNumber(chapter.value.name);
             if (Option.isSome(chapter)) {
@@ -80,8 +81,18 @@
           class="w-full p-2 border border-gray-300 rounded mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </form>
-      {#each searchChapter(allChapters, query) as book}
-        <p>{book.name}</p>
+      {#each searchChapter(allChapters, query) as chapter}
+        <div>
+          <button
+            class="bg-white hover:bg-gray-300 rounded px-2 py-1 transition"
+            onclick={() => {
+              const name = removeTrailingNumber(chapter.name);
+              handleSubmit(name, chapter.chapter)
+            }}
+          >
+            {chapter.name}
+          </button>
+        </div>
       {/each}
     </div>
   </div>
