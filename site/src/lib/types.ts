@@ -46,6 +46,6 @@ function removeTrailingNumber(input: string): string {
 
 
 export const chapterToPath = (c: Chapter) => {
-  const name = removeTrailingNumber(c.name);
+  const name = removeTrailingNumber(c.name).toLocaleLowerCase();
   return `/${name}/${c.chapter}`;
 }
