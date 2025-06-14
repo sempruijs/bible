@@ -39,3 +39,13 @@ export interface Book {
 export interface Bible {
   books: Book[];
 }
+
+function removeTrailingNumber(input: string): string {
+  return input.replace(/\s\d+$/, "");
+}
+
+
+export const chapterToPath = (c: Chapter) => {
+  const name = removeTrailingNumber(c.name);
+  return `/${name}/${c.chapter}`;
+}
