@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Option } from "effect";
   import { goto } from "$app/navigation";
-  import { type Bible } from "$lib/types";
+  import { chapterToPath, type Bible } from "$lib/types";
 
   const { bible } = $props<{
     bible: Bible;
@@ -34,7 +34,7 @@
               {#each book.chapters as chapter}
                 <button
                   class="bg-white hover:bg-gray-300 rounded px-2 py-1 transition"
-                  onclick={() => goto(`/${book.name.toLowerCase()}/${chapter.chapter}`)}
+                  onclick={() => goto(chapterToPath(chapter))}
                 >
                   {chapter.chapter}
                 </button>
