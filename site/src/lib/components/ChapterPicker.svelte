@@ -119,19 +119,22 @@ const searchChapter = (chapters: Chapter[], q: string): Chapter[] => {
           class="w-full p-2 border border-gray-300 rounded mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </form>
+      {#if searchChapter(allChapters, query).length > 0}
       {#each searchChapter(allChapters, query) as chapter}
         <div>
           <button
             class="bg-white hover:bg-gray-300 rounded px-2 py-1 transition"
             onclick={() => {
-              const name = removeTrailingNumber(chapter.name);
-              handleSubmit(name, chapter.chapter)
+              handleSubmit(chapter)
             }}
           >
             {chapter.name}
           </button>
         </div>
       {/each}
+      {:else}
+        <p class="text-red-300">Hoofdstuk niet gevonden</p>
+      {/if}
     </div>
   </div>
 {/if}
