@@ -21,12 +21,50 @@
 
   const head = <T>(xs: T[]) => xs.length === 0 ? Option.none() : Option.some(xs[0])
 
-  const searchChapter = (chapters: Chapter[], q: string) => {
-  const query = q.toLowerCase().trim();
-    return chapters
-      .filter((c) => c.name.toLowerCase().includes(query))
-      .slice(0, 7); // limit to 7 results
-  };
+  const normalize = (text: string) =>
+  text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // remove accents
+    .replace(/[^a-z0-9]/g, ' ')      // spaces only
+    .split(' ')
+    .filter(Boolean);
+
+const searchChapter = (chapters: Chapter[], q: string): Chapter[] => {
+  const queryParts = normalize(q);
+  const queryWords = queryParts.filter(part => isNaN(+part));
+  const queryNums = queryParts.filter(part => !isNaN(+part));
+
+  return chapters
+    .map((chapter) => {
+      const name = chapter.name.toLowerCase();
+      const chapterNum = chapter.chapter.toString();
+
+      let nameScore = 0;
+      let chapterScore = 0;
+
+      // Book name fuzzy match
+      for (const word of queryWords) {
+        if (name === word) nameScore += 5;
+        else if (name.startsWith(word)) nameScore += 3;
+        else if (name.includes(word)) nameScore += 1;
+      }
+
+      // Chapter number match
+      for (const num of queryNums) {
+        if (chapterNum === num) chapterScore += 3;
+        else if (chapterNum.startsWith(num)) chapterScore += 1;
+      }
+
+      const totalScore = nameScore > 0 ? nameScore + chapterScore : 0;
+
+      return { chapter, score: totalScore };
+    })
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 7)
+    .map(({ chapter }) => chapter);
+};
 
   onMount(() => {
     const handleKeydown = (e: KeyboardEvent) => {
