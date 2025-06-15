@@ -6,7 +6,6 @@
   }>();
 </script>
 
-
 <!-- One continuous paragraph of text -->
 <div class="grid place-items-center min-h-screen px-4 text-center">
 <h1 class="text-3xl font-bold mb-6">{chapter.name}</h1>
