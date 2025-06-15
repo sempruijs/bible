@@ -6,10 +6,11 @@
   }>();
 </script>
 
-<h1 class="text-3xl font-bold mb-6">{chapter.name}</h1>
 
 <!-- One continuous paragraph of text -->
-<p class="mb-40 text-xl leading-relaxed">
+<div class="grid place-items-center min-h-screen px-4 text-center">
+<h1 class="text-3xl font-bold mb-6">{chapter.name}</h1>
+<p class="mb-40 text-lg leading-relaxed max-w-prose mx-auto ml-20 mr-20">
   {#each chapter.verses as verse, i}
     <span class="inline">
       <span class="text-gray-500 text-sm align-super pr-1">
@@ -19,3 +20,4 @@
     </span>
   {/each}
 </p>
+</div>
