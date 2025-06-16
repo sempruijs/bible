@@ -4,8 +4,9 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
+    "dev": "npm run build:wasm && vite dev",
+    "build:wasm": "wasm-pack build ./rust --target web",
+    "build": "npm run build:wasm && vite build",
     "preview": "vite preview",
     "prepare": "svelte-kit sync || echo ''",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -39,7 +40,9 @@
     "typescript-eslint": "^8.20.0",
     "vite": "^6.0.0",
     "vite-plugin-pwa": "^1.0.0",
-    "vitest": "^3.0.0"
+    "vite-plugin-wasm-pack": "^0.1.12",
+    "vitest": "^3.0.0",
+    "wasm-pack": "^0.13.1"
   },
   "dependencies": {
     "@meshsdk/svelte": "^1.9.0-beta.42",

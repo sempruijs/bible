@@ -5,9 +5,10 @@
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     treefmt-nix.url = "github:numtide/treefmt-nix";
+    naersk.url = "github:nix-community/naersk";
   };
 
-  outputs = inputs@{ self, nixpkgs, flake-parts, treefmt-nix, ... }:
+  outputs = inputs@{ self, nixpkgs, flake-parts, treefmt-nix, naersk, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ];
       imports = [
@@ -18,17 +19,31 @@
         packages =
           let
             packageJSON = lib.importJSON ./site/package.json;
+
+            naersk' = pkgs.callPackage naersk {};
           in
           {
+            wasm = naersk'.buildPackage {
+              src = ./site/rust;
+
+              buildInputs = with pkgs; [ wasm-pack lld ];
+              installPhase = ''
+                wasm-pack build . --target web
+                mkdir -p $out
+                cp ./pkg $out/.
+              '';
+            };
             app = pkgs.buildNpmPackage {
-              npmDepsHash = "sha256-kKjBFyF9N94A0r1nY/ZTH33+dcnI9+33nECB+e1X93I=";
+              npmDepsHash = "sha256-Eu8LaE2JJnD4PiaiR2rh9tYCk88zseinQFb0Ng/vonY=";
               NODE_OPTIONS = "--openssl-legacy-provider";
               src = ./site;
               pname = packageJSON.name;
               inherit (packageJSON) version;
+
               installPhase = ''
+                wasm-pack build . --target web --out-dir pkg-out
                 mkdir -p $out
-                cp -r ./build/* $out
+                cp -r pkg-out/* $out/
               '';
               doCheck = false;
               # checkPhase = ''
@@ -70,6 +85,8 @@
           buildInputs = with pkgs; [
             nodejs
             cargo
+            rustc
+            lld
             wasm-pack
             nodePackages_latest.nodejs
             nodePackages_latest.graphqurl
