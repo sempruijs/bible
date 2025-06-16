@@ -69,6 +69,8 @@
           name = "app-devshell";
           buildInputs = with pkgs; [
             nodejs
+            cargo
+            wasm-pack
             nodePackages_latest.nodejs
             nodePackages_latest.graphqurl
             nodePackages_latest.svelte-language-server
