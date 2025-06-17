@@ -40,11 +40,12 @@
             wasm-pkg = pkgs.stdenv.mkDerivation {
               src = ./.;
               name = "wasm-pkg";
-              buildInputs = [ pkgs.tree wasm ];
-              installPhase = ''
-                mkdir $out
-                tree ${wasm}*
-                cp -r ${wasm}/release/rust.wasm $out/rust.wasm
+              buildInputs = [ pkgs.tree wasm pkgs.wasm-bindgen-cli ];
+              buildPhase = ''
+                wasm-bindgen \
+                --target web \
+                --out-dir $out \
+                ${wasm}/release/rust.wasm
               '';
             };
 
