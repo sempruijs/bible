@@ -22,20 +22,32 @@
 
             naersk' = pkgs.callPackage naersk {};
           in
-          {
-wasm = naersk'.buildPackage {
-  src = ./site/rust;
-  buildInputs = with pkgs; [ lld ];
-  WASM32_UNKNOWN_UNKNOWN = 1;
-  CARGO_BUILD_TARGET = "wasm32-unknown-unknown"; 
-  buildPhase = ''
-    cargo build --release --target wasm32-unknown-unknown
-  '';
-  installPhase = ''
-    mkdir -p $out
-    cp -r target/. $out/.
-  '';
-};
+          rec {
+            wasm = naersk'.buildPackage {
+              src = ./site/rust;
+              buildInputs = with pkgs; [ tree lld ];
+              WASM32_UNKNOWN_UNKNOWN = 1;
+              CARGO_BUILD_TARGET = "wasm32-unknown-unknown"; 
+              buildPhase = ''
+                cargo build --release --target wasm32-unknown-unknown
+              '';
+              installPhase = ''
+                mkdir -p $out
+                cp -r target/wasm32-unknown-unknown/release/ $out/.
+              '';
+            };
+
+            wasm-pkg = pkgs.stdenv.mkDerivation {
+              src = ./.;
+              name = "wasm-pkg";
+              buildInputs = [ pkgs.tree wasm ];
+              installPhase = ''
+                mkdir $out
+                tree ${wasm}*
+                cp -r ${wasm}/release/rust.wasm $out/rust.wasm
+              '';
+            };
+
             app = pkgs.buildNpmPackage {
               npmDepsHash = "sha256-Eu8LaE2JJnD4PiaiR2rh9tYCk88zseinQFb0Ng/vonY=";
               NODE_OPTIONS = "--openssl-legacy-provider";
