@@ -56,9 +56,16 @@
             type = "app";
             program = pkgs.writeShellApplication {
               name = "preview-app";
-              runtimeInputs = [ pkgs.miniserve ];
+              runtimeInputs = [ pkgs.nodePackages.http-server ];
               text = ''
+<<<<<<< Updated upstream
                 miniserve --spa --index index.html --port 8080 ${self'.packages.app}
+=======
+                http-server ${self'.packages.app} \
+                  -p 8080 \
+                  -c-1 \
+                  --spa
+>>>>>>> Stashed changes
               '';
             };
           };
