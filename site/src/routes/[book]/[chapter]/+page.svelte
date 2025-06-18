@@ -16,6 +16,7 @@
 
 <Header
   toggle={() => { sidebarVisible = !sidebarVisible}}
+  visible={sidebarVisible}
 />
 <div class="flex h-screen">
   <ChapterPicker {bible} />
