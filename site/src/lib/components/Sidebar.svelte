@@ -1,10 +1,12 @@
 <script lang="ts">
   import { Option } from "effect";
+  import { fly, slide } from 'svelte/transition';
   import { goto } from "$app/navigation";
   import { chapterToPath, type Bible } from "$lib/types";
 
-  const { bible } = $props<{
+  const { bible, visible } = $props<{
     bible: Bible;
+    visible: boolean;
   }>();
 
   // Track the currently opened book name
@@ -15,9 +17,11 @@
   }
 </script>
 
-<aside class="w-64 bg-gray-100 border-r border-gray-300 p-4 overflow-y-auto h-screen">
-  <h2 class="text-xl font-bold mb-4 text-gray-800">Bijbel</h2>
-
+{#if visible}
+<aside
+  class="w-64 bg-gray-100 border-r border-gray-300 p-4 overflow-y-auto h-screen"
+  transition:fly={{ x: -300, duration: 250 }}
+>
   <ul class="space-y-2">
     {#each bible.books as book}
       <li>
@@ -30,7 +34,10 @@
 
         {#if Option.isSome(openBook)}
           {#if openBook.value === book.name}
-            <div class="pl-4 mt-2 grid grid-cols-5 gap-2 text-sm text-gray-600">
+            <div
+              transition:slide
+              class="pl-4 mt-2 grid grid-cols-5 gap-2 text-sm text-gray-600"
+            >
               {#each book.chapters as chapter}
                 <button
                   class="bg-white hover:bg-gray-300 rounded px-2 py-1 transition"
@@ -46,3 +53,4 @@
     {/each}
   </ul>
 </aside>
+{/if}
