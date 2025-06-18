@@ -41,11 +41,30 @@
               src = ./.;
               name = "wasm-pkg";
               buildInputs = [ pkgs.tree wasm pkgs.wasm-bindgen-cli ];
+
               buildPhase = ''
                 wasm-bindgen \
                 --target web \
                 --out-dir $out \
                 ${wasm}/release/rust.wasm
+
+                 cat > $out/package.json <<EOF
+{
+  "name": "rust",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "rust_bg.wasm",
+    "rust.js",
+    "rust.d.ts"
+  ],
+  "main": "rust.js",
+  "types": "rust.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
+EOF
               '';
             };
 
@@ -55,6 +74,13 @@
               src = ./site;
               pname = packageJSON.name;
               inherit (packageJSON) version;
+
+              preBuild = ''
+                mkdir -p ./rust/pkg
+                cp -r --no-preserve=mode,ownership ${wasm-pkg}/* ./rust/pkg/
+                chmod -R u+w ./rust/pkg
+                ls -l ./rust/pkg
+              '';
 
               installPhase = ''
                 mkdir -p $out
@@ -88,7 +114,12 @@
               name = "preview-app";
               runtimeInputs = [ pkgs.miniserve ];
               text = ''
-                miniserve --spa --index index.html --port 8080 ${self'.packages.app}
+                miniserve \
+                --spa \
+                --index index.html \
+                --port 8080 \
+                --media-type wasm=application/wasm \
+                ${self'.packages.app}
               '';
             };
           };
