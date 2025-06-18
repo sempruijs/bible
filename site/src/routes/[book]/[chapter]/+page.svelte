@@ -22,6 +22,8 @@
   <Sidebar
     {bible}
     visible={sidebarVisible}
+    selectedBookName={data.book.name}
+    selectedChapterNumber={data.chapter.chapter}
     class="w-64 border-r border-gray-200 p-4"
   />
 
