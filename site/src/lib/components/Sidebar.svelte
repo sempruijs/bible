@@ -4,16 +4,30 @@
   import { goto } from "$app/navigation";
   import { chapterToPath, type Bible } from "$lib/types";
 
-  const { bible, visible } = $props<{
+  const { bible, visible, selectedBookName, selectedChapterNumber } = $props<{
     bible: Bible;
     visible: boolean;
+    selectedBookName: string;
+    selectedChapterNumber: number;
   }>();
 
-  // Track the currently opened book name
-  let openBook: Option.Option<string> = $state(Option.none());
+  let openBook = $state(selectedBookName);
+  let previousSelectedBookName = $state(selectedBookName);
+
+  // Only update openBook if the selectedBookName changes due to routing
+  $effect(() => {
+    const normalizedNew = selectedBookName.toLowerCase();
+    const normalizedOld = previousSelectedBookName.toLowerCase();
+
+    if (normalizedNew !== normalizedOld) {
+      openBook = selectedBookName;
+      previousSelectedBookName = selectedBookName;
+    }
+  });
 
   function toggleBook(name: string) {
-    openBook = Option.some(name);
+    const isSame = openBook.toLowerCase() === name.toLowerCase();
+    openBook = isSame ? '' : name;
   }
 </script>
 
@@ -32,22 +46,24 @@
           {book.name}
         </button>
 
-        {#if Option.isSome(openBook)}
-          {#if openBook.value === book.name}
-            <div
-              transition:slide
-              class="pl-4 mt-2 grid grid-cols-5 gap-2 text-sm text-gray-600"
-            >
-              {#each book.chapters as chapter}
-                <button
-                  class="bg-white hover:bg-gray-300 rounded px-2 py-1 transition"
-                  onclick={() => goto(chapterToPath(chapter))}
-                >
-                  {chapter.chapter}
-                </button>
-              {/each}
-            </div>
-          {/if}
+        {#if openBook.toLowerCase() === book.name.toLowerCase()}
+          <div
+            transition:slide
+            class="pl-4 mt-2 grid grid-cols-5 gap-2 text-sm text-gray-600"
+          >
+            {#each book.chapters as chapter}
+              <button
+                class={`rounded px-2 py-1 transition ${
+                  book.name.toLowerCase() === selectedBookName.toLowerCase() && chapter.chapter === selectedChapterNumber
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white hover:bg-gray-300'
+                }`}
+                onclick={() => goto(chapterToPath(chapter))}
+              >
+                {chapter.chapter}
+              </button>
+            {/each}
+          </div>
         {/if}
       </li>
     {/each}
