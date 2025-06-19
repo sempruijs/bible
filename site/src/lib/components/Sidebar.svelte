@@ -79,6 +79,7 @@
                     ? 'bg-blue-500 text-white'
                     : 'bg-white hover:bg-gray-300'
                 }`}
+                aria-label={isSelected(book.name, chapter.chapter) ? `${chapter.chapter}, selected` : `${chapter.chapter}`}
                 onclick={() => goto(chapterToPath(chapter))}
               >
                 {chapter.chapter}
