@@ -1,5 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { browser } from "$app/environment";
+  import { Option } from "effect";
   import NavigationButtons from "$lib/components/NaviagationButtons.svelte"
   import Header from "$lib/components/Header.svelte";
   import type { Bible, Book, Chapter } from '$lib/types';
@@ -11,6 +13,23 @@
 
 	const bible: Bible = bibleData;
 	let sidebarVisible = $state(true);
+	let announce = $state("");
+
+  $effect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey || e.shiftKey) {
+        return;
+      }
+
+      if (e.key === "b" && (e.ctrlKey)) {
+        announce = sidebarVisible ? "hiding sidebar" : "showing sidebar"
+        sidebarVisible = !sidebarVisible
+      }
+  	}
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+	});
 
 	let { data }: PageProps = $props();
 </script>
@@ -42,3 +61,9 @@
     {/if}
   </div>
 </div>
+<div
+  id="sr-announcer"
+  aria-live="polite"
+  aria-atomic="true"
+  class="sr-only"
+>{announce}</div>
