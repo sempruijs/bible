@@ -8,7 +8,7 @@
 
 
 <!-- One continuous paragraph of text -->
-<div class="grid place-items-center min-h-screen px-4 text-center">
+<div class="grid place-items-center px-4 text-center">
 <h1 class="text-3xl font-bold mb-6">{chapter.name}</h1>
 <p class="mb-40 text-lg leading-relaxed max-w-prose mx-auto text-left ml-20 mr-20">
   {#each chapter.verses as verse, i}
