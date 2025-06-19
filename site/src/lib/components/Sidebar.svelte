@@ -2,7 +2,7 @@
   import { fly, slide } from 'svelte/transition';
   import { goto } from "$app/navigation";
   import { chapterToPath, type Bible } from "$lib/types";
-  import { tick } from "svelte";
+  import { tick } from 'svelte';
 
   const { bible, visible, selectedBookName, selectedChapterNumber } = $props<{
     bible: Bible;
@@ -14,21 +14,26 @@
   let openBook = $state(selectedBookName);
   let previousSelectedBookName = $state(selectedBookName);
   let selectedChapterEl: HTMLButtonElement | null = null;
+  let lastScrollKey = "";
 
   $effect(() => {
-    const normalizedNew = selectedBookName.toLowerCase();
-    const normalizedOld = previousSelectedBookName.toLowerCase();
-
-    if (normalizedNew !== normalizedOld) {
+    if (selectedBookName.toLowerCase() !== previousSelectedBookName.toLowerCase()) {
       openBook = selectedBookName;
       previousSelectedBookName = selectedBookName;
     }
   });
 
-  $effect(async () => {
-    await tick();
-    if (selectedChapterEl) {
-      selectedChapterEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  $effect(() => {
+    const currentKey = `${selectedBookName}-${selectedChapterNumber}`;
+
+    if (currentKey !== lastScrollKey) {
+      lastScrollKey = currentKey;
+
+      (async () => {
+        await tick(); // wait for DOM update
+        await new Promise((r) => setTimeout(r, 100)); 
+        selectedChapterEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+      })();
     }
   });
 
@@ -36,11 +41,19 @@
     const isSame = openBook.toLowerCase() === name.toLowerCase();
     openBook = isSame ? '' : name;
   }
+
+  function isSelected(bookName: string, chapterNumber: number): boolean {
+    return (
+      bookName.toLowerCase() === selectedBookName.toLowerCase() &&
+      chapterNumber === selectedChapterNumber
+    );
+  }
 </script>
 
 {#if visible}
 <aside
   class="w-64 bg-gray-100 border-r border-gray-300 p-4 overflow-y-auto h-screen"
+  aria-label="sidebar"
   transition:fly={{ x: -300, duration: 250 }}
 >
   <ul class="space-y-2">
@@ -59,22 +72,17 @@
             class="pl-4 mt-2 grid grid-cols-5 gap-2 text-sm text-gray-600"
           >
             {#each book.chapters as chapter}
-              {#if book.name.toLowerCase() === selectedBookName.toLowerCase() && chapter.chapter === selectedChapterNumber}
-                <button
-                  bind:this={selectedChapterEl}
-                  class="rounded px-2 py-1 transition bg-blue-500 text-white"
-                  onclick={() => goto(chapterToPath(chapter))}
-                >
-                  {chapter.chapter}
-                </button>
-              {:else}
-                <button
-                  class="rounded px-2 py-1 transition bg-white hover:bg-gray-300"
-                  onclick={() => goto(chapterToPath(chapter))}
-                >
-                  {chapter.chapter}
-                </button>
-              {/if}
+              <button
+                bind:this={selectedChapterEl}
+                class={`rounded px-2 py-1 transition ${
+                  isSelected(book.name, chapter.chapter)
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white hover:bg-gray-300'
+                }`}
+                onclick={() => goto(chapterToPath(chapter))}
+              >
+                {chapter.chapter}
+              </button>
             {/each}
           </div>
         {/if}
