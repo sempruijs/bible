@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { Option } from "effect";
   import { fly, slide } from 'svelte/transition';
   import { goto } from "$app/navigation";
   import { chapterToPath, type Bible } from "$lib/types";
+  import { tick } from "svelte";
 
   const { bible, visible, selectedBookName, selectedChapterNumber } = $props<{
     bible: Bible;
@@ -13,8 +13,8 @@
 
   let openBook = $state(selectedBookName);
   let previousSelectedBookName = $state(selectedBookName);
+  let selectedChapterEl: HTMLButtonElement | null = null;
 
-  // Only update openBook if the selectedBookName changes due to routing
   $effect(() => {
     const normalizedNew = selectedBookName.toLowerCase();
     const normalizedOld = previousSelectedBookName.toLowerCase();
@@ -22,6 +22,13 @@
     if (normalizedNew !== normalizedOld) {
       openBook = selectedBookName;
       previousSelectedBookName = selectedBookName;
+    }
+  });
+
+  $effect(async () => {
+    await tick();
+    if (selectedChapterEl) {
+      selectedChapterEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   });
 
@@ -52,16 +59,22 @@
             class="pl-4 mt-2 grid grid-cols-5 gap-2 text-sm text-gray-600"
           >
             {#each book.chapters as chapter}
-              <button
-                class={`rounded px-2 py-1 transition ${
-                  book.name.toLowerCase() === selectedBookName.toLowerCase() && chapter.chapter === selectedChapterNumber
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-white hover:bg-gray-300'
-                }`}
-                onclick={() => goto(chapterToPath(chapter))}
-              >
-                {chapter.chapter}
-              </button>
+              {#if book.name.toLowerCase() === selectedBookName.toLowerCase() && chapter.chapter === selectedChapterNumber}
+                <button
+                  bind:this={selectedChapterEl}
+                  class="rounded px-2 py-1 transition bg-blue-500 text-white"
+                  onclick={() => goto(chapterToPath(chapter))}
+                >
+                  {chapter.chapter}
+                </button>
+              {:else}
+                <button
+                  class="rounded px-2 py-1 transition bg-white hover:bg-gray-300"
+                  onclick={() => goto(chapterToPath(chapter))}
+                >
+                  {chapter.chapter}
+                </button>
+              {/if}
             {/each}
           </div>
         {/if}
