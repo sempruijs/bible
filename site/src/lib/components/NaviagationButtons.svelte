@@ -42,24 +42,30 @@
 	});
 </script>
 
-{#if Option.isSome(previous)}
-  <button
-    onclick={() => {
-      const path = chapterToPath(previous.value);
-      goto(path);
-    }}
-  >
-    previous
-  </button>
-{/if}
+<div class="flex justify-center mb-20">
+  {#if Option.isSome(previous)}
+    <button
+      class="m-1 bg-gray-400 w-15 h-15 p-3 rounded-full text-white"
+      onclick={() => {
+        const path = chapterToPath(previous.value);
+        goto(path);
+      }}
+      aria-label="previous"
+    >
+      ←
+    </button>
+  {/if}
 
-{#if Option.isSome(next)}
-  <button
-    onclick={() => {
-      const path = chapterToPath(next.value);
-      goto(path);
-    }}
-  >
-    next
-  </button>
-{/if}
+  {#if Option.isSome(next)}
+    <button
+      class="m-1 bg-gray-400 w-15 h-15 p-3 rounded-full text-white"
+      onclick={() => {
+        const path = chapterToPath(next.value);
+        goto(path);
+      }}
+      aria-label="next"
+    >
+      →
+    </button>
+  {/if}
+</div>

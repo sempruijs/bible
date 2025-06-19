@@ -22,10 +22,7 @@
     </button>
   </div>
 
-  <!-- Title (centered by filling space equally) -->
-  <div class="flex-1 flex justify-center">
-    <h3 class="text-xl font-semibold text-gray-800">bijbel</h3>
-  </div>
+  <h3 class="text-xl font-semibold text-gray-800">bijbel</h3>
 
   <!-- GitHub icon -->
   <div class="w-6 flex justify-end">
