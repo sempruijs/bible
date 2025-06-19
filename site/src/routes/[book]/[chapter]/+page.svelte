@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import NavigationButtons from "$lib/components/NaviagationButtons.svelte"
   import Header from "$lib/components/Header.svelte";
   import type { Bible, Book, Chapter } from '$lib/types';
   import bibleData from '$lib/translations/stv.json';
@@ -31,6 +32,11 @@
   <div class="flex-1 p-6 overflow-auto">
     {#if data.chapter}
       <ChapterDetail chapter={data.chapter} />
+      <div
+        class="text-center"
+      >
+      <NavigationButtons {bible} currentChapter={data.chapter} />
+      </div>
     {:else}
       <h1>Could not find book</h1>
     {/if}
