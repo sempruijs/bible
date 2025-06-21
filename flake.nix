@@ -56,7 +56,7 @@
             type = "app";
             program = pkgs.writeShellApplication {
               name = "preview-app";
-              runtimeInputs = [ pkgs.nodePackages.http-server ];
+              runtimeInputs = [ pkgs.miniserve ];
               text = ''
                 miniserve --spa --index index.html --port 8080 ${self'.packages.app}
               '';
