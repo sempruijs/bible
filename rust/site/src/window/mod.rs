@@ -1,1 +1,1 @@
-mod window;
+pub mod window;

@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 use uuid::Uuid;
 
-struct Point {
-    x: i32,
-    y: i32,
+#[derive(Clone)]
+pub struct Point {
+    pub x: i32,
+    pub y: i32,
 }
 
-struct Windows {
+pub struct Windows {
     zoom: f32,
     selected: WindowID,
     windows: HashMap<WindowID, Window>,
@@ -27,7 +28,7 @@ impl Default for Windows {
         let mut windows = HashMap::new();
         windows.insert(w_id, w);
         Self {
-            zoom: 0,
+            zoom: 0.0,
             selected: w_id,
             windows: windows,
         }
@@ -43,7 +44,7 @@ impl Windows {
     }
 
     fn current_window(&self) -> Window {
-        self.windows.get(&self.selected)
+        self.windows.get(&self.selected).unwrap().clone()
     }
 
     fn new_window(&mut self) {
@@ -64,9 +65,10 @@ enum WindowOp {
     Delete,
 }
 
-#[derive(Hash, PartialEq, Eq, Debug, Clone)]
+#[derive(Hash, PartialEq, Eq, Debug, Clone, Copy)]
 struct WindowID(Uuid);
 
-struct Window {
-    pos: Point,
+#[derive(Clone)]
+pub struct Window {
+    pub pos: Point,
 }

@@ -1,18 +1,19 @@
 use leptos::prelude::*;
 
 mod window;
+use window::window::{Windows, Window};
 
 #[component]
 fn App() -> impl IntoView {
     let ws = Windows::default();
     view! {
         <h1>"Bible Computer"</h1>
-        <Windows ws=move || ws />
+        <WindowsComponent ws=ws />
     }
 }
 
 #[component]
-fn Windows(ws: Windows) -> impl IntoView {
+fn WindowsComponent(ws: Windows) -> impl IntoView {
     view! {
         <div>
         iterator over windows here
@@ -21,7 +22,7 @@ fn Windows(ws: Windows) -> impl IntoView {
 }
 
 #[component]
-fn Window(w: Window) -> impl IntoView {
+fn WindowComponent(w: Window) -> impl IntoView {
     view! {
         <div class="bg-blue-500">
             {w.pos.x}
