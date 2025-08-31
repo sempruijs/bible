@@ -4,10 +4,10 @@ mod window;
 
 #[component]
 fn App() -> impl IntoView {
-    let windows = Windows::default();
+    let ws = Windows::default();
     view! {
         <h1>"Bible Computer"</h1>
-        <Window />
+        <Windows ws=move || ws />
     }
 }
 
@@ -20,6 +20,7 @@ fn Windows(ws: Windows) -> impl IntoView {
     }
 }
 
+#[component]
 fn Window(w: Window) -> impl IntoView {
     view! {
         <div class="bg-blue-500">
@@ -31,13 +32,4 @@ fn Window(w: Window) -> impl IntoView {
 fn main() {
     console_error_panic_hook::set_once();
     mount_to_body(App);
-}
-
-#[component]
-fn Window() -> impl IntoView {
-    view! {
-        <div class="bg-blue-800">
-            window
-        </div>
-    }
 }
