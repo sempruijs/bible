@@ -1,4 +1,6 @@
 .direnv
+dist
 .DS_Store
 result
 target
+rust/site/dist

@@ -1,5 +1,5 @@
-use crate::translation::v0::translation_v0::TranslationV0;
 use crate::translation::v1::translation_v1::TranslationV1;
+use crate::translation::{v0::translation_v0::TranslationV0, v1::VerseID};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -20,4 +20,3 @@ impl From<TranslationV0> for Translation {
         Translation::V0(value)
     }
 }
-
