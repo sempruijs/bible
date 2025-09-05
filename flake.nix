@@ -106,14 +106,13 @@
               
               cd rust/site
               
-              # Ensure output.css exists
-              if [ ! -f "style/output.css" ]; then
-                echo "Generating initial Tailwind CSS..."
-                ${pkgs.tailwindcss}/bin/tailwindcss \
-                  -i ./style/tailwind.css \
-                  -o ./style/output.css \
-                  --config ./tailwind.config.js
-              fi
+              # Build Tailwind CSS (always rebuild to catch changes)
+              echo "Building Tailwind CSS..."
+              ${pkgs.tailwindcss}/bin/tailwindcss \
+                -i ./style/tailwind.css \
+                -o ./style/output.css \
+                --config ./tailwind.config.js \
+                --minify
               
               # Start Tailwind CSS watch in background
               echo "Starting Tailwind CSS watcher..."
@@ -121,8 +120,12 @@
                 -i ./style/tailwind.css \
                 -o ./style/output.css \
                 --config ./tailwind.config.js \
-                --watch &
+                --watch \
+                --minify &
               TAILWIND_PID=$!
+              
+              # Give Tailwind a moment to start
+              sleep 1
               
               # Cleanup function
               cleanup() {
@@ -132,11 +135,14 @@
               }
               
               # Trap cleanup
-              trap cleanup INT TERM
+              trap cleanup INT TERM EXIT
               
               # Start trunk serve
               echo "Starting trunk development server..."
               ${pkgs.trunk}/bin/trunk serve --open --port 8080
+              
+              # Keep the script running
+              wait
             '';
           };
         };
