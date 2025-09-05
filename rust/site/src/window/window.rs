@@ -1,41 +1,27 @@
-use std::collections::HashMap;
-use uuid::Uuid;
-
-#[derive(Clone)]
-pub struct Point {
-    pub x: i32,
-    pub y: i32,
-}
-
 #[derive(Clone)]
 pub struct Windows {
     zoom: f32,
-    selected: WindowID,
-    windows: HashMap<WindowID, Window>,
-}
-
-impl Default for Point {
-    fn default() -> Self {
-        Self { x: 0, y: 0 }
-    }
+    x: usize, // Current x position (column index)
+    y: usize, // Current y position (row index)
+    windows: Vec<Vec<Window>>,
 }
 
 impl Default for Windows {
     fn default() -> Self {
-        let w_id = WindowID::new();
-        let w = Window {
-            pos: Point::default(),
-        };
-        let mut windows = HashMap::new();
-        windows.insert(w_id, w);
+        // Start with one window at position (0, 0)
+        let default_window = Window { app: App::Bible };
+        let windows = vec![vec![default_window]];
+
         Self {
-            zoom: 0.0,
-            selected: w_id,
-            windows: windows,
+            zoom: 1.0,
+            x: 0,
+            y: 0,
+            windows,
         }
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum WindowError {
     WindowNotFound,
     LastWindow,
@@ -48,131 +34,106 @@ impl Windows {
     pub fn exec(&mut self, op: WindowOp) -> Result<(), WindowError> {
         match op {
             WindowOp::New => {
-                self.new_window();
+                self.new();
                 Ok(())
             }
-            WindowOp::Delete => self.delete_current_window(),
+            WindowOp::Delete => self.delete(),
             WindowOp::Next => self.next(),
             WindowOp::Previous => self.previous(),
         }
     }
 
+    fn new(&mut self) {
+        // Add a new window to the right of the current position
+        let new_window = Window { app: App::Bible };
+
+        // Get the current row
+        if let Some(row) = self.windows.get_mut(self.y) {
+            // Insert the new window to the right of current position
+            row.insert(self.x + 1, new_window);
+            // Move to the new window
+            self.x += 1;
+        }
+    }
+
+    fn delete(&mut self) -> Result<(), WindowError> {
+        // Don't delete if it's the only window
+        let total_windows: usize = self.windows.iter().map(|row| row.len()).sum();
+        if total_windows <= 1 {
+            return Err(WindowError::OnlyWindow);
+        }
+
+        if let Some(row) = self.windows.get_mut(self.y) {
+            if row.len() > 1 {
+                // Remove current window
+                row.remove(self.x);
+
+                // Adjust x position if needed
+                if self.x >= row.len() && self.x > 0 {
+                    self.x = row.len() - 1;
+                }
+            } else if row.len() == 1 {
+                // If this is the only window in the row, remove the entire row
+                if self.windows.len() > 1 {
+                    self.windows.remove(self.y);
+
+                    // Adjust y position if needed
+                    if self.y >= self.windows.len() && self.y > 0 {
+                        self.y = self.windows.len() - 1;
+                    }
+
+                    // Reset x to 0 for the new row
+                    self.x = 0;
+                } else {
+                    return Err(WindowError::OnlyWindow);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     fn next(&mut self) -> Result<(), WindowError> {
-        match self.next_window_id() {
-            Some(w) => self.select(w),
-            None => Err(WindowError::LastWindow),
+        if let Some(row) = self.windows.get(self.y) {
+            if self.x + 1 < row.len() {
+                self.x += 1;
+                Ok(())
+            } else {
+                Err(WindowError::LastWindow)
+            }
+        } else {
+            Err(WindowError::WindowNotFound)
         }
     }
 
     fn previous(&mut self) -> Result<(), WindowError> {
-        match self.previous_window_id() {
-            Some(w) => self.select(w),
-            None => Err(WindowError::FirstWindow),
+        if self.x > 0 {
+            self.x -= 1;
+            Ok(())
+        } else {
+            Err(WindowError::FirstWindow)
         }
     }
 
-    fn select(&mut self, w: WindowID) -> Result<(), WindowError> {
-        match self.windows.contains_key(&w) {
-            true => {
-                self.selected = w;
-                Ok(())
+    pub fn current_position(&self) -> (usize, usize) {
+        (self.x, self.y)
+    }
+
+    pub fn windows_with_positions(&self) -> Vec<((usize, usize), Window, bool)> {
+        let mut result = Vec::new();
+
+        for (y, row) in self.windows.iter().enumerate() {
+            for (x, window) in row.iter().enumerate() {
+                let is_selected = x == self.x && y == self.y;
+                result.push(((x, y), window.clone(), is_selected));
             }
-            false => Err(WindowError::WindowNotFound),
-        }
-    }
-
-    fn next_window_id(&self) -> Option<WindowID> {
-        let current_window = self.current_window();
-        let current_x = current_window.pos.x;
-        
-        // Find windows with x > current_x, then pick the one with smallest x
-        let mut candidates: Vec<(&WindowID, &Window)> = self.windows
-            .iter()
-            .filter(|(_, w)| w.pos.x > current_x)
-            .collect();
-        
-        if candidates.is_empty() {
-            return None;
-        }
-        
-        // Sort by x position and get the first (smallest x that's still greater than current)
-        candidates.sort_by_key(|(_, w)| w.pos.x);
-        candidates.first().map(|(id, _)| **id)
-    }
-
-    fn previous_window_id(&self) -> Option<WindowID> {
-        let current_window = self.current_window();
-        let current_x = current_window.pos.x;
-        
-        // Find windows with x < current_x, then pick the one with largest x
-        let mut candidates: Vec<(&WindowID, &Window)> = self.windows
-            .iter()
-            .filter(|(_, w)| w.pos.x < current_x)
-            .collect();
-        
-        if candidates.is_empty() {
-            return None;
-        }
-        
-        // Sort by x position in reverse and get the first (largest x that's still less than current)
-        candidates.sort_by_key(|(_, w)| std::cmp::Reverse(w.pos.x));
-        candidates.first().map(|(id, _)| **id)
-    }
-
-    fn current_window(&self) -> Window {
-        self.windows.get(&self.selected).unwrap().clone()
-    }
-
-    fn new_window(&mut self) {
-        let current_w = self.current_window();
-        let p = Point {
-            x: current_w.pos.x + 1,
-            y: current_w.pos.y,
-        };
-        let w = Window { pos: p };
-        let new_id = WindowID::new();
-        self.selected = new_id;
-        self.windows.insert(new_id, w);
-    }
-
-    fn delete_current_window(&mut self) -> Result<(), WindowError> {
-        if self.windows.len() <= 1 {
-            return Err(WindowError::OnlyWindow);
         }
 
-        let current_id = self.selected;
-        self.windows.remove(&current_id);
-
-        // Select another window (just pick the first one)
-        if let Some(&id) = self.windows.keys().next() {
-            self.selected = id;
-        }
-        Ok(())
+        result
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&WindowID, &Window)> {
-        self.windows.iter()
-    }
-
-    pub fn windows(&self) -> Vec<Window> {
-        self.windows.values().cloned().collect()
-    }
-    
-    pub fn selected_window_id(&self) -> WindowID {
-        self.selected
-    }
-    
-    pub fn windows_with_selection(&self) -> Vec<(Window, bool)> {
-        self.windows
-            .iter()
-            .map(|(id, window)| (window.clone(), *id == self.selected))
-            .collect()
-    }
-}
-
-impl WindowID {
-    pub fn new() -> Self {
-        Self(Uuid::new_v4())
+    pub fn window_count(&self) -> usize {
+        self.windows.iter().map(|row| row.len()).sum()
     }
 }
 
@@ -184,10 +145,12 @@ pub enum WindowOp {
     Previous,
 }
 
-#[derive(Hash, PartialEq, Eq, Debug, Clone, Copy)]
-pub struct WindowID(Uuid);
-
 #[derive(Clone)]
 pub struct Window {
-    pub pos: Point,
+    pub app: App,
+}
+
+#[derive(Clone)]
+pub enum App {
+    Bible,
 }

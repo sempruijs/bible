@@ -23,7 +23,9 @@ fn App() -> impl IntoView {
 
         // Get operation from shortcuts system
         if let Some(operation) = shortcuts.get_operation(&key) {
-            set_windows_state.update(|ws| ws.exec(operation).unwrap_or_default());
+            set_windows_state.update(|ws| {
+                let _ = ws.exec(operation);
+            });
         }
     };
 
