@@ -40,6 +40,12 @@ impl Windows {
             WindowOp::Delete => self.delete(),
             WindowOp::Next => self.next(),
             WindowOp::Previous => self.previous(),
+            WindowOp::Up => self.up(),
+            WindowOp::Down => self.down(),
+            WindowOp::NewRow => {
+                self.new_row();
+                Ok(())
+            }
         }
     }
 
@@ -114,6 +120,45 @@ impl Windows {
             Err(WindowError::FirstWindow)
         }
     }
+    
+    fn up(&mut self) -> Result<(), WindowError> {
+        if self.y > 0 {
+            self.y -= 1;
+            // Adjust x if the new row has fewer windows
+            if let Some(row) = self.windows.get(self.y) {
+                if self.x >= row.len() {
+                    self.x = row.len().saturating_sub(1);
+                }
+            }
+            Ok(())
+        } else {
+            Err(WindowError::FirstWindow)
+        }
+    }
+    
+    fn down(&mut self) -> Result<(), WindowError> {
+        if self.y + 1 < self.windows.len() {
+            self.y += 1;
+            // Adjust x if the new row has fewer windows
+            if let Some(row) = self.windows.get(self.y) {
+                if self.x >= row.len() {
+                    self.x = row.len().saturating_sub(1);
+                }
+            }
+            Ok(())
+        } else {
+            Err(WindowError::LastWindow)
+        }
+    }
+    
+    fn new_row(&mut self) {
+        // Add a new row below the current one with a single window
+        let new_window = Window { app: App::Bible };
+        self.windows.insert(self.y + 1, vec![new_window]);
+        // Move to the new row
+        self.y += 1;
+        self.x = 0;
+    }
 
     pub fn current_position(&self) -> (usize, usize) {
         (self.x, self.y)
@@ -143,6 +188,9 @@ pub enum WindowOp {
     Delete,
     Next,
     Previous,
+    Up,
+    Down,
+    NewRow,
 }
 
 #[derive(Clone)]

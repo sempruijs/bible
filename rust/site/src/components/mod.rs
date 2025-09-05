@@ -1,3 +1,3 @@
 pub mod windows;
 
-pub use windows::{WindowsComponent, WindowComponent};
+pub use windows::{WindowsComponent, CurrentWindowComponent};

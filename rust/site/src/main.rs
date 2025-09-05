@@ -30,8 +30,7 @@ fn App() -> impl IntoView {
     };
 
     view! {
-        <div tabindex="0" on:keydown=handle_keypress class="min-h-screen focus:outline-none">
-            <h1 class="text-2xl font-bold p-4">"Bible Computer"</h1>
+        <div tabindex="0" on:keydown=handle_keypress class="min-h-screen bg-gray-900 focus:outline-none">
             <WindowsComponent windows_state=windows_state />
         </div>
     }

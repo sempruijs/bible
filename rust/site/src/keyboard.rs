@@ -14,6 +14,9 @@ impl KeyboardShortcuts {
         shortcuts.insert("d".to_string(), WindowOp::Delete);
         shortcuts.insert("l".to_string(), WindowOp::Next);      // l for right (vim style)
         shortcuts.insert("h".to_string(), WindowOp::Previous);  // h for left (vim style)
+        shortcuts.insert("j".to_string(), WindowOp::Down);      // j for down (vim style)
+        shortcuts.insert("k".to_string(), WindowOp::Up);        // k for up (vim style)
+        shortcuts.insert("o".to_string(), WindowOp::NewRow);    // o for open new row
 
         Self { shortcuts }
     }
