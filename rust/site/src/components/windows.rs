@@ -10,10 +10,10 @@ pub fn WindowsComponent(windows_state: ReadSignal<Windows>) -> impl IntoView {
             </h2>
             <div class="grid grid-cols-3 gap-2">
                 {move || {
-                    windows_state.get().windows().into_iter()
+                    windows_state.get().windows_with_selection().into_iter()
                         .enumerate()
-                        .map(|(index, window)| view! {
-                            <WindowComponent w=window index=index />
+                        .map(|(index, (window, is_selected))| view! {
+                            <WindowComponent w=window index=index is_selected=is_selected />
                         })
                         .collect::<Vec<_>>()
                 }}
@@ -23,10 +23,22 @@ pub fn WindowsComponent(windows_state: ReadSignal<Windows>) -> impl IntoView {
 }
 
 #[component]
-pub fn WindowComponent(w: Window, index: usize) -> impl IntoView {
+pub fn WindowComponent(w: Window, index: usize, is_selected: bool) -> impl IntoView {
+    let classes = if is_selected {
+        "bg-blue-500 text-white rounded-lg shadow-lg p-4 border-2 border-blue-600 transition-all"
+    } else {
+        "bg-white rounded-lg shadow-md p-4 border border-gray-200 hover:shadow-lg transition-all"
+    };
+    
+    let text_color = if is_selected {
+        "text-blue-100"
+    } else {
+        "text-gray-600"
+    };
+    
     view! {
-        <div class="bg-white rounded-lg shadow-md p-4 border border-gray-200 hover:shadow-lg transition-shadow">
-            <div class="text-sm text-gray-600">"Window " {index + 1}</div>
+        <div class=classes>
+            <div class=format!("text-sm {}", text_color)>"Window " {index + 1}</div>
             <div class="text-lg font-semibold">
                 "Position: (" {w.pos.x} ", " {w.pos.y} ")"
             </div>

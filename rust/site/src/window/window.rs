@@ -82,11 +82,41 @@ impl Windows {
     }
 
     fn next_window_id(&self) -> Option<WindowID> {
-        todo!()
+        let current_window = self.current_window();
+        let current_x = current_window.pos.x;
+        
+        // Find windows with x > current_x, then pick the one with smallest x
+        let mut candidates: Vec<(&WindowID, &Window)> = self.windows
+            .iter()
+            .filter(|(_, w)| w.pos.x > current_x)
+            .collect();
+        
+        if candidates.is_empty() {
+            return None;
+        }
+        
+        // Sort by x position and get the first (smallest x that's still greater than current)
+        candidates.sort_by_key(|(_, w)| w.pos.x);
+        candidates.first().map(|(id, _)| **id)
     }
 
     fn previous_window_id(&self) -> Option<WindowID> {
-        todo!()
+        let current_window = self.current_window();
+        let current_x = current_window.pos.x;
+        
+        // Find windows with x < current_x, then pick the one with largest x
+        let mut candidates: Vec<(&WindowID, &Window)> = self.windows
+            .iter()
+            .filter(|(_, w)| w.pos.x < current_x)
+            .collect();
+        
+        if candidates.is_empty() {
+            return None;
+        }
+        
+        // Sort by x position in reverse and get the first (largest x that's still less than current)
+        candidates.sort_by_key(|(_, w)| std::cmp::Reverse(w.pos.x));
+        candidates.first().map(|(id, _)| **id)
     }
 
     fn current_window(&self) -> Window {
@@ -126,6 +156,17 @@ impl Windows {
 
     pub fn windows(&self) -> Vec<Window> {
         self.windows.values().cloned().collect()
+    }
+    
+    pub fn selected_window_id(&self) -> WindowID {
+        self.selected
+    }
+    
+    pub fn windows_with_selection(&self) -> Vec<(Window, bool)> {
+        self.windows
+            .iter()
+            .map(|(id, window)| (window.clone(), *id == self.selected))
+            .collect()
     }
 }
 

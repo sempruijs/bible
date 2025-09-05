@@ -12,6 +12,8 @@ impl KeyboardShortcuts {
         // Define keyboard shortcuts
         shortcuts.insert("n".to_string(), WindowOp::New);
         shortcuts.insert("d".to_string(), WindowOp::Delete);
+        shortcuts.insert("l".to_string(), WindowOp::Next);      // l for right (vim style)
+        shortcuts.insert("h".to_string(), WindowOp::Previous);  // h for left (vim style)
 
         Self { shortcuts }
     }
