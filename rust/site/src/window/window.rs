@@ -7,6 +7,7 @@ pub struct Point {
     pub y: i32,
 }
 
+#[derive(Clone)]
 pub struct Windows {
     zoom: f32,
     selected: WindowID,
@@ -36,10 +37,10 @@ impl Default for Windows {
 }
 
 impl Windows {
-    fn exec(&mut self, op: WindowOp) {
+    pub fn exec(&mut self, op: WindowOp) {
         match op {
             WindowOp::New => self.new_window(),
-            WindowOp::Delete => todo!(),
+            WindowOp::Delete => self.delete_current_window(),
         }
     }
 
@@ -49,8 +50,37 @@ impl Windows {
 
     fn new_window(&mut self) {
         let current_w = self.current_window();
-        let w = Window { pos: current_w.pos };
-        self.windows.insert(WindowID::new(), w);
+        let p = Point {
+            x: current_w.pos.x + 1,
+            y: current_w.pos.y,
+        };
+        let w = Window { pos: p };
+        let new_id = WindowID::new();
+        self.selected = new_id;
+        self.windows.insert(new_id, w);
+    }
+    
+    fn delete_current_window(&mut self) {
+        // Don't delete if it's the last window
+        if self.windows.len() <= 1 {
+            return;
+        }
+        
+        let current_id = self.selected;
+        self.windows.remove(&current_id);
+        
+        // Select another window (just pick the first one)
+        if let Some(&id) = self.windows.keys().next() {
+            self.selected = id;
+        }
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&WindowID, &Window)> {
+        self.windows.iter()
+    }
+
+    pub fn windows(&self) -> Vec<Window> {
+        self.windows.values().cloned().collect()
     }
 }
 
@@ -60,13 +90,14 @@ impl WindowID {
     }
 }
 
-enum WindowOp {
+#[derive(Clone, Copy, Debug)]
+pub enum WindowOp {
     New,
     Delete,
 }
 
 #[derive(Hash, PartialEq, Eq, Debug, Clone, Copy)]
-struct WindowID(Uuid);
+pub struct WindowID(Uuid);
 
 #[derive(Clone)]
 pub struct Window {
