@@ -1,6 +1,7 @@
 use leptos::ev::KeyboardEvent;
 use leptos::prelude::*;
 
+mod app;
 mod components;
 mod keyboard;
 mod window;

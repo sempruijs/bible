@@ -1,3 +1,5 @@
+use crate::app::App;
+
 #[derive(Clone)]
 pub struct Windows {
     zoom: f32,
@@ -9,7 +11,7 @@ pub struct Windows {
 impl Default for Windows {
     fn default() -> Self {
         // Start with one window at position (0, 0)
-        let default_window = Window { app: App::Bible };
+        let default_window = Window { app: App::Welcome };
         let windows = vec![vec![default_window]];
 
         Self {
@@ -120,7 +122,7 @@ impl Windows {
             Err(WindowError::FirstWindow)
         }
     }
-    
+
     fn up(&mut self) -> Result<(), WindowError> {
         if self.y > 0 {
             self.y -= 1;
@@ -135,7 +137,7 @@ impl Windows {
             Err(WindowError::FirstWindow)
         }
     }
-    
+
     fn down(&mut self) -> Result<(), WindowError> {
         if self.y + 1 < self.windows.len() {
             self.y += 1;
@@ -150,10 +152,10 @@ impl Windows {
             Err(WindowError::LastWindow)
         }
     }
-    
+
     fn new_row(&mut self) {
         // Add a new row below the current one with a single window
-        let new_window = Window { app: App::Bible };
+        let new_window = Window { app: App::Welcome };
         self.windows.insert(self.y + 1, vec![new_window]);
         // Move to the new row
         self.y += 1;
@@ -196,9 +198,4 @@ pub enum WindowOp {
 #[derive(Clone)]
 pub struct Window {
     pub app: App,
-}
-
-#[derive(Clone)]
-pub enum App {
-    Bible,
 }
