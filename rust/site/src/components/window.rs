@@ -9,7 +9,7 @@ pub fn WindowView(
     windows_state: WriteSignal<Windows>,
 ) -> impl IntoView {
     view! {
-        <div class="bg-white rounded-lg p-4 m-4">
+        <div class="fixed inset-8 bg-white rounded-lg p-4">
             {match window.app {
                 Some(App::Bible) => view! { <Bible /> }.into_any(),
                 Some(App::Welcome) => view! { <Welcome /> }.into_any(),

@@ -11,7 +11,9 @@ pub struct Windows {
 impl Default for Windows {
     fn default() -> Self {
         // Start with one window at position (0, 0)
-        let default_window = Window { app: None };
+        let default_window = Window {
+            app: Some(App::Bible),
+        };
         let windows = vec![vec![default_window]];
 
         Self {

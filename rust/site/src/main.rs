@@ -31,7 +31,7 @@ fn App() -> impl IntoView {
     };
 
     view! {
-        <div tabindex="0" on:keydown=handle_keypress class="min-h-screen bg-gray-900 focus:outline-none">
+        <div tabindex="0" on:keydown=handle_keypress class="min-h-screen bg-blue-900 focus:outline-none">
             <WindowsComponent windows_state=windows_state set_windows_state=set_windows_state />
         </div>
     }
