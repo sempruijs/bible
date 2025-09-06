@@ -1,15 +1,19 @@
 use crate::app::App;
-use crate::components::app::{Bible, Welcome};
+use crate::components::app::{AppChooser, Bible, Welcome};
 use crate::window::window::{Window, Windows};
 use leptos::prelude::*;
 
 #[component]
-pub fn WindowView(window: Window) -> impl IntoView {
+pub fn WindowView(
+    window: Window,
+    windows_state: WriteSignal<Windows>,
+) -> impl IntoView {
     view! {
-        <div class="h-full">
+        <div class="bg-white rounded-lg p-4 m-4">
             {match window.app {
-                App::Bible => view! { <Bible /> }.into_any(),
-                App::Welcome => view! { <Welcome /> }.into_any(),
+                Some(App::Bible) => view! { <Bible /> }.into_any(),
+                Some(App::Welcome) => view! { <Welcome /> }.into_any(),
+                None => view! { <AppChooser windows_state=windows_state /> }.into_any(),
             }}
         </div>
     }
@@ -24,8 +28,9 @@ pub fn WindowTitleBar(
     windows_state: ReadSignal<Windows>,
 ) -> impl IntoView {
     let app_name = match window.app {
-        App::Bible => "📖 Bible",
-        App::Welcome => "👋 Welcome",
+        Some(App::Bible) => "📖 Bible",
+        Some(App::Welcome) => "👋 Welcome",
+        None => "🚀 App Chooser",
     };
 
     view! {

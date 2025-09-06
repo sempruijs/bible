@@ -11,7 +11,7 @@ pub struct Windows {
 impl Default for Windows {
     fn default() -> Self {
         // Start with one window at position (0, 0)
-        let default_window = Window { app: App::Welcome };
+        let default_window = Window { app: None };
         let windows = vec![vec![default_window]];
 
         Self {
@@ -53,7 +53,7 @@ impl Windows {
 
     fn new(&mut self) {
         // Add a new window to the right of the current position
-        let new_window = Window { app: App::Bible };
+        let new_window = Window { app: None };
 
         // Get the current row
         if let Some(row) = self.windows.get_mut(self.y) {
@@ -155,7 +155,7 @@ impl Windows {
 
     fn new_row(&mut self) {
         // Add a new row below the current one with a single window
-        let new_window = Window { app: App::Welcome };
+        let new_window = Window { app: None };
         self.windows.insert(self.y + 1, vec![new_window]);
         // Move to the new row
         self.y += 1;
@@ -182,6 +182,14 @@ impl Windows {
     pub fn window_count(&self) -> usize {
         self.windows.iter().map(|row| row.len()).sum()
     }
+
+    pub fn set_current_window_app(&mut self, app: App) {
+        if let Some(row) = self.windows.get_mut(self.y) {
+            if let Some(window) = row.get_mut(self.x) {
+                window.app = Some(app);
+            }
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -197,5 +205,5 @@ pub enum WindowOp {
 
 #[derive(Clone)]
 pub struct Window {
-    pub app: App,
+    pub app: Option<App>,
 }
