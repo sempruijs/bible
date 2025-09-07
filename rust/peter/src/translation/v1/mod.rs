@@ -23,3 +23,4 @@ pub use meta::{EquivalenceLevel, TranslationMetaData, Year};
 pub use testament::Testament;
 pub use translation_v1::TranslationV1;
 pub use verse::{Verse, VerseID, VerseNumber};
+pub mod api;

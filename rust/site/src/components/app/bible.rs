@@ -1,8 +1,11 @@
+use crate::app::bible::BibleState;
 use leptos::prelude::*;
 
 #[component]
-pub fn Bible() -> impl IntoView {
+pub fn Bible(s: BibleState) -> impl IntoView {
     view! {
-        "Bible"
+        <div>
+        {s.translation.random_chapter().verses[0]}
+        </div>
     }
 }

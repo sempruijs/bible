@@ -1,5 +1,7 @@
+use crate::app::bible::*;
+
 #[derive(Clone)]
 pub enum App {
-    Bible,
+    Bible(BibleState),
     Welcome,
 }

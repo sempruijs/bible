@@ -1,26 +1,52 @@
 use crate::app::App;
+use crate::app::bible::BibleState;
+use peter::translation::v1::{VerseID, VerseNumber};
+use peter::translation::v1::chapter::{ChapterID, ChapterNumber};
+use peter::translation::v1::book_name::BookName;
 
 #[derive(Clone)]
 pub struct Windows {
     zoom: f32,
     x: usize, // Current x position (column index)
     y: usize, // Current y position (row index)
-    windows: Vec<Vec<Window>>,
+    windows: Vec<WindowRow>,
+}
+
+#[derive(Clone)]
+pub struct WindowRow {
+    pub state: RowState,
+    pub windows: Vec<Window>,
+}
+
+#[derive(Clone)]
+pub struct RowState {
+    pub selected_verse: VerseID,
 }
 
 impl Default for Windows {
     fn default() -> Self {
         // Start with one window at position (0, 0)
         let default_window = Window {
-            app: Some(App::Bible),
+            app: Some(App::Bible(BibleState::new())),
         };
-        let windows = vec![vec![default_window]];
+        let default_row = WindowRow {
+            state: RowState {
+                selected_verse: VerseID {
+                    chapter_id: ChapterID {
+                        book_name: BookName::Genesis,
+                        number: ChapterNumber(1),
+                    },
+                    verse: VerseNumber::Single(1),
+                },
+            },
+            windows: vec![default_window],
+        };
 
         Self {
             zoom: 1.0,
             x: 0,
             y: 0,
-            windows,
+            windows: vec![default_row],
         }
     }
 }
@@ -60,7 +86,7 @@ impl Windows {
         // Get the current row
         if let Some(row) = self.windows.get_mut(self.y) {
             // Insert the new window to the right of current position
-            row.insert(self.x + 1, new_window);
+            row.windows.insert(self.x + 1, new_window);
             // Move to the new window
             self.x += 1;
         }
@@ -68,21 +94,21 @@ impl Windows {
 
     fn delete(&mut self) -> Result<(), WindowError> {
         // Don't delete if it's the only window
-        let total_windows: usize = self.windows.iter().map(|row| row.len()).sum();
+        let total_windows: usize = self.windows.iter().map(|row| row.windows.len()).sum();
         if total_windows <= 1 {
             return Err(WindowError::OnlyWindow);
         }
 
         if let Some(row) = self.windows.get_mut(self.y) {
-            if row.len() > 1 {
+            if row.windows.len() > 1 {
                 // Remove current window
-                row.remove(self.x);
+                row.windows.remove(self.x);
 
                 // Adjust x position if needed
-                if self.x >= row.len() && self.x > 0 {
-                    self.x = row.len() - 1;
+                if self.x >= row.windows.len() && self.x > 0 {
+                    self.x = row.windows.len() - 1;
                 }
-            } else if row.len() == 1 {
+            } else if row.windows.len() == 1 {
                 // If this is the only window in the row, remove the entire row
                 if self.windows.len() > 1 {
                     self.windows.remove(self.y);
@@ -105,7 +131,7 @@ impl Windows {
 
     fn next(&mut self) -> Result<(), WindowError> {
         if let Some(row) = self.windows.get(self.y) {
-            if self.x + 1 < row.len() {
+            if self.x + 1 < row.windows.len() {
                 self.x += 1;
                 Ok(())
             } else {
@@ -130,8 +156,8 @@ impl Windows {
             self.y -= 1;
             // Adjust x if the new row has fewer windows
             if let Some(row) = self.windows.get(self.y) {
-                if self.x >= row.len() {
-                    self.x = row.len().saturating_sub(1);
+                if self.x >= row.windows.len() {
+                    self.x = row.windows.len().saturating_sub(1);
                 }
             }
             Ok(())
@@ -145,8 +171,8 @@ impl Windows {
             self.y += 1;
             // Adjust x if the new row has fewer windows
             if let Some(row) = self.windows.get(self.y) {
-                if self.x >= row.len() {
-                    self.x = row.len().saturating_sub(1);
+                if self.x >= row.windows.len() {
+                    self.x = row.windows.len().saturating_sub(1);
                 }
             }
             Ok(())
@@ -158,7 +184,19 @@ impl Windows {
     fn new_row(&mut self) {
         // Add a new row below the current one with a single window
         let new_window = Window { app: None };
-        self.windows.insert(self.y + 1, vec![new_window]);
+        let new_row = WindowRow {
+            state: RowState {
+                selected_verse: VerseID {
+                    chapter_id: ChapterID {
+                        book_name: BookName::Genesis,
+                        number: ChapterNumber(1),
+                    },
+                    verse: VerseNumber::Single(1),
+                },
+            },
+            windows: vec![new_window],
+        };
+        self.windows.insert(self.y + 1, new_row);
         // Move to the new row
         self.y += 1;
         self.x = 0;
@@ -172,7 +210,7 @@ impl Windows {
         let mut result = Vec::new();
 
         for (y, row) in self.windows.iter().enumerate() {
-            for (x, window) in row.iter().enumerate() {
+            for (x, window) in row.windows.iter().enumerate() {
                 let is_selected = x == self.x && y == self.y;
                 result.push(((x, y), window.clone(), is_selected));
             }
@@ -182,12 +220,12 @@ impl Windows {
     }
 
     pub fn window_count(&self) -> usize {
-        self.windows.iter().map(|row| row.len()).sum()
+        self.windows.iter().map(|row| row.windows.len()).sum()
     }
 
     pub fn set_current_window_app(&mut self, app: App) {
         if let Some(row) = self.windows.get_mut(self.y) {
-            if let Some(window) = row.get_mut(self.x) {
+            if let Some(window) = row.windows.get_mut(self.x) {
                 window.app = Some(app);
             }
         }
