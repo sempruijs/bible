@@ -8,7 +8,7 @@ pub fn WindowView(window: Window, windows_state: WriteSignal<Windows>) -> impl I
     view! {
         <div class="fixed inset-8 bg-white rounded-lg p-4">
             {match &window.app {
-                Some(App::Bible(s)) => view! { <Bible s=s /> }.into_any(),
+                Some(App::Bible(s)) => view! { <Bible s=s.clone() /> }.into_any(),
                 Some(App::Welcome) => view! { <Welcome /> }.into_any(),
                 None => view! { <AppChooser windows_state=windows_state /> }.into_any(),
             }}

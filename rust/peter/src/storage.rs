@@ -46,6 +46,7 @@ where
     }
     
     /// Fetch data from a URL (HTTP/HTTPS)
+    #[cfg(not(target_arch = "wasm32"))]
     async fn fetch_from_url(&self, url: &Url) -> Result<T, StorageFetchError> {
         // Simple HTTP fetch implementation using curl
         // In a production environment, you might want to use reqwest or similar
@@ -73,6 +74,13 @@ where
         let data: T = serde_json::from_str(&response_text)?;
         
         Ok(data)
+    }
+    
+    /// Fetch data from a URL (HTTP/HTTPS) - WASM version
+    #[cfg(target_arch = "wasm32")]
+    async fn fetch_from_url(&self, _url: &Url) -> Result<T, StorageFetchError> {
+        // For WASM, remote storage is not supported yet
+        Err(StorageFetchError::Http { status: 501 })
     }
     
     /// Check if this storage is local

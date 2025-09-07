@@ -7,6 +7,8 @@ edition = "2024"
 serde = "1.0.219"
 serde_json = "1.0"
 thiserror = "2.0.16"
-tokio = { version = "1.47.1", features = ["process", "io-util"] }
 url = "2.5.7"
 uuid = "1.18.0"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { version = "1.47.1", features = ["process", "io-util"] }

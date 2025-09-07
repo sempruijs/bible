@@ -1,0 +1,11 @@
+[build]
+target = "index.html"
+dist = "dist"
+
+[watch]
+watch = ["src", "Cargo.toml", "style"]
+ignore = ["target", "dist"]
+
+[serve]
+port = 8080
+open = false
