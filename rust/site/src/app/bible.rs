@@ -1,10 +1,11 @@
 use peter::translation::Translation;
-use peter::translation::v1::TranslationV1;
+use peter::translation::v1::{TranslationV1, Chapter};
 use serde_json;
 
 #[derive(Clone)]
 pub struct BibleState {
     pub translation: TranslationV1,
+    pub current_chapter: Chapter,
 }
 
 impl BibleState {
@@ -18,8 +19,12 @@ impl BibleState {
             Translation::V0(_) => panic!("Expected V1 translation format"),
         };
         
+        // Get a random chapter once when creating the state
+        let current_chapter = translation.random_chapter();
+        
         Self {
             translation,
+            current_chapter,
         }
     }
 }

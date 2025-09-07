@@ -10,5 +10,8 @@ thiserror = "2.0.16"
 url = "2.5.7"
 uuid = "1.18.0"
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+js-sys = "0.3"
+
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1.47.1", features = ["process", "io-util"] }
