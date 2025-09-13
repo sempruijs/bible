@@ -1,14 +1,13 @@
 { pkgs, craneLib, rustToolchain }:
 
 let
-  unfilteredRoot = ./.;
   src = pkgs.lib.fileset.toSource {
-    root = unfilteredRoot;
+    root = ./.;
     fileset = pkgs.lib.fileset.unions [
-      (craneLib.fileset.commonCargoSources unfilteredRoot)
+      (craneLib.fileset.commonCargoSources ./.)
       (pkgs.lib.fileset.fileFilter (
-        file: pkgs.lib.any file.hasExt [ "html" "scss" "css" "js" "json" "txt" "png" ]
-      ) unfilteredRoot)
+        file: pkgs.lib.any file.hasExt [ "html" "scss" "css" "js" "json" "txt" "png" "btrl" ]
+      ) ./.)
       (pkgs.lib.fileset.maybeMissing ./assets)
     ];
   };
@@ -19,10 +18,16 @@ let
     buildInputs = pkgs.lib.optionals pkgs.stdenv.isDarwin [
       pkgs.libiconv
     ];
+    # Copy peter dependency into the build
+    prePatch = ''
+      cp -r ${../peter} ../peter
+      chmod -R +w ../peter
+    '';
   };
 
   wasmArgs = commonArgs // {
     pname = "trunk-workspace-wasm";
+    version = "0.1.0";
     cargoExtraArgs = "--package=bible";
     CARGO_BUILD_TARGET = "wasm32-unknown-unknown";
   };
@@ -49,28 +54,14 @@ in craneLib.buildTrunkPackage (
         -o ./style/output.css \
         --config ./tailwind.config.js
     '';
+    
     TRUNK_CACHE_DIR = "./target/trunk-cache";
     HOME = "./target/home";
 
     postBuild = ''
       cp ./dist/index.html ./dist/404.html
-      
-      mv ./dist ..
-      cd ..
     '';
 
-    wasm-bindgen-cli = pkgs.buildWasmBindgenCli rec {
-      src = pkgs.fetchCrate {
-        pname = "wasm-bindgen-cli";
-        version = "0.2.100";
-        hash = "sha256-3RJzK7mkYFrs7C/WkhW9Rr4LdP5ofb2FdYGz1P7Uxog=";
-      };
-
-      cargoDeps = pkgs.rustPlatform.fetchCargoVendor {
-        inherit src;
-        inherit (src) pname version;
-        hash = "sha256-qsO12332HSjWCVKtf1cUePWWb9IdYUmT+8OPj/XP2WE=";
-      };
-    };
+    wasm-bindgen-cli = pkgs.wasm-bindgen-cli;
   }
 )
