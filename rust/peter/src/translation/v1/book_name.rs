@@ -108,6 +108,91 @@ pub enum BookName {
     Revelation,
 }
 
+impl BookName {
+    pub fn amount_of_chapters(&self) -> u32 {
+        match self {
+            BookName::Genesis => 50,
+            BookName::Exodus => 40,
+            BookName::Leviticus => 27,
+            BookName::Numbers => 36,
+            BookName::Deuteronomy => 34,
+            BookName::Joshua => 24,
+            BookName::Judges => 21,
+            BookName::Ruth => 4,
+            BookName::FirstSamuel => 31,
+            BookName::SecondSamuel => 24,
+            BookName::FirstKings => 22,
+            BookName::SecondKings => 25,
+            BookName::FirstChronicles => 29,
+            BookName::SecondChronicles => 36,
+            BookName::Ezra => 10,
+            BookName::Nehemiah => 13,
+            BookName::Tobit => 14,
+            BookName::Judith => 16,
+            BookName::Esther => 10,
+            BookName::AdditionsToEsther => 6,
+            BookName::FirstMaccabees => 16,
+            BookName::SecondMaccabees => 15,
+            BookName::Job => 42,
+            BookName::Psalms => 150,
+            BookName::Proverbs => 31,
+            BookName::Ecclesiastes => 12,
+            BookName::SongOfSongs => 8,
+            BookName::Wisdom => 19,
+            BookName::Sirach => 51,
+            BookName::Isaiah => 66,
+            BookName::Jeremiah => 52,
+            BookName::Lamentations => 5,
+            BookName::Baruch => 6,
+            BookName::LetterOfJeremiah => 1,
+            BookName::Ezekiel => 48,
+            BookName::Daniel => 12,
+            BookName::PrayerOfAzariah => 1,
+            BookName::Susanna => 1,
+            BookName::BelAndTheDragon => 1,
+            BookName::Hosea => 14,
+            BookName::Joel => 3,
+            BookName::Amos => 9,
+            BookName::Obadiah => 1,
+            BookName::Jonah => 4,
+            BookName::Micah => 7,
+            BookName::Nahum => 3,
+            BookName::Habakkuk => 3,
+            BookName::Zephaniah => 3,
+            BookName::Haggai => 2,
+            BookName::Zechariah => 14,
+            BookName::Malachi => 4,
+            BookName::Matthew => 28,
+            BookName::Mark => 16,
+            BookName::Luke => 24,
+            BookName::John => 21,
+            BookName::Acts => 28,
+            BookName::Romans => 16,
+            BookName::FirstCorinthians => 16,
+            BookName::SecondCorinthians => 13,
+            BookName::Galatians => 6,
+            BookName::Ephesians => 6,
+            BookName::Philippians => 4,
+            BookName::Colossians => 4,
+            BookName::FirstThessalonians => 5,
+            BookName::SecondThessalonians => 3,
+            BookName::FirstTimothy => 6,
+            BookName::SecondTimothy => 4,
+            BookName::Titus => 3,
+            BookName::Philemon => 1,
+            BookName::Hebrews => 13,
+            BookName::James => 5,
+            BookName::FirstPeter => 5,
+            BookName::SecondPeter => 3,
+            BookName::FirstJohn => 5,
+            BookName::SecondJohn => 1,
+            BookName::ThirdJohn => 1,
+            BookName::Jude => 1,
+            BookName::Revelation => 22,
+        }
+    }
+}
+
 impl fmt::Display for BookName {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use BookName::*;
@@ -200,7 +285,6 @@ pub enum BookNameParseError {
     #[error("Unknown book name: {0}")]
     UnknownName(String),
 }
-
 
 impl TryFrom<&str> for BookName {
     type Error = BookNameParseError;

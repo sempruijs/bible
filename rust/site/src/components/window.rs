@@ -10,6 +10,7 @@ pub fn WindowView(window: Window, windows_state: WriteSignal<Windows>) -> impl I
             {match &window.app {
                 Some(App::Bible(s)) => view! { <Bible s=s.clone() /> }.into_any(),
                 Some(App::Welcome) => view! { <Welcome /> }.into_any(),
+                Some(App::BookExplorer) => view! { <div>"Book Explorer"</div> }.into_any(),
                 None => view! { <AppChooser windows_state=windows_state /> }.into_any(),
             }}
         </div>
@@ -27,6 +28,7 @@ pub fn WindowTitleBar(
     let app_name = match &window.app {
         Some(App::Bible(_)) => "📖 Bible",
         Some(App::Welcome) => "👋 Welcome",
+        Some(App::BookExplorer) => "📚 Book Explorer",
         None => "🚀 App Chooser",
     };
 
