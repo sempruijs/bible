@@ -20,10 +20,19 @@ pub struct Chapter {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Chapters(#[serde(with = "super::serde_helpers::btreemap_as_tuple_list")] pub BTreeMap<ChapterNumber, Chapter>);
+pub struct Chapters(
+    #[serde(with = "super::serde_helpers::btreemap_as_tuple_list")]
+    pub  BTreeMap<ChapterNumber, Chapter>,
+);
 
 #[derive(Debug, Clone)]
 pub struct ChapterID {
     pub book_name: BookName,
     pub number: ChapterNumber,
+}
+
+impl ChapterID {
+    fn url_path(&self) -> String {
+        format!("{}/{}", self.book_name.short(), self.number)
+    }
 }
