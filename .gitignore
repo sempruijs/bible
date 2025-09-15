@@ -1,7 +1,5 @@
 .direnv
-rust/site/style/output.css
-dist
 .DS_Store
 result
 target
-rust/site/dist
+dist
