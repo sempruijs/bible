@@ -3,6 +3,11 @@ export const AppType = {
   Stopwatch: "Stopwatch",
   Welcome: "Welcome",
   Chooser: "Chooser",
+  Donate: "Donate",
 } as const;
 
-export type Status = typeof AppType[keyof typeof AppType];
+export interface WindowState {
+  appType: AppType;
+}
+
+export type AppType = typeof AppType[keyof typeof AppType];

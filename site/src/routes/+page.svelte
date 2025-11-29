@@ -1,10 +1,12 @@
 <script lang="ts">
-import Window from "$lib/components/window/window.svelte";
+    import WindowManager from "$lib/components/window/WindowManager.svelte";
 
-import { AppType } from "$lib/ts/window";
+    function handleKeyDown(event: KeyboardEvent) {
+        console.log("Global key:", event.key);
+    }
 </script>
-<div class="grid h-screen w-screen grid-cols-[repeat(auto-fit,minmax(0,1fr))]">
-<Window appType={AppType.Bible} />
-<Window appType={AppType.Stopwatch} />
-<Window appType={AppType.Welcome} />
+
+<svelte:window onkeydown={handleKeyDown} />
+<div>
+    <WindowManager />
 </div>

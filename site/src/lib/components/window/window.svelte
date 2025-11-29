@@ -5,20 +5,24 @@
     import Welcome from "./Welcome.svelte";
     import Bible from "./Bible.svelte";
     import Chooser from "./Chooser.svelte";
+    import Donate from "./donate.svelte";
 
-
-     export let appType: typeof AppType[keyof typeof AppType];
+    let { windowState = $bindable() } = $props();
 </script>
+
 <div>
-{#if appType == AppType.Bible}
-<Bible />
-{:else if appType == AppType.Stopwatch}
-<Stopwatch />
-{:else if appType == AppType.Welcome}
-<Welcome />
-{:else if appType == AppType.Chooser}
-<Chooser />
-{:else}
-Could not find AppType
-{/if}
+    <button> close window </button>
+    {#if windowState.appType == AppType.Bible}
+        <Bible />
+    {:else if windowState.appType == AppType.Stopwatch}
+        <Stopwatch />
+    {:else if windowState.appType == AppType.Welcome}
+        <Welcome />
+    {:else if windowState.appType == AppType.Chooser}
+        <Chooser />
+    {:else if windowState.appType == AppType.Donate}
+        <Donate />
+    {:else}
+        Could not find AppType
+    {/if}
 </div>
