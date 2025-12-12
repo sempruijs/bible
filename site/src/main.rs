@@ -1,8 +1,3 @@
-/*!
- * Bible Application Main Module
- *
- */
-
 // === External Dependencies ===
 use leptos::prelude::*;
 
