@@ -136,7 +136,7 @@
               
               # Start trunk serve
               echo "Starting trunk development server..."
-              ${pkgs.trunk}/bin/trunk serve --open --port 8080
+              ${pkgs.trunk}/bin/trunk serve --address 0.0.0.0 --port 8080
             '';
           };
         };
