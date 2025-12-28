@@ -6,4 +6,4 @@
 
 <h1>Bible Computer</h1>
 
-<p>{data.bibleData.books[0].chapters[0].verses[0].text}</p>
+<a href="/gen/1">Read Genesis 1</a>
