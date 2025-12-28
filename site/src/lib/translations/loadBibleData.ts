@@ -1,5 +1,7 @@
 import { Effect } from "effect";
 import type { TranslationV0 } from "./v0";
+import { toTranslation } from "./v0";
+import type { Translation } from "./translation";
 
 // https://raw.githubusercontent.com/biblecomputer/translations/refs/heads/main/v0/english/kjv.json
 
@@ -19,10 +21,13 @@ export const loadBibleData = () => Effect.gen(function* () {
         catch: (error) => new FetchError(`Failed to fetch: ${error}`)
     });
 
-    const data = yield* Effect.tryPromise({
+    const jsonData = yield* Effect.tryPromise({
         try: () => response.json(),
         catch: (error) => new ParseError(`Failed to parse JSON: ${error}`)
     });
 
-    return data as TranslationV0;
+    const translationV0 = jsonData as TranslationV0;
+    const translation = yield* toTranslation(translationV0);
+    
+    return translation;
 });

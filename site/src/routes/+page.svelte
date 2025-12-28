@@ -1,10 +1,10 @@
 <script lang="ts">
     import { Effect, Option } from "effect";
     import { loadBibleData } from "$lib/translations/loadBibleData";
-    import type { TranslationV0 } from "$lib/translations/v0";
+    import type { Translation } from "$lib/translations/translation";
     import { onMount } from "svelte";
 
-    let bibleData: Option.Option<TranslationV0> = Option.none();
+    let bibleData: Option.Option<Translation> = Option.none();
 
     onMount(() => {
         Effect.runPromise(loadBibleData()).then(
