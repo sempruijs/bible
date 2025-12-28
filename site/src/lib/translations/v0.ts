@@ -90,7 +90,7 @@ const BOOK_NAME_TO_BIBLE_BOOK: Record<string, BibleBook> = {
   "II JOHN": BibleBook.SecondJohn,
   "III JOHN": BibleBook.ThirdJohn,
   "JUDE": BibleBook.Jude,
-  "REVELATION": BibleBook.Revelation
+  "REVELATION OF JOHN": BibleBook.Revelation
 };
 
 export class BookNameParseError {
