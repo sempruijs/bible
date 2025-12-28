@@ -1,3 +1,2 @@
-target/
-dist/
-style/output.css
+node_modules
+.svelte-kit

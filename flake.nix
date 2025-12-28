@@ -1,145 +1,111 @@
 {
-  description = "Build a cargo project with Trunk and Nix";
+  description = "My cardano dApp";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
-    rust-overlay = {
-      url = "github:oxalica/rust-overlay";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    crane.url = "github:ipetkov/crane";
+    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    treefmt-nix.url = "github:numtide/treefmt-nix";
   };
 
-  outputs = { self, nixpkgs, flake-utils, crane, rust-overlay, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = import nixpkgs {
-          inherit system;
-          overlays = [ (import rust-overlay) ];
-        };
+  outputs = inputs@{ self, nixpkgs, flake-parts, treefmt-nix, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ];
+      imports = [
+        treefmt-nix.flakeModule
+      ];
 
-        rustToolchain = pkgs.rust-bin.stable.latest.default.override {
-          targets = [ "wasm32-unknown-unknown" ];
-        };
-
-        craneLib = (crane.mkLib pkgs).overrideToolchain (_: rustToolchain);
-
-        commonArgs = {
-          strictDeps = true;
-          buildInputs = pkgs.lib.optionals pkgs.stdenv.isDarwin [
-            pkgs.libiconv
-          ];
-        };
-
-        nativeArgs = commonArgs // {
-          src = pkgs.lib.fileset.toSource {
-            root = ./site;
-            fileset = pkgs.lib.fileset.unions [
-              (craneLib.fileset.commonCargoSources ./site)
-              (pkgs.lib.fileset.fileFilter (
-                file: pkgs.lib.any file.hasExt [ "html" "scss" "css" "js" "json" "txt" "png" ]
-              ) ./site)
-              (pkgs.lib.fileset.maybeMissing ./assets)
-            ];
+      perSystem = { config, self', inputs', pkgs, lib, system, ... }: {
+        packages =
+          let
+            packageJSON = lib.importJSON ./site/package.json;
+          in
+          {
+            app = pkgs.buildNpmPackage {
+              npmDepsHash = "sha256-gmYBvvbLGfnCzVND9JIfwkK+22f/qFB6XHioMreqxBM=";
+              NODE_OPTIONS = "--openssl-legacy-provider";
+              src = ./site;
+              pname = packageJSON.name;
+              inherit (packageJSON) version;
+              installPhase = ''
+                mkdir -p $out
+                cp -r ./build/* $out
+              '';
+              doCheck = false;
+              # checkPhase = ''
+              #   npm run test
+              # '';
+              doDist = false;
+            };
+            default = self'.packages.app;
           };
-          pname = "trunk-workspace-native";
-        };
-
-        cargoArtifacts = craneLib.buildDepsOnly nativeArgs;
-
-        site = import ./site/site.nix {
-          inherit pkgs craneLib rustToolchain;
-        };
-
-        bibleVerify = import ./bible-verify/bible-verify.nix {
-          inherit pkgs craneLib;
-        };
-
-      in {
-        packages = {
-          default = site;
-          bible-verify = bibleVerify;
-        };
-
-        checks = {
-          inherit site;
-
-          clippy = craneLib.cargoClippy (commonArgs // {
-            inherit cargoArtifacts;
-            src = ./site;
-            cargoClippyExtraArgs = "--all-targets -- --deny warnings";
-          });
-
-          fmt = craneLib.cargoFmt (commonArgs // { src = ./site; });
-        };
-
-        devShells.default = craneLib.devShell {
-          checks = self.checks.${system};
-          packages = [
-            pkgs.trunk
-            pkgs.cargo-leptos
-            pkgs.rust-analyzer
-            pkgs.miniserve
-          ];
-          shellHook = ''
-            export CLIENT_DIST=$PWD/client/dist
-          '';
-        };
 
         apps = {
-          default = flake-utils.lib.mkApp {
-            name = "bible";
-            drv = site;
+          dev = {
+            type = "app";
+            program = pkgs.writeShellApplication {
+              name = "app-dev-server";
+              runtimeInputs = [ pkgs.nodejs ];
+              text = ''
+                cd site
+                npm install
+                npm run dev
+              '';
+            };
           };
-          
-          dev = flake-utils.lib.mkApp {
-            name = "dev-server";
-            drv = pkgs.writeShellScriptBin "dev-server" ''
-              set -e
-              
-              # Work in the current directory (should be the project root)
-              if [ ! -d "site" ]; then
-                echo "Error: Please run this from the project root directory"
-                exit 1
-              fi
-              
-              cd site
-              
-              # Ensure output.css exists
-              if [ ! -f "style/output.css" ]; then
-                echo "Generating initial Tailwind CSS..."
-                ${pkgs.tailwindcss}/bin/tailwindcss \
-                  -i ./style/tailwind.css \
-                  -o ./style/output.css \
-                  --config ./tailwind.config.js
-              fi
-              
-              # Start Tailwind CSS watch in background
-              echo "Starting Tailwind CSS watcher..."
-              ${pkgs.tailwindcss}/bin/tailwindcss \
-                -i ./style/tailwind.css \
-                -o ./style/output.css \
-                --config ./tailwind.config.js \
-                --watch &
-              TAILWIND_PID=$!
-              
-              # Cleanup function
-              cleanup() {
-                echo "Stopping development server..."
-                kill $TAILWIND_PID 2>/dev/null || true
-                exit 0
-              }
-              
-              # Trap cleanup
-              trap cleanup INT TERM
-              
-              # Start trunk serve
-              echo "Starting trunk development server..."
-              ${pkgs.trunk}/bin/trunk serve --open --port 8080
-            '';
+          preview = {
+            type = "app";
+            program = pkgs.writeShellApplication {
+              name = "preview-app";
+              runtimeInputs = [ pkgs.miniserve ];
+              text = ''
+                miniserve --spa --index index.html --port 8080 ${self'.packages.app}
+              '';
+            };
+          };
+          default = self'.apps.preview;
+        };
+
+        devShells.default = pkgs.mkShell {
+          name = "app-devshell";
+          buildInputs = with pkgs; [
+            nodejs
+            nodePackages_latest.nodejs
+            nodePackages_latest.graphqurl
+            nodePackages_latest.svelte-language-server
+            nodePackages_latest."@tailwindcss/language-server"
+            nodePackages_latest.typescript-language-server
+            nodePackages_latest.vscode-langservers-extracted
+            config.treefmt.build.wrapper
+          ];
+        };
+
+        treefmt = {
+          projectRootFile = "flake.nix";
+          programs = {
+            prettier = {
+              enable = true;
+              package = pkgs.nodePackages.prettier;
+              includes = [
+                "*.ts"
+                "*.js"
+                "*.json"
+                "*.md"
+                "*.svelte"
+                "*.html"
+                "*.css"
+              ];
+            };
+            nixpkgs-fmt = {
+              enable = true;
+              includes = [ "*.nix" ];
+            };
           };
         };
-      }
-    );
+      };
+
+      flake.templates.default = {
+        path = ./.;
+        description = "Reproducible Svelte app with Effect integration";
+      };
+    };
 }
