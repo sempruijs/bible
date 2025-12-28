@@ -4,4 +4,4 @@
     let { data }: PageProps = $props();
 </script>
 
-<h1>{data.book} {data.chapter}</h1>
+<h1>{data.chapter.verses[0].text}</h1>
