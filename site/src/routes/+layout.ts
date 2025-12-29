@@ -1,7 +1,8 @@
 import { Effect } from "effect";
 import { loadBibleData } from "$lib/translations/loadBibleData";
 
-export const prerender = true;
+export const prerender = false;
+export const ssr = false;
 
 export async function load() {
     try {
