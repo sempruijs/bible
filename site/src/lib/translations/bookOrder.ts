@@ -43,7 +43,7 @@ export const protestantBookOrder: BookOrder = [
     BibleBook.Haggai,
     BibleBook.Zechariah,
     BibleBook.Malachi,
-    
+
     // New Testament
     BibleBook.Matthew,
     BibleBook.Mark,
@@ -81,7 +81,7 @@ export const jewishBookOrder: BookOrder = [
     BibleBook.Leviticus,
     BibleBook.Numbers,
     BibleBook.Deuteronomy,
-    
+
     // Nevi'im (Prophets)
     // Former Prophets
     BibleBook.Joshua,
@@ -90,7 +90,7 @@ export const jewishBookOrder: BookOrder = [
     BibleBook.SecondSamuel,
     BibleBook.FirstKings,
     BibleBook.SecondKings,
-    
+
     // Latter Prophets
     BibleBook.Isaiah,
     BibleBook.Jeremiah,
@@ -107,7 +107,7 @@ export const jewishBookOrder: BookOrder = [
     BibleBook.Haggai,
     BibleBook.Zechariah,
     BibleBook.Malachi,
-    
+
     // Ketuvim (Writings)
     BibleBook.Psalms,
     BibleBook.Proverbs,
