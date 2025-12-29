@@ -6,4 +6,11 @@
 
 <h1>Bible Computer</h1>
 
-<a href="/gen/1">Read Genesis 1</a>
+<ul>
+    {#each data.bibleData.books as book}
+        <li>{book.name}</li>
+        {#each book.chapters as chapter}
+            <a href="/{book.name}/{chapter.chapter}">{chapter.chapter}</a>
+        {/each}
+    {/each}
+</ul>
