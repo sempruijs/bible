@@ -1,5 +1,7 @@
 import { Option } from "effect";
 
+// TODO: use effect enums
+// TODO: look for bible shortname standard
 export enum BibleBook {
     // Old Testament
     Genesis = "gen",
