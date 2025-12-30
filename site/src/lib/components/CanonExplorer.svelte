@@ -1,13 +1,24 @@
 <script lang="ts">
+    import { BibleBook } from "$lib/book";
     import type { BookOrder } from "$lib/translations/bookOrder";
     import {
         protestantBookOrder,
         jewishBookOrder,
     } from "$lib/translations/bookOrder";
     import type { Translation } from "$lib/translations/translation";
+    import { Option } from "effect";
     let { translation }: { translation: Translation } = $props();
 
     let bookOrder = $state<BookOrder>(protestantBookOrder);
+    let selectedBook = $state<Option.Option<BibleBook>>(Option.none());
+
+    function setSelected(book: BibleBook) {
+        const result =
+            Option.isSome(selectedBook) && selectedBook.value === book
+                ? Option.none()
+                : Option.some(book);
+        selectedBook = result;
+    }
 
     let orderedBooks = $derived(
         bookOrder
@@ -31,9 +42,15 @@
 </div>
 <ul>
     {#each orderedBooks as book}
-        <li>{book.name}</li>
-        {#each book.chapters as chapter}
-            <a href="/{book.name}/{chapter.chapter}">{chapter.chapter}</a>
-        {/each}
+        <li>
+            <button onclick={() => setSelected(book.name)}>
+                {book.name}
+            </button>
+        </li>
+        {#if Option.isSome(selectedBook) && selectedBook.value === book.name}
+            {#each book.chapters as chapter}
+                <a href="/{book.name}/{chapter.chapter}">{chapter.chapter}</a>
+            {/each}
+        {/if}
     {/each}
 </ul>
