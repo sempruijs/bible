@@ -1,15 +1,12 @@
 <script lang="ts">
     import { BibleBook } from "$lib/book";
     import type { BookOrder } from "$lib/translations/bookOrder";
-    import {
-        protestantBookOrder,
-        jewishBookOrder,
-    } from "$lib/translations/bookOrder";
+    import { bookOrders } from "$lib/translations/bookOrder";
     import type { Translation } from "$lib/translations/translation";
     import { Option } from "effect";
     let { translation }: { translation: Translation } = $props();
 
-    let bookOrder = $state<BookOrder>(protestantBookOrder);
+    let bookOrder = $state<BookOrder>(bookOrders[0]);
     let selectedBook = $state<Option.Option<BibleBook>>(Option.none());
 
     function setSelected(book: BibleBook) {
@@ -21,7 +18,7 @@
     }
 
     let orderedBooks = $derived(
-        bookOrder
+        bookOrder.books
             .map((bookName) =>
                 translation?.books?.find((book) => book.name === bookName),
             )
@@ -30,15 +27,14 @@
 </script>
 
 <div class="mb-4 space-x-2">
-    <button onclick={() => (bookOrder = protestantBookOrder)}>
-        Greek Order
-    </button>
-    <button
-        onclick={() => (bookOrder = jewishBookOrder)}
-        class="px-4 py-2 rounded-lg cursor-pointer text-sm font-medium transition-colors"
-    >
-        Tenach Order
-    </button>
+    {#each bookOrders as order}
+        <button
+            onclick={() => (bookOrder = order)}
+            class="px-4 py-2 rounded-lg cursor-pointer text-sm font-medium transition-colors"
+        >
+            {order.name}
+        </button>
+    {/each}
 </div>
 <ul>
     {#each orderedBooks as book}

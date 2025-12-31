@@ -1,8 +1,11 @@
 import { BibleBook } from "$lib/book";
 
-export type BookOrder = BibleBook[];
+export type BookOrder = {
+    name: string;
+    books: BibleBook[];
+};
 
-export const protestantBookOrder: BookOrder = [
+const protestantBooks: BibleBook[] = [
     // Old Testament
     BibleBook.Genesis,
     BibleBook.Exodus,
@@ -74,7 +77,7 @@ export const protestantBookOrder: BookOrder = [
     BibleBook.Revelation
 ];
 
-export const jewishBookOrder: BookOrder = [
+const jewishBooks: BibleBook[] = [
     // Torah (Law)
     BibleBook.Genesis,
     BibleBook.Exodus,
@@ -123,3 +126,16 @@ export const jewishBookOrder: BookOrder = [
     BibleBook.FirstChronicles,
     BibleBook.SecondChronicles
 ];
+
+export const protestantBookOrder: BookOrder = {
+    name: "Greek Order",
+    books: protestantBooks
+};
+
+export const jewishBookOrder: BookOrder = {
+    name: "Tenach Order",
+    books: jewishBooks
+};
+
+// first of list is default, protestant in this case.
+export const bookOrders: BookOrder[] = [protestantBookOrder, jewishBookOrder];
