@@ -4,10 +4,34 @@
     import { bookOrders } from "$lib/translations/bookOrder";
     import type { Translation } from "$lib/translations/translation";
     import { Option } from "effect";
-    let { translation }: { translation: Translation } = $props();
+    let { translation, currentPath }: { translation: Translation; currentPath: string } = $props();
 
     let bookOrder = $state<BookOrder>(bookOrders[0]);
     let selectedBook = $state<Option.Option<BibleBook>>(Option.none());
+
+    // Parse current path to get book and chapter
+    const parseCurrentPath = (path: string) => {
+        const parts = path.split('/').filter(Boolean);
+        if (parts.length >= 2) {
+            return {
+                book: parts[0],
+                chapter: parseInt(parts[1])
+            };
+        }
+        return null;
+    };
+
+    let currentChapter = $derived(parseCurrentPath(currentPath));
+
+    // Auto-expand the book that contains the current chapter only when no book is manually selected
+    $effect(() => {
+        if (currentChapter && Option.isNone(selectedBook)) {
+            const currentBook = orderedBooks.find(book => getShortName(book.name) === currentChapter.book);
+            if (currentBook) {
+                selectedBook = Option.some(currentBook.name);
+            }
+        }
+    });
 
     function setSelected(book: BibleBook) {
         const result =
@@ -63,9 +87,16 @@
                         {#each Array.from({ length: Math.ceil(book.chapters.length / 5) }, (_, rowIndex) => book.chapters.slice(rowIndex * 5, (rowIndex + 1) * 5)) as chapterRow}
                             <div class="flex gap-3">
                                 {#each chapterRow as chapter}
+                                    {@const isCurrentChapter = currentChapter && 
+                                        getShortName(book.name) === currentChapter.book && 
+                                        chapter.chapter === currentChapter.chapter}
                                     <a 
                                         href="/{getShortName(book.name)}/{chapter.chapter}"
-                                        class="flex items-center justify-center w-12 h-12 bg-gray-800 hover:bg-gray-700 text-gray-200 font-medium rounded border border-gray-600 transition-colors hover:border-gray-500"
+                                        class="flex items-center justify-center w-12 h-12 font-medium rounded border transition-colors {
+                                            isCurrentChapter 
+                                                ? 'bg-blue-600 text-white border-blue-500 hover:bg-blue-700' 
+                                                : 'bg-gray-800 hover:bg-gray-700 text-gray-200 border-gray-600 hover:border-gray-500'
+                                        }"
                                     >
                                         {chapter.chapter}
                                     </a>
