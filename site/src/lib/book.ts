@@ -1,6 +1,6 @@
 import { Data, Option } from "effect";
 
-export type BibleBook = 
+export type BibleBook =
     // Old Testament
     | { readonly _tag: "Genesis" }
     | { readonly _tag: "Exodus" }
@@ -111,7 +111,7 @@ export const BibleBook = {
     Haggai: Data.tagged<BibleBook>("Haggai")(),
     Zechariah: Data.tagged<BibleBook>("Zechariah")(),
     Malachi: Data.tagged<BibleBook>("Malachi")(),
-    
+
     // New Testament
     Matthew: Data.tagged<BibleBook>("Matthew")(),
     Mark: Data.tagged<BibleBook>("Mark")(),
@@ -142,6 +142,7 @@ export const BibleBook = {
     Revelation: Data.tagged<BibleBook>("Revelation")()
 } as const;
 
+// https://guide.unwsp.edu/SBL_guide/abbreviations/bible
 const BOOK_TAG_TO_SHORT_NAME: Record<BibleBook["_tag"], string> = {
     // Old Testament - Using SBL standard abbreviations (lowercase for URLs)
     Genesis: "gen",
@@ -271,7 +272,7 @@ const BOOK_TAG_TO_DISPLAY_NAME: Record<BibleBook["_tag"], string> = {
     Haggai: "Haggai",
     Zechariah: "Zechariah",
     Malachi: "Malachi",
-    
+
     // New Testament
     Matthew: "Matthew",
     Mark: "Mark",
