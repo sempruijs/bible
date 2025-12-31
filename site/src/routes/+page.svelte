@@ -1,11 +1,11 @@
 <script lang="ts">
-    import type { Translation } from "$lib/translations/translation";
-    import CanonExplorer from "$lib/components/CanonExplorer.svelte";
+    import { goto } from "$app/navigation";
+    import { onMount } from "svelte";
+    import type { PageData } from "./$types";
 
-    export let data: { bibleData: Translation };
+    let { data }: { data: PageData } = $props();
+
+    onMount(() => {
+        goto("/john/1");
+    });
 </script>
-
-<h1>Bible Computer</h1>
-
-<!-- this is the cannont explorer -->
-<CanonExplorer translation={data.bibleData} />
