@@ -1,30 +1,40 @@
 import { BibleBook } from "$lib/book";
-import { Effect, Option } from "effect";
+import { Data, Effect, Option } from "effect";
 
-export type Translation = {
-    books: Book[];
-};
+export interface Translation {
+    readonly books: Book[];
+}
 
-export type Book = {
-    name: BibleBook;
-    chapters: Chapter[];
-};
+export const Translation = Data.case<Translation>();
 
-export type Chapter = {
-    chapter: number;
-    name: string;
-    verses: Verse[];
-};
+export interface Book {
+    readonly name: BibleBook;
+    readonly chapters: Chapter[];
+}
 
-export type Verse = {
-    verse: number;
-    chapter: number;
-    name: string;
-    text: string;
-};
+export const Book = Data.case<Book>();
+
+export interface Chapter {
+    readonly chapter: number;
+    readonly name: string;
+    readonly verses: Verse[];
+}
+
+export const Chapter = Data.case<Chapter>();
+
+export interface Verse {
+    readonly verse: number;
+    readonly chapter: number;
+    readonly name: string;
+    readonly text: string;
+}
+
+export const Verse = Data.case<Verse>();
 
 export const getChapter = (translation: Translation, bookName: BibleBook, chapterNumber: number) => Effect.gen(function* () {
-    const book = translation.books.find(b => b.name === bookName);
+    const book = translation.books.find(b => {
+        return b.name._tag === bookName._tag;
+    });
     if (!book) {
         return Option.none<Chapter>();
     }

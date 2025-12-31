@@ -1,11 +1,25 @@
-import { Effect } from "effect";
+import { Data, Effect } from "effect";
 import type { BrowserWallet } from "@meshsdk/core";
 import { MeshTxBuilder } from "@meshsdk/core";
 import { Wallet, type WalletError } from "$lib/wallet";
 
+export interface ParseAdaError {
+  readonly _tag: "ParseAdaError";
+  readonly message: string;
+}
+
+export const ParseAdaError = Data.tagged<ParseAdaError>("ParseAdaError");
+
+export interface BuildTransactionError {
+  readonly _tag: "BuildTransactionError";
+  readonly message: string;
+}
+
+export const BuildTransactionError = Data.tagged<BuildTransactionError>("BuildTransactionError");
+
 export function donateAda(
   ada: string,
-): Effect.Effect<string, WalletError, Wallet> {
+): Effect.Effect<string, WalletError | ParseAdaError | BuildTransactionError, Wallet> {
   return Effect.gen(function* (_) {
     const lovelace = yield* _(parseAdaToLovelace(ada));
     console.log(lovelace);
@@ -26,7 +40,7 @@ export function donateAda(
             .changeAddress(changeAddress)
             .selectUtxosFrom(utxos)
             .complete(),
-        catch: (e) => new Error("Failed to build transaction: " + String(e)),
+        catch: (e) => BuildTransactionError({ message: "Failed to build transaction: " + String(e) }),
       }),
     );
 
@@ -41,7 +55,7 @@ export function donateAda(
 
 export const parseAdaToLovelace = (
   input: string,
-): Effect.Effect<string, Error> =>
+): Effect.Effect<string, ParseAdaError> =>
   Effect.gen(function* (_) {
     const cleaned = input.trim();
 
@@ -52,9 +66,9 @@ export const parseAdaToLovelace = (
     if (dotCount > 0 && commaCount > 0) {
       yield* _(
         Effect.fail(
-          new Error(
-            `Ambiguous ADA format: "${input}". Please use only one type of decimal separator.`,
-          ),
+          ParseAdaError({
+            message: `Ambiguous ADA format: "${input}". Please use only one type of decimal separator.`,
+          }),
         ),
       );
     }
@@ -66,7 +80,7 @@ export const parseAdaToLovelace = (
     // Parse the normalized number
     const ada = Number(normalized);
     if (isNaN(ada)) {
-      yield* _(Effect.fail(new Error(`Invalid ADA amount: "${input}"`)));
+      yield* _(Effect.fail(ParseAdaError({ message: `Invalid ADA amount: "${input}"` })));
     }
 
     const lovelace = Math.round(ada * 1_000_000);

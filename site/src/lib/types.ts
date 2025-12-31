@@ -1,19 +1,37 @@
-export type WalletInfo = {
-  name: String;
-  image: String;
-  version: String;
-};
+import { Data } from "effect";
 
-export type Utxo = {
-  input: {
-    outputIndex: number;
-    txHash: string;
-  };
-  output: {
-    address: string;
-    amount: {
-      unit: string;
-      quantity: string;
-    }[];
-  };
-};
+export interface WalletInfo {
+  readonly name: string;
+  readonly image: string;
+  readonly version: string;
+}
+
+export const WalletInfo = Data.case<WalletInfo>();
+
+export interface Utxo {
+  readonly input: UtxoInput;
+  readonly output: UtxoOutput;
+}
+
+export const Utxo = Data.case<Utxo>();
+
+export interface UtxoInput {
+  readonly outputIndex: number;
+  readonly txHash: string;
+}
+
+export const UtxoInput = Data.case<UtxoInput>();
+
+export interface UtxoOutput {
+  readonly address: string;
+  readonly amount: Amount[];
+}
+
+export const UtxoOutput = Data.case<UtxoOutput>();
+
+export interface Amount {
+  readonly unit: string;
+  readonly quantity: string;
+}
+
+export const Amount = Data.case<Amount>();
