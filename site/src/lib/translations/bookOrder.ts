@@ -1,9 +1,12 @@
+import { Data } from "effect";
 import { BibleBook } from "$lib/book";
 
-export type BookOrder = {
-    name: string;
-    books: BibleBook[];
-};
+export interface BookOrder {
+    readonly name: string;
+    readonly books: BibleBook[];
+}
+
+export const BookOrder = Data.case<BookOrder>();
 
 const protestantBooks: BibleBook[] = [
     // Old Testament
@@ -127,15 +130,15 @@ const jewishBooks: BibleBook[] = [
     BibleBook.SecondChronicles
 ];
 
-export const protestantBookOrder: BookOrder = {
+export const protestantBookOrder = BookOrder({
     name: "Greek Order",
     books: protestantBooks
-};
+});
 
-export const jewishBookOrder: BookOrder = {
+export const jewishBookOrder = BookOrder({
     name: "Tenach Order",
     books: jewishBooks
-};
+});
 
 // first of list is default, protestant in this case.
 export const bookOrders: BookOrder[] = [protestantBookOrder, jewishBookOrder];

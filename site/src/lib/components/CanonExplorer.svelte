@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { BibleBook } from "$lib/book";
+    import { BibleBook, getDisplayName, getShortName } from "$lib/book";
     import type { BookOrder } from "$lib/translations/bookOrder";
     import { bookOrders } from "$lib/translations/bookOrder";
     import type { Translation } from "$lib/translations/translation";
@@ -11,7 +11,7 @@
 
     function setSelected(book: BibleBook) {
         const result =
-            Option.isSome(selectedBook) && selectedBook.value === book
+            Option.isSome(selectedBook) && selectedBook.value._tag === book._tag
                 ? Option.none()
                 : Option.some(book);
         selectedBook = result;
@@ -20,7 +20,7 @@
     let orderedBooks = $derived(
         bookOrder.books
             .map((bookName) =>
-                translation?.books?.find((book) => book.name === bookName),
+                translation?.books?.find((book) => book.name._tag === bookName._tag),
             )
             .filter((book) => book !== undefined),
     );
@@ -40,12 +40,12 @@
     {#each orderedBooks as book}
         <li>
             <button onclick={() => setSelected(book.name)}>
-                {book.name}
+                {getDisplayName(book.name)}
             </button>
         </li>
-        {#if Option.isSome(selectedBook) && selectedBook.value === book.name}
+        {#if Option.isSome(selectedBook) && selectedBook.value._tag === book.name._tag}
             {#each book.chapters as chapter}
-                <a href="/{book.name}/{chapter.chapter}">{chapter.chapter}</a>
+                <a href="/{getShortName(book.name)}/{chapter.chapter}">{chapter.chapter}</a>
             {/each}
         {/if}
     {/each}

@@ -1,9 +1,9 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import type { Bible } from '$lib/translations/v0';
+import type { TranslationV0 } from '$lib/translations/v0';
 
 // Sample bible data - replace with actual data source
-const bibleData: Bible = {
+const bibleData: TranslationV0 = {
   books: [
     {
       name: "Genesis",

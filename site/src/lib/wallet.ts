@@ -1,12 +1,40 @@
-import { Effect, Context } from "effect";
+import { Effect, Context, Data } from "effect";
 import type { BrowserWallet } from "@meshsdk/core";
 import type { Utxo } from "./types";
 
 export type WalletError =
-  | { _tag: "GetUtxosError"; reason: unknown }
-  | { _tag: "GetChangeAddressError"; reason: unknown }
-  | { _tag: "SignTxError"; reason: unknown }
-  | { _tag: "SubmitTxError"; reason: unknown };
+  | GetUtxosError
+  | GetChangeAddressError  
+  | SignTxError
+  | SubmitTxError;
+
+export interface GetUtxosError {
+  readonly _tag: "GetUtxosError";
+  readonly reason: unknown;
+}
+
+export const GetUtxosError = Data.tagged<GetUtxosError>("GetUtxosError");
+
+export interface GetChangeAddressError {
+  readonly _tag: "GetChangeAddressError";
+  readonly reason: unknown;
+}
+
+export const GetChangeAddressError = Data.tagged<GetChangeAddressError>("GetChangeAddressError");
+
+export interface SignTxError {
+  readonly _tag: "SignTxError";
+  readonly reason: unknown;
+}
+
+export const SignTxError = Data.tagged<SignTxError>("SignTxError");
+
+export interface SubmitTxError {
+  readonly _tag: "SubmitTxError";
+  readonly reason: unknown;
+}
+
+export const SubmitTxError = Data.tagged<SubmitTxError>("SubmitTxError");
 
 export class Wallet extends Context.Tag("Wallet")<
   Wallet,
@@ -25,21 +53,21 @@ export function provideWallet(wallet: BrowserWallet) {
   return Effect.provideService(Wallet, {
     getUtxos: Effect.tryPromise({
       try: () => wallet.getUtxos(),
-      catch: (e): WalletError => ({ _tag: "GetUtxosError", reason: e }),
+      catch: (e): WalletError => GetUtxosError({ reason: e }),
     }),
     getChangeAddress: Effect.tryPromise({
       try: () => wallet.getChangeAddress(),
-      catch: (e): WalletError => ({ _tag: "GetChangeAddressError", reason: e }),
+      catch: (e): WalletError => GetChangeAddressError({ reason: e }),
     }),
     signTx: (tx, partial = true) =>
       Effect.tryPromise({
         try: () => wallet.signTx(tx, partial),
-        catch: (e): WalletError => ({ _tag: "SignTxError", reason: e }),
+        catch: (e): WalletError => SignTxError({ reason: e }),
       }),
     submitTx: (tx) =>
       Effect.tryPromise({
         try: () => wallet.submitTx(tx),
-        catch: (e): WalletError => ({ _tag: "SubmitTxError", reason: e }),
+        catch: (e): WalletError => SubmitTxError({ reason: e }),
       }),
   });
 }
