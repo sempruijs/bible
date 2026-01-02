@@ -1,18 +1,20 @@
 <script lang="ts">
 	import type { Translation } from "$lib/translations/translation";
-	import { BibleBook, getDisplayName } from "$lib/book";
-	import { App, BibleTab } from "$lib/app";
+	import { BibleBook } from "$lib/book";
+	import { type App, Bible, BibleState, getDisplayName } from "$lib/app";
 	import Tab from "$lib/components/tab.svelte";
 
 	let { translation }: { translation: Translation } = $props();
 
-	// Store apps instead of just BibleTabs
+	// Store apps instead of just BibleStates
 	let apps = $state<App[]>([
-		App.Bible(BibleTab({
+		Bible({ bibleState: BibleState({
 			id: "tab1",
 			currentBook: BibleBook.John,
-			currentChapter: 1
-		}))
+			currentChapter: 1,
+			translation: translation,
+			showCanonExplorer: true
+		}) })
 	]);
 
 	let activeTabId = $state<string>("tab1");
@@ -21,7 +23,7 @@
 	// Get active app reference
 	let activeApp = $derived(apps.find(app => {
 		if (app._tag === "Bible") {
-			return app.bibleTab.id === activeTabId;
+			return app.bibleState.id === activeTabId;
 		}
 		// For About tab, we could use a special ID or handle differently
 		return false;
@@ -31,7 +33,7 @@
 	function updateAppState(app: App) {
 		if (app._tag === "Bible") {
 			apps = apps.map(existingApp => 
-				existingApp._tag === "Bible" && existingApp.bibleTab.id === app.bibleTab.id
+				existingApp._tag === "Bible" && existingApp.bibleState.id === app.bibleState.id
 					? app
 					: existingApp
 			);
@@ -39,11 +41,13 @@
 	}
 
 	function addTab() {
-		const newApp = App.Bible(BibleTab({
+		const newApp = Bible({ bibleState: BibleState({
 			id: `tab${nextTabId}`,
 			currentBook: BibleBook.John,
-			currentChapter: 1
-		}));
+			currentChapter: 1,
+			translation: translation,
+			showCanonExplorer: true
+		}) });
 		apps = [...apps, newApp];
 		activeTabId = `tab${nextTabId}`;
 		nextTabId++;
@@ -54,7 +58,7 @@
 		
 		apps = apps.filter(app => {
 			if (app._tag === "Bible") {
-				return app.bibleTab.id !== tabId;
+				return app.bibleState.id !== tabId;
 			}
 			return true; // Keep non-Bible apps for now
 		});
@@ -63,7 +67,7 @@
 		if (activeTabId === tabId) {
 			const firstApp = apps[0];
 			if (firstApp?._tag === "Bible") {
-				activeTabId = firstApp.bibleTab.id;
+				activeTabId = firstApp.bibleState.id;
 			}
 		}
 	}
@@ -80,10 +84,8 @@
 	<div class="bg-gray-800 border-b border-gray-700 flex items-center px-4 py-2">
 		<div class="flex items-center gap-2 flex-1 overflow-x-auto">
 			{#each apps as app}
-				{@const tabId = app._tag === "Bible" ? app.bibleTab.id : "about"}
-				{@const tabTitle = app._tag === "Bible" 
-					? `${getDisplayName(app.bibleTab.currentBook)} ${app.bibleTab.currentChapter}` 
-					: "About"}
+				{@const tabId = app._tag === "Bible" ? app.bibleState.id : "about"}
+				{@const tabTitle = getDisplayName(app)}
 				<div class="flex items-center bg-gray-700 rounded-lg overflow-hidden min-w-0">
 					<button
 						onclick={() => setActiveTab(tabId)}
@@ -122,7 +124,6 @@
 		{#if activeApp}
 			<Tab 
 				app={activeApp}
-				{translation}
 				onStateChange={updateAppState}
 			/>
 		{/if}
