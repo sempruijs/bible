@@ -1,62 +1,70 @@
 <script lang="ts">
 	import type { Translation } from "$lib/translations/translation";
 	import { BibleBook, getDisplayName } from "$lib/book";
-	import Bible from "$lib/bible.svelte";
+	import { App, BibleTab } from "$lib/app";
+	import Tab from "$lib/components/tab.svelte";
 
 	let { translation }: { translation: Translation } = $props();
 
-	type BibleTab = {
-		id: string;
-		currentBook: BibleBook;
-		currentChapter: number;
-	};
-
-	function getTabTitle(tab: BibleTab): string {
-		return `${getDisplayName(tab.currentBook)} ${tab.currentChapter}`;
-	}
-
-	let tabs = $state<BibleTab[]>([
-		{
+	// Store apps instead of just BibleTabs
+	let apps = $state<App[]>([
+		App.Bible(BibleTab({
 			id: "tab1",
 			currentBook: BibleBook.John,
 			currentChapter: 1
-		}
+		}))
 	]);
 
 	let activeTabId = $state<string>("tab1");
 	let nextTabId = $state<number>(2);
 
-	// Get active tab reference
-	let activeTab = $derived(tabs.find(tab => tab.id === activeTabId));
+	// Get active app reference
+	let activeApp = $derived(apps.find(app => {
+		if (app._tag === "Bible") {
+			return app.bibleTab.id === activeTabId;
+		}
+		// For About tab, we could use a special ID or handle differently
+		return false;
+	}));
 
-	// Update a specific tab's state
-	function updateTabState(tabId: string, book: BibleBook, chapter: number) {
-		tabs = tabs.map(tab => 
-			tab.id === tabId 
-				? { ...tab, currentBook: book, currentChapter: chapter }
-				: tab
-		);
+	// Update a specific app's state
+	function updateAppState(app: App) {
+		if (app._tag === "Bible") {
+			apps = apps.map(existingApp => 
+				existingApp._tag === "Bible" && existingApp.bibleTab.id === app.bibleTab.id
+					? app
+					: existingApp
+			);
+		}
 	}
 
 	function addTab() {
-		const newTab: BibleTab = {
+		const newApp = App.Bible(BibleTab({
 			id: `tab${nextTabId}`,
 			currentBook: BibleBook.John,
 			currentChapter: 1
-		};
-		tabs = [...tabs, newTab];
-		activeTabId = newTab.id;
+		}));
+		apps = [...apps, newApp];
+		activeTabId = `tab${nextTabId}`;
 		nextTabId++;
 	}
 
 	function removeTab(tabId: string) {
-		if (tabs.length === 1) return; // Don't allow removing the last tab
+		if (apps.length === 1) return; // Don't allow removing the last tab
 		
-		tabs = tabs.filter(tab => tab.id !== tabId);
+		apps = apps.filter(app => {
+			if (app._tag === "Bible") {
+				return app.bibleTab.id !== tabId;
+			}
+			return true; // Keep non-Bible apps for now
+		});
 		
 		// If we removed the active tab, switch to the first remaining tab
 		if (activeTabId === tabId) {
-			activeTabId = tabs[0]?.id || "";
+			const firstApp = apps[0];
+			if (firstApp?._tag === "Bible") {
+				activeTabId = firstApp.bibleTab.id;
+			}
 		}
 	}
 
@@ -71,21 +79,25 @@
 	<!-- Tab Bar -->
 	<div class="bg-gray-800 border-b border-gray-700 flex items-center px-4 py-2">
 		<div class="flex items-center gap-2 flex-1 overflow-x-auto">
-			{#each tabs as tab}
+			{#each apps as app}
+				{@const tabId = app._tag === "Bible" ? app.bibleTab.id : "about"}
+				{@const tabTitle = app._tag === "Bible" 
+					? `${getDisplayName(app.bibleTab.currentBook)} ${app.bibleTab.currentChapter}` 
+					: "About"}
 				<div class="flex items-center bg-gray-700 rounded-lg overflow-hidden min-w-0">
 					<button
-						onclick={() => setActiveTab(tab.id)}
+						onclick={() => setActiveTab(tabId)}
 						class="px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap {
-							activeTabId === tab.id 
+							activeTabId === tabId 
 								? 'bg-blue-600 text-white' 
 								: 'text-gray-300 hover:bg-gray-600'
 						}"
 					>
-						{getTabTitle(tab)}
+						{tabTitle}
 					</button>
-					{#if tabs.length > 1}
+					{#if apps.length > 1}
 						<button
-							onclick={() => removeTab(tab.id)}
+							onclick={() => removeTab(tabId)}
 							class="px-2 py-2 text-gray-400 hover:text-red-400 hover:bg-gray-600 transition-colors"
 							title="Close tab"
 						>
@@ -105,14 +117,13 @@
 		</button>
 	</div>
 
-	<!-- Bible Content -->
+	<!-- App Content -->
 	<div class="flex-1 overflow-hidden">
-		{#if activeTab}
-			<Bible 
-				{translation} 
-				currentBook={activeTab.currentBook}
-				currentChapter={activeTab.currentChapter}
-				onStateChange={(book, chapter) => updateTabState(activeTabId, book, chapter)}
+		{#if activeApp}
+			<Tab 
+				app={activeApp}
+				{translation}
+				onStateChange={updateAppState}
 			/>
 		{/if}
 	</div>
