@@ -1,21 +1,31 @@
 import { Data } from "effect";
 import type { BibleBook } from "$lib/book";
+import { getDisplayName as getBibleBookDisplayName } from "$lib/book";
+import type { Translation } from "$lib/translations/translation";
 
-// BibleTab type definition (since it's defined in TabbedBible component)
-export interface BibleTab {
+// BibleState type definition with Translation included
+export interface BibleState {
 	readonly id: string;
 	readonly currentBook: BibleBook;
 	readonly currentChapter: number;
+	readonly translation: Translation;
+	readonly showCanonExplorer: boolean;
 }
 
-export const BibleTab = Data.case<BibleTab>();
+export const BibleState = Data.case<BibleState>();
 
-// App enum with Bible and About variants
-export type App = 
-	| { readonly _tag: "Bible"; readonly bibleTab: BibleTab }
-	| { readonly _tag: "About" };
+// App TaggedEnum using proper Effect pattern
+export type App = Data.TaggedEnum<{
+	Bible: { readonly bibleState: BibleState }
+	About: {}
+}>
 
-export const App = {
-	Bible: (bibleTab: BibleTab): App => ({ _tag: "Bible", bibleTab }),
-	About: (): App => ({ _tag: "About" })
-} as const;
+export const { Bible, About, $match } = Data.taggedEnum<App>()
+
+// Get display name for App (tab title) using $match
+export const getDisplayName = (app: App): string => {
+	return $match(app, {
+		Bible: ({ bibleState }) => `${getBibleBookDisplayName(bibleState.currentBook)} ${bibleState.currentChapter}`,
+		About: () => "About"
+	});
+};

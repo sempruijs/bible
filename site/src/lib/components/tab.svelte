@@ -1,47 +1,47 @@
 <script lang="ts">
 	import type { App } from "$lib/app";
-	import type { Translation } from "$lib/translations/translation";
-	import { getDisplayName } from "$lib/book";
-	import Bible from "$lib/bible.svelte";
+	import { Bible, BibleState } from "$lib/app";
+	import BibleComponent from "$lib/bible.svelte";
 
 	let { 
-		app, 
-		translation,
+		app,
 		onStateChange 
 	}: { 
 		app: App; 
-		translation: Translation;
 		onStateChange?: (app: App) => void;
 	} = $props();
 
-	function getTabTitle(app: App): string {
-		switch (app._tag) {
-			case "Bible":
-				return `${getDisplayName(app.bibleTab.currentBook)} ${app.bibleTab.currentChapter}`;
-			case "About":
-				return "About";
-		}
-	}
-
 	function handleBibleStateChange(book: any, chapter: any) {
 		if (app._tag === "Bible" && onStateChange) {
-			const updatedBibleTab = { ...app.bibleTab, currentBook: book, currentChapter: chapter };
-			onStateChange({ _tag: "Bible", bibleTab: updatedBibleTab });
+			const updatedBibleState = BibleState({ 
+				...app.bibleState, 
+				currentBook: book, 
+				currentChapter: chapter 
+			});
+			onStateChange(Bible({ bibleState: updatedBibleState }));
 		}
 	}
 
-	// Export the title function so parent can access it
-	export { getTabTitle };
+	function handleToggleCanonExplorer() {
+		if (app._tag === "Bible" && onStateChange) {
+			const updatedBibleState = BibleState({ 
+				...app.bibleState, 
+				showCanonExplorer: !app.bibleState.showCanonExplorer
+			});
+			onStateChange(Bible({ bibleState: updatedBibleState }));
+		}
+	}
 </script>
 
-<!-- Tab Title (exported function handles this) -->
 <!-- Content rendering based on app type -->
 {#if app._tag === "Bible"}
-	<Bible 
-		{translation}
-		currentBook={app.bibleTab.currentBook}
-		currentChapter={app.bibleTab.currentChapter}
+	<BibleComponent 
+		translation={app.bibleState.translation}
+		currentBook={app.bibleState.currentBook}
+		currentChapter={app.bibleState.currentChapter}
+		showCanonExplorer={app.bibleState.showCanonExplorer}
 		onStateChange={handleBibleStateChange}
+		onToggleCanonExplorer={handleToggleCanonExplorer}
 	/>
 {:else if app._tag === "About"}
 	<div class="flex items-center justify-center h-full">
