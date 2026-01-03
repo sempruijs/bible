@@ -4,6 +4,7 @@
 	import { 
 		type App, 
 		getTabId, 
+		getAppUrl,
 		createBibleApp, 
 		createAboutApp, 
 		createChooseApp 
@@ -27,17 +28,24 @@
 	async function initializeApp() {
 		try {
 			const initialState = await Effect.runPromise(NavigationServiceLive.getInitialState());
-			const canonState = await Effect.runPromise(ResponsiveServiceLive.getInitialCanonState());
 			
-			const initialApp = await Effect.runPromise(
-				createBibleApp(
-					"tab1", 
-					initialState.book, 
-					initialState.chapter, 
-					translation, 
-					canonState
-				)
-			);
+			let initialApp: App;
+			if (initialState.isAbout) {
+				// Create About tab if URL is /about
+				initialApp = await Effect.runPromise(createAboutApp("tab1"));
+			} else {
+				// Create Bible tab with parsed book/chapter
+				const canonState = await Effect.runPromise(ResponsiveServiceLive.getInitialCanonState());
+				initialApp = await Effect.runPromise(
+					createBibleApp(
+						"tab1", 
+						initialState.book, 
+						initialState.chapter, 
+						translation, 
+						canonState
+					)
+				);
+			}
 			
 			apps = [initialApp];
 		} catch (error) {
@@ -58,14 +66,10 @@
 		const tabId = getTabId(updatedApp);
 		apps = apps.map(app => getTabId(app) === tabId ? updatedApp : app);
 		
-		// Update URL for Bible apps
-		if (updatedApp._tag === "Bible" && tabId === activeTabId) {
-			Effect.runPromise(
-				NavigationServiceLive.updateURL(
-					updatedApp.bibleState.currentBook, 
-					updatedApp.bibleState.currentChapter
-				)
-			);
+		// Update URL if this is the active tab
+		if (tabId === activeTabId) {
+			const url = getAppUrl(updatedApp);
+			Effect.runPromise(NavigationServiceLive.navigateToUrl(url));
 		}
 	}
 
@@ -100,15 +104,11 @@
 	function setActiveTab(tabId: string) {
 		activeTabId = tabId;
 		
-		// Update URL when switching to Bible tabs
+		// Update URL for any app type using the mapping function
 		const app = apps.find(app => getTabId(app) === tabId);
-		if (app && app._tag === "Bible") {
-			Effect.runPromise(
-				NavigationServiceLive.updateURL(
-					app.bibleState.currentBook, 
-					app.bibleState.currentChapter
-				)
-			);
+		if (app) {
+			const url = getAppUrl(app);
+			Effect.runPromise(NavigationServiceLive.navigateToUrl(url));
 		}
 	}
 
@@ -124,13 +124,15 @@
 				newApp = await Effect.runPromise(
 					createBibleApp(activeTabId, BibleBook.John, 1, translation, canonState)
 				);
-				// Update URL for new Bible tab
-				Effect.runPromise(NavigationServiceLive.updateURL(BibleBook.John, 1));
 			} else {
 				newApp = await Effect.runPromise(createAboutApp(activeTabId));
 			}
 			
 			apps = apps.map((app, index) => index === tabIndex ? newApp : app);
+			
+			// Update URL using the mapping function
+			const url = getAppUrl(newApp);
+			Effect.runPromise(NavigationServiceLive.navigateToUrl(url));
 		} catch (error) {
 			console.error("Failed to handle app choice:", error);
 		}
