@@ -4,9 +4,8 @@ import { BibleBookSchema, getDisplayName as getBibleBookDisplayName, getShortNam
 import type { Translation } from "$lib/translations/translation";
 import { TranslationSchema } from "$lib/translations/translation";
 
-// Effect Schema definitions
+// Effect Schema definitions - App content without IDs
 export const BibleStateSchema = Schema.Struct({
-	id: Schema.String,
 	currentBook: BibleBookSchema,
 	currentChapter: Schema.Number,
 	translation: TranslationSchema,
@@ -14,32 +13,21 @@ export const BibleStateSchema = Schema.Struct({
 });
 
 export const StopwatchStateSchema = Schema.Struct({
-	id: Schema.String,
 	elapsedTime: Schema.Number, // in milliseconds
 	isRunning: Schema.Boolean
 });
 
-// Type exports
-export type BibleState = Schema.Schema.Type<typeof BibleStateSchema>;
-export type StopwatchState = Schema.Schema.Type<typeof StopwatchStateSchema>;
-
-// Maintain backward compatibility with Data constructors
-export const BibleState = Data.case<BibleState>();
-export const StopwatchState = Data.case<StopwatchState>();
-
-// Effect Schema for App TaggedEnum
-export const AppSchema = Schema.Union(
+// App content schema - just the app-specific data
+export const AppContentSchema = Schema.Union(
 	Schema.Struct({
 		_tag: Schema.Literal("Bible"),
 		bibleState: BibleStateSchema
 	}),
 	Schema.Struct({
-		_tag: Schema.Literal("About"),
-		id: Schema.String
+		_tag: Schema.Literal("About")
 	}),
 	Schema.Struct({
-		_tag: Schema.Literal("ChooseApp"),
-		id: Schema.String
+		_tag: Schema.Literal("ChooseApp")
 	}),
 	Schema.Struct({
 		_tag: Schema.Literal("Stopwatch"),
@@ -47,19 +35,31 @@ export const AppSchema = Schema.Union(
 	})
 );
 
-export type App = Schema.Schema.Type<typeof AppSchema>;
+// Tab schema - combines ID with app content
+export const TabSchema = Schema.Struct({
+	id: Schema.String,
+	app: AppContentSchema
+});
 
-// Maintain backward compatibility with Data TaggedEnum
-export const { Bible, About, ChooseApp, Stopwatch, $match } = Data.taggedEnum<App>()
+// Type exports
+export type BibleState = Schema.Schema.Type<typeof BibleStateSchema>;
+export type StopwatchState = Schema.Schema.Type<typeof StopwatchStateSchema>;
+export type AppContent = Schema.Schema.Type<typeof AppContentSchema>;
+export type Tab = Schema.Schema.Type<typeof TabSchema>;
+
+// For backward compatibility, export App as Tab
+export type App = Tab;
+
+// Maintain backward compatibility with Data constructors
+export const BibleState = Data.case<BibleState>();
+export const StopwatchState = Data.case<StopwatchState>();
+
+// AppContent constructors
+export const { Bible, About, ChooseApp, Stopwatch, $match } = Data.taggedEnum<AppContent>()
 
 // Tab ID management using Effect
-export const getTabId = (app: App): string => {
-	return $match(app, {
-		Bible: ({ bibleState }) => bibleState.id,
-		About: ({ id }) => id,
-		ChooseApp: ({ id }) => id,
-		Stopwatch: ({ stopwatchState }) => stopwatchState.id
-	});
+export const getTabId = (tab: Tab): string => {
+	return tab.id;
 };
 
 // Format time as MM:SS for tab title
@@ -70,9 +70,9 @@ const formatTimeForTitle = (milliseconds: number): string => {
 	return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
-// Get display name for App (tab title) using $match
-export const getDisplayName = (app: App): string => {
-	return $match(app, {
+// Get display name for Tab (tab title) using $match
+export const getDisplayName = (tab: Tab): string => {
+	return $match(tab.app, {
 		Bible: ({ bibleState }) => `${getBibleBookDisplayName(bibleState.currentBook)} ${bibleState.currentChapter}`,
 		About: () => "About",
 		ChooseApp: () => "Choose App",
@@ -85,45 +85,61 @@ export const getDisplayName = (app: App): string => {
 	});
 };
 
-// App state transformations using Effect
-export const transformApp = (app: App, transform: (app: App) => App): Effect.Effect<App> =>
-	Effect.succeed(transform(app));
+// Tab state transformations using Effect
+export const transformTab = (tab: Tab, transform: (tab: Tab) => Tab): Effect.Effect<Tab> =>
+	Effect.succeed(transform(tab));
 
-export const createBibleApp = (
+export const createBibleTab = (
 	id: string,
 	book: BibleBook,
 	chapter: number,
 	translation: Translation,
 	showCanonExplorer: boolean
-): Effect.Effect<App> =>
-	Effect.succeed(Bible({
-		bibleState: BibleState({
-			id,
-			currentBook: book,
-			currentChapter: chapter,
-			translation,
-			showCanonExplorer
+): Effect.Effect<Tab> =>
+	Effect.succeed({
+		id,
+		app: Bible({
+			bibleState: BibleState({
+				currentBook: book,
+				currentChapter: chapter,
+				translation,
+				showCanonExplorer
+			})
 		})
-	}));
+	});
 
-export const createAboutApp = (id: string): Effect.Effect<App> =>
-	Effect.succeed(About({ id }));
+export const createAboutTab = (id: string): Effect.Effect<Tab> =>
+	Effect.succeed({
+		id,
+		app: About()
+	});
 
-export const createChooseApp = (id: string): Effect.Effect<App> =>
-	Effect.succeed(ChooseApp({ id }));
+export const createChooseTab = (id: string): Effect.Effect<Tab> =>
+	Effect.succeed({
+		id,
+		app: ChooseApp()
+	});
 
-export const createStopwatchApp = (id: string): Effect.Effect<App> =>
-	Effect.succeed(Stopwatch({
-		stopwatchState: StopwatchState({
-			id,
-			elapsedTime: 0,
-			isRunning: false
+export const createStopwatchTab = (id: string): Effect.Effect<Tab> =>
+	Effect.succeed({
+		id,
+		app: Stopwatch({
+			stopwatchState: StopwatchState({
+				elapsedTime: 0,
+				isRunning: false
+			})
 		})
-	}));
+	});
+
+// Backward compatibility aliases
+export const createBibleApp = createBibleTab;
+export const createAboutApp = createAboutTab;
+export const createChooseApp = createChooseTab;
+export const createStopwatchApp = createStopwatchTab;
 
 // Map App instances to their corresponding URLs
-export const getAppUrl = (app: App): string => {
-	return $match(app, {
+export const getAppUrl = (tab: Tab): string => {
+	return $match(tab.app, {
 		Bible: ({ bibleState }) => {
 			const bookShort = getShortName(bibleState.currentBook);
 			return `/${bookShort}/${bibleState.currentChapter}`;

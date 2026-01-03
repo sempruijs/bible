@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 import { BibleBookSchema } from "$lib/book";
 import { TranslationSchema, VerseSchema, ChapterSchema, BookSchema } from "$lib/translations/translation";
-import { BibleStateSchema, StopwatchStateSchema, AppSchema } from "$lib/app";
+import { BibleStateSchema, StopwatchStateSchema, AppContentSchema, TabSchema } from "$lib/app";
 import { WalletInfoSchema, UtxoSchema, AmountSchema } from "$lib/types";
 
 /**
@@ -33,8 +33,11 @@ export const parseBibleState = (input: unknown) =>
 export const parseStopwatchState = (input: unknown) => 
   Schema.decodeUnknown(StopwatchStateSchema)(input);
 
-export const parseApp = (input: unknown) => 
-  Schema.decodeUnknown(AppSchema)(input);
+export const parseAppContent = (input: unknown) => 
+  Schema.decodeUnknown(AppContentSchema)(input);
+
+export const parseTab = (input: unknown) => 
+  Schema.decodeUnknown(TabSchema)(input);
 
 export const parseWalletInfo = (input: unknown) => 
   Schema.decodeUnknown(WalletInfoSchema)(input);
@@ -58,8 +61,11 @@ export const encodeBibleState = (input: Schema.Schema.Type<typeof BibleStateSche
 export const encodeStopwatchState = (input: Schema.Schema.Type<typeof StopwatchStateSchema>) => 
   Schema.encode(StopwatchStateSchema)(input);
 
-export const encodeApp = (input: Schema.Schema.Type<typeof AppSchema>) => 
-  Schema.encode(AppSchema)(input);
+export const encodeAppContent = (input: Schema.Schema.Type<typeof AppContentSchema>) => 
+  Schema.encode(AppContentSchema)(input);
+
+export const encodeTab = (input: Schema.Schema.Type<typeof TabSchema>) => 
+  Schema.encode(TabSchema)(input);
 
 // Validation functions - check if data conforms to schema without parsing
 export const isBibleBook = (input: unknown): input is Schema.Schema.Type<typeof BibleBookSchema> => 
@@ -74,8 +80,11 @@ export const isBibleState = (input: unknown): input is Schema.Schema.Type<typeof
 export const isStopwatchState = (input: unknown): input is Schema.Schema.Type<typeof StopwatchStateSchema> => 
   Schema.is(StopwatchStateSchema)(input);
 
-export const isApp = (input: unknown): input is Schema.Schema.Type<typeof AppSchema> => 
-  Schema.is(AppSchema)(input);
+export const isAppContent = (input: unknown): input is Schema.Schema.Type<typeof AppContentSchema> => 
+  Schema.is(AppContentSchema)(input);
+
+export const isTab = (input: unknown): input is Schema.Schema.Type<typeof TabSchema> => 
+  Schema.is(TabSchema)(input);
 
 // Example utility functions showing practical usage
 
@@ -96,7 +105,7 @@ export const parseTranslationFromJSON = (jsonString: string) =>
  * Safely parse app state from localStorage
  * Returns an Effect that either succeeds with an App or fails with a parse error
  */
-export const parseAppFromLocalStorage = (key: string) => 
+export const parseTabFromLocalStorage = (key: string) => 
   Effect.gen(function* () {
     const item = yield* Effect.sync(() => {
       if (typeof localStorage === 'undefined') {
@@ -114,21 +123,21 @@ export const parseAppFromLocalStorage = (key: string) =>
       catch: (error) => new Error(`Invalid JSON in localStorage: ${error}`)
     });
     
-    return yield* parseApp(parsed);
+    return yield* parseTab(parsed);
   });
 
 /**
  * Safely validate and save app state to localStorage
  */
-export const saveAppToLocalStorage = (key: string, app: Schema.Schema.Type<typeof AppSchema>) => 
+export const saveTabToLocalStorage = (key: string, tab: Schema.Schema.Type<typeof TabSchema>) => 
   Effect.gen(function* () {
-    // Validate the app conforms to schema
-    if (!isApp(app)) {
-      yield* Effect.fail(new Error('Invalid app data'));
+    // Validate the tab conforms to schema
+    if (!isTab(tab)) {
+      yield* Effect.fail(new Error('Invalid tab data'));
     }
     
     // Encode to JSON-serializable format
-    const encoded = yield* encodeApp(app);
+    const encoded = yield* encodeTab(tab);
     
     // Save to localStorage
     yield* Effect.sync(() => {
@@ -172,7 +181,8 @@ export {
   BookSchema,
   BibleStateSchema,
   StopwatchStateSchema,
-  AppSchema,
+  AppContentSchema,
+  TabSchema,
   WalletInfoSchema,
   UtxoSchema,
   AmountSchema

@@ -38,7 +38,6 @@
 				if (startTime !== null) {
 					displayTime = Date.now() - startTime;
 					onStateChange?.({
-						id: stopwatchState.id,
 						elapsedTime: displayTime,
 						isRunning: true
 					});
@@ -57,7 +56,6 @@
 			}
 			
 			onStateChange?.({
-				id: stopwatchState.id,
 				elapsedTime: displayTime,
 				isRunning: false
 			});
@@ -77,7 +75,6 @@
 		startTime = null;
 		
 		onStateChange?.({
-			id: stopwatchState.id,
 			elapsedTime: 0,
 			isRunning: false
 		});
