@@ -37,7 +37,7 @@
 					<button
 						onclick={() => onTabRemove(tabId)}
 						class="px-2 py-2 text-gray-400 hover:text-red-400 hover:bg-gray-600 transition-colors"
-						title="Close tab"
+						title="Close tab (w)"
 					>
 						×
 					</button>
