@@ -47,8 +47,6 @@ export type StopwatchState = Schema.Schema.Type<typeof StopwatchStateSchema>;
 export type AppContent = Schema.Schema.Type<typeof AppContentSchema>;
 export type Tab = Schema.Schema.Type<typeof TabSchema>;
 
-// For backward compatibility, export App as Tab
-export type App = Tab;
 
 // Maintain backward compatibility with Data constructors
 export const BibleState = Data.case<BibleState>();
@@ -131,14 +129,9 @@ export const createStopwatchTab = (id: string): Effect.Effect<Tab> =>
 		})
 	});
 
-// Backward compatibility aliases
-export const createBibleApp = createBibleTab;
-export const createAboutApp = createAboutTab;
-export const createChooseApp = createChooseTab;
-export const createStopwatchApp = createStopwatchTab;
 
-// Map App instances to their corresponding URLs
-export const getAppUrl = (tab: Tab): string => {
+// Map Tab instances to their corresponding URLs
+export const getTabUrl = (tab: Tab): string => {
 	return $match(tab.app, {
 		Bible: ({ bibleState }) => {
 			const bookShort = getShortName(bibleState.currentBook);
