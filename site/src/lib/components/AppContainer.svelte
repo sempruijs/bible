@@ -2,7 +2,7 @@
 	import type { Translation } from "$lib/translations/translation";
 	import { BibleBook } from "$lib/book";
 	import { 
-		type App, 
+		type Tab, 
 		getTabId, 
 		getAppUrl,
 		createBibleApp, 
@@ -21,7 +21,7 @@
 	let { translation }: { translation: Translation } = $props();
 
 	// State management
-	let apps = $state<App[]>([]);
+	let apps = $state<Tab[]>([]);
 	let activeTabId = $state<string>("tab1");
 	let nextTabId = $state<number>(2);
 
@@ -30,7 +30,7 @@
 		try {
 			const initialState = await Effect.runPromise(NavigationServiceLive.getInitialState());
 			
-			let initialApp: App;
+			let initialApp: Tab;
 			if (initialState.isAbout) {
 				// Create About tab if URL is /about
 				initialApp = await Effect.runPromise(createAboutApp("tab1"));
@@ -66,7 +66,7 @@
 	let activeApp = $derived(apps.find(app => getTabId(app) === activeTabId));
 
 	// Update app state
-	function updateAppState(updatedApp: App) {
+	function updateAppState(updatedApp: Tab) {
 		const tabId = getTabId(updatedApp);
 		apps = apps.map(app => getTabId(app) === tabId ? updatedApp : app);
 		
@@ -124,7 +124,7 @@
 			const tabIndex = apps.findIndex(app => getTabId(app) === activeTabId);
 			if (tabIndex === -1) return;
 
-			let newApp: App;
+			let newApp: Tab;
 			if (appType === "bible") {
 				const canonState = await Effect.runPromise(ResponsiveServiceLive.getInitialCanonState());
 				newApp = await Effect.runPromise(
@@ -158,18 +158,18 @@
 					NavigationServiceLive.parseURL(currentPage.url.pathname)
 				);
 				
-				if (urlState && activeApp && activeApp._tag === "Bible") {
-					const currentBook = activeApp.bibleState.currentBook;
-					const currentChapter = activeApp.bibleState.currentChapter;
+				if (urlState && activeApp && activeApp.app._tag === "Bible") {
+					const currentBook = activeApp.app.bibleState.currentBook;
+					const currentChapter = activeApp.app.bibleState.currentChapter;
 					
 					if (currentBook !== urlState.book || currentChapter !== urlState.chapter) {
 						const updatedApp = await Effect.runPromise(
 							createBibleApp(
-								activeApp.bibleState.id,
+								activeApp.id,
 								urlState.book,
 								urlState.chapter,
-								activeApp.bibleState.translation,
-								activeApp.bibleState.showCanonExplorer
+								activeApp.app.bibleState.translation,
+								activeApp.app.bibleState.showCanonExplorer
 							)
 						);
 						updateAppState(updatedApp);
