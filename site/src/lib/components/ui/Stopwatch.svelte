@@ -88,6 +88,23 @@
 		}
 	}
 
+	// Handle keyboard shortcuts
+	function handleKeydown(event: KeyboardEvent) {
+		// Only handle if not typing in an input/textarea
+		const target = event.target as HTMLElement;
+		if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true')) {
+			return;
+		}
+
+		if (event.key === ' ') { // Space key
+			event.preventDefault();
+			toggleStopwatch();
+		} else if (event.key === 'r') {
+			event.preventDefault();
+			resetStopwatch();
+		}
+	}
+
 	// Initialize state on mount
 	onMount(() => {
 		displayTime = stopwatchState.elapsedTime;
@@ -95,6 +112,12 @@
 		
 		if (isRunning) {
 			startStopwatch();
+		}
+
+		// Add keyboard event listener
+		if (typeof window !== 'undefined') {
+			window.addEventListener('keydown', handleKeydown);
+			return () => window.removeEventListener('keydown', handleKeydown);
 		}
 	});
 
@@ -125,20 +148,22 @@
 		<div class="flex gap-4 justify-center">
 			<button
 				onclick={toggleStopwatch}
+				title="{isRunning ? 'Stop' : 'Start'} stopwatch (space)"
 				class="px-6 py-3 rounded-lg font-semibold transition-all duration-200 {
 					isRunning 
 						? 'bg-red-600 hover:bg-red-700 text-white' 
 						: 'bg-green-600 hover:bg-green-700 text-white'
 				}"
 			>
-				{isRunning ? 'Stop' : 'Start'}
+				{isRunning ? 'Stop' : 'Start'} (space)
 			</button>
 
 			<button
 				onclick={resetStopwatch}
+				title="Reset stopwatch (r)"
 				class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg font-semibold transition-all duration-200"
 			>
-				Reset
+				Reset (r)
 			</button>
 		</div>
 

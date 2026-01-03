@@ -156,6 +156,9 @@
 		} else if (event.key === 'p') {
 			event.preventDefault();
 			goToPreviousTab();
+		} else if (event.key === 'w') {
+			event.preventDefault();
+			removeTab(activeTabId);
 		}
 	}
 
