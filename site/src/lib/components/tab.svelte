@@ -2,13 +2,16 @@
 	import type { App } from "$lib/app";
 	import { Bible, BibleState } from "$lib/app";
 	import BibleComponent from "$lib/bible.svelte";
+	import ChooseAppComponent from "$lib/components/ChooseApp.svelte";
 
 	let { 
 		app,
-		onStateChange 
+		onStateChange,
+		onAppChoice
 	}: { 
 		app: App; 
 		onStateChange?: (app: App) => void;
+		onAppChoice?: (appType: "bible" | "about") => void;
 	} = $props();
 
 	function handleBibleStateChange(book: any, chapter: any) {
@@ -50,4 +53,6 @@
 			<p class="text-lg">A modern Bible reading application built with SvelteKit and Effect.</p>
 		</div>
 	</div>
+{:else if app._tag === "ChooseApp"}
+	<ChooseAppComponent onChooseApp={(appType) => onAppChoice?.(appType)} />
 {/if}

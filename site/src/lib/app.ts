@@ -18,14 +18,16 @@ export const BibleState = Data.case<BibleState>();
 export type App = Data.TaggedEnum<{
 	Bible: { readonly bibleState: BibleState }
 	About: {}
+	ChooseApp: {}
 }>
 
-export const { Bible, About, $match } = Data.taggedEnum<App>()
+export const { Bible, About, ChooseApp, $match } = Data.taggedEnum<App>()
 
 // Get display name for App (tab title) using $match
 export const getDisplayName = (app: App): string => {
 	return $match(app, {
 		Bible: ({ bibleState }) => `${getBibleBookDisplayName(bibleState.currentBook)} ${bibleState.currentChapter}`,
-		About: () => "About"
+		About: () => "About",
+		ChooseApp: () => "Choose App"
 	});
 };

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Translation } from "$lib/translations/translation";
 	import { BibleBook, getShortName, toBibleBook } from "$lib/book";
-	import { type App, Bible, BibleState, getDisplayName } from "$lib/app";
+	import { type App, Bible, BibleState, About, ChooseApp, getDisplayName } from "$lib/app";
 	import Tab from "$lib/components/tab.svelte";
 	import { goto } from "$app/navigation";
 	import { page } from "$app/stores";
@@ -25,7 +25,20 @@
 		return { book: BibleBook.John, chapter: 1 };
 	}
 
+	// Determine initial canon explorer state based on device type
+	function getInitialCanonExplorerState() {
+		if (typeof window !== 'undefined') {
+			const isMobile = window.innerWidth < 768;
+			// On mobile, start with canon closed to show the chapter content
+			// On desktop, start with canon open for better usability
+			return !isMobile;
+		}
+		// Default to open for SSR
+		return true;
+	}
+
 	const initial = getInitialBookAndChapter();
+	const initialCanonState = getInitialCanonExplorerState();
 
 	// Store apps instead of just BibleStates
 	let apps = $state<App[]>([
@@ -34,20 +47,20 @@
 			currentBook: initial.book,
 			currentChapter: initial.chapter,
 			translation: translation,
-			showCanonExplorer: true
+			showCanonExplorer: initialCanonState
 		}) })
 	]);
 
 	let activeTabId = $state<string>("tab1");
 	let nextTabId = $state<number>(2);
 
+	// Track tab IDs separately for non-Bible apps
+	let tabIds = $state<Record<string, string>>({});
+
 	// Get active app reference
-	let activeApp = $derived(apps.find(app => {
-		if (app._tag === "Bible") {
-			return app.bibleState.id === activeTabId;
-		}
-		// For About tab, we could use a special ID or handle differently
-		return false;
+	let activeApp = $derived(apps.find((app, index) => {
+		const tabId = getTabId(app, index);
+		return tabId === activeTabId;
 	}));
 
 	// Update a specific app's state
@@ -67,33 +80,75 @@
 	}
 
 	function addTab() {
-		const newApp = Bible({ bibleState: BibleState({
-			id: `tab${nextTabId}`,
-			currentBook: BibleBook.John,
-			currentChapter: 1,
-			translation: translation,
-			showCanonExplorer: true
-		}) });
+		const tabId = `tab${nextTabId}`;
+		const newApp = ChooseApp({});
+		const newIndex = apps.length;
 		apps = [...apps, newApp];
-		activeTabId = `tab${nextTabId}`;
+		tabIds[newIndex] = tabId;
+		activeTabId = tabId;
 		nextTabId++;
+	}
+
+	function handleAppChoice(appType: "bible" | "about") {
+		// Find the current active tab index
+		const activeIndex = apps.findIndex((app, index) => getTabId(app, index) === activeTabId);
+		if (activeIndex === -1) return;
+
+		if (appType === "bible") {
+			const newBibleApp = Bible({ bibleState: BibleState({
+				id: activeTabId,
+				currentBook: BibleBook.John,
+				currentChapter: 1,
+				translation: translation,
+				showCanonExplorer: getInitialCanonExplorerState()
+			}) });
+			apps = apps.map((app, index) => index === activeIndex ? newBibleApp : app);
+			// Update URL for the new Bible tab
+			updateURL(BibleBook.John, 1);
+		} else if (appType === "about") {
+			const newAboutApp = About({});
+			apps = apps.map((app, index) => index === activeIndex ? newAboutApp : app);
+		}
+	}
+
+	// Helper function to get tab ID from any app type
+	function getTabId(app: App, index?: number): string {
+		if (app._tag === "Bible") {
+			return app.bibleState.id;
+		} else {
+			// For non-Bible apps, use index-based ID
+			const appIndex = index !== undefined ? index : apps.indexOf(app);
+			return tabIds[appIndex] || `tab${appIndex + 1}`;
+		}
 	}
 
 	function removeTab(tabId: string) {
 		if (apps.length === 1) return; // Don't allow removing the last tab
 		
-		apps = apps.filter(app => {
-			if (app._tag === "Bible") {
-				return app.bibleState.id !== tabId;
+		// Find the index of the tab to remove
+		const indexToRemove = apps.findIndex((app, index) => getTabId(app, index) === tabId);
+		if (indexToRemove === -1) return;
+		
+		// Remove the app and update tabIds
+		apps = apps.filter((_, index) => index !== indexToRemove);
+		
+		// Update tabIds mapping (shift indices down)
+		const newTabIds: Record<string, string> = {};
+		Object.entries(tabIds).forEach(([index, id]) => {
+			const numIndex = parseInt(index);
+			if (numIndex < indexToRemove) {
+				newTabIds[numIndex] = id;
+			} else if (numIndex > indexToRemove) {
+				newTabIds[numIndex - 1] = id;
 			}
-			return true; // Keep non-Bible apps for now
 		});
+		tabIds = newTabIds;
 		
 		// If we removed the active tab, switch to the first remaining tab
 		if (activeTabId === tabId) {
 			const firstApp = apps[0];
-			if (firstApp?._tag === "Bible") {
-				activeTabId = firstApp.bibleState.id;
+			if (firstApp) {
+				activeTabId = getTabId(firstApp, 0);
 			}
 		}
 	}
@@ -167,8 +222,8 @@
 	<!-- Tab Bar -->
 	<div class="bg-gray-800 border-b border-gray-700 flex items-center px-4 py-2">
 		<div class="flex items-center gap-2 flex-1 overflow-x-auto">
-			{#each apps as app}
-				{@const tabId = app._tag === "Bible" ? app.bibleState.id : "about"}
+			{#each apps as app, index}
+				{@const tabId = getTabId(app, index)}
 				{@const tabTitle = getDisplayName(app)}
 				<div class="flex items-center bg-gray-700 rounded-lg overflow-hidden min-w-0">
 					<button
@@ -209,6 +264,7 @@
 			<Tab 
 				app={activeApp}
 				onStateChange={updateAppState}
+				onAppChoice={handleAppChoice}
 			/>
 		{/if}
 	</div>
