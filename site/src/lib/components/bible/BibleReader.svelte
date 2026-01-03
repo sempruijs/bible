@@ -4,7 +4,7 @@
     import { BibleBook, getShortName, toBibleBook } from "$lib/book";
     import { protestantBookOrder } from "$lib/translations/bookOrder";
     import { Option, Effect } from "effect";
-    import BibleCanonExplorer from "$lib/components/bible/BibleCanonExplorer.svelte";
+    import BibleCanonExplorerWithSearch from "$lib/components/bible/BibleCanonExplorerWithSearch.svelte";
     import BibleChapterViewer from "$lib/components/bible/BibleChapterViewer.svelte";
     import { onMount } from "svelte";
 
@@ -164,7 +164,7 @@
                          ? 'absolute inset-0 z-10 w-full' 
                          : 'w-80 border-r relative'}"
             >
-                <BibleCanonExplorer
+                <BibleCanonExplorerWithSearch
                     {translation}
                     currentBook={internalBook}
                     currentChapter={internalChapter}
