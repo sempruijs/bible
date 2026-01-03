@@ -1,17 +1,38 @@
 <script lang="ts">
 	import type { Translation } from "$lib/translations/translation";
-	import { BibleBook } from "$lib/book";
+	import { BibleBook, getShortName, toBibleBook } from "$lib/book";
 	import { type App, Bible, BibleState, getDisplayName } from "$lib/app";
 	import Tab from "$lib/components/tab.svelte";
+	import { goto } from "$app/navigation";
+	import { page } from "$app/stores";
+	import { onMount } from "svelte";
+	import { Option } from "effect";
 
 	let { translation }: { translation: Translation } = $props();
+
+	// Initialize with URL params or default to John 1
+	function getInitialBookAndChapter() {
+		if (typeof window !== 'undefined') {
+			const urlParts = window.location.pathname.split('/');
+			if (urlParts.length >= 3) {
+				const bookOption = toBibleBook(urlParts[1]);
+				const chapter = parseInt(urlParts[2]);
+				if (Option.isSome(bookOption) && !isNaN(chapter) && chapter > 0) {
+					return { book: bookOption.value, chapter };
+				}
+			}
+		}
+		return { book: BibleBook.John, chapter: 1 };
+	}
+
+	const initial = getInitialBookAndChapter();
 
 	// Store apps instead of just BibleStates
 	let apps = $state<App[]>([
 		Bible({ bibleState: BibleState({
 			id: "tab1",
-			currentBook: BibleBook.John,
-			currentChapter: 1,
+			currentBook: initial.book,
+			currentChapter: initial.chapter,
 			translation: translation,
 			showCanonExplorer: true
 		}) })
@@ -37,6 +58,11 @@
 					? app
 					: existingApp
 			);
+			
+			// Update URL if this is the active tab
+			if (app.bibleState.id === activeTabId) {
+				updateURL(app.bibleState.currentBook, app.bibleState.currentChapter);
+			}
 		}
 	}
 
@@ -74,7 +100,65 @@
 
 	function setActiveTab(tabId: string) {
 		activeTabId = tabId;
+		
+		// Update URL when switching tabs
+		const app = apps.find(app => app._tag === "Bible" && app.bibleState.id === tabId);
+		if (app && app._tag === "Bible") {
+			updateURL(app.bibleState.currentBook, app.bibleState.currentChapter);
+		}
 	}
+
+	// Update the URL to reflect current book and chapter
+	function updateURL(book: typeof BibleBook.John, chapter: number) {
+		const bookShort = getShortName(book);
+		goto(`/${bookShort}/${chapter}`, { replaceState: true });
+	}
+
+	// Handle browser navigation (back/forward buttons)
+	function syncFromURL() {
+		const params = $page.params;
+		if (params.book && params.chapter) {
+			const bookOption = toBibleBook(params.book);
+			const chapter = parseInt(params.chapter);
+			
+			if (Option.isSome(bookOption) && !isNaN(chapter) && chapter > 0) {
+				const book = bookOption.value;
+				
+				// Update the active tab to match the URL only if it's different
+				if (activeApp && activeApp._tag === "Bible") {
+					const currentBook = activeApp.bibleState.currentBook;
+					const currentChapter = activeApp.bibleState.currentChapter;
+					
+					// Only update if the URL state differs from current state
+					if (currentBook._tag !== book._tag || currentChapter !== chapter) {
+						const updatedBibleState = BibleState({
+							...activeApp.bibleState,
+							currentBook: book,
+							currentChapter: chapter
+						});
+						// Update without triggering URL change
+						apps = apps.map(existingApp => 
+							existingApp._tag === "Bible" && existingApp.bibleState.id === activeApp.bibleState.id
+								? Bible({ bibleState: updatedBibleState })
+								: existingApp
+						);
+					}
+				}
+			}
+		}
+	}
+
+	// Initialize from URL params on mount and handle route changes
+	onMount(() => {
+		syncFromURL();
+	});
+
+	// Watch for URL changes (browser back/forward)
+	$effect(() => {
+		// Access $page.params to create dependency
+		$page.params;
+		syncFromURL();
+	});
 
 
 </script>
