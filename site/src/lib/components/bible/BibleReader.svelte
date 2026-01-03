@@ -3,8 +3,8 @@
     import { getChapter } from "$lib/translations/translation";
     import { BibleBook, getShortName, toBibleBook } from "$lib/book";
     import { Option, Effect } from "effect";
-    import BibleCanonExplorer from "$lib/components/BibleCanonExplorer.svelte";
-    import BibleChapterViewer from "$lib/components/BibleChapterViewer.svelte";
+    import BibleCanonExplorer from "$lib/components/bible/BibleCanonExplorer.svelte";
+    import BibleChapterViewer from "$lib/components/bible/BibleChapterViewer.svelte";
     import { onMount } from "svelte";
 
     let {
