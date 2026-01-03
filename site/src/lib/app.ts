@@ -1,36 +1,55 @@
-import { Data, Effect } from "effect";
+import { Data, Effect, Schema } from "effect";
 import type { BibleBook } from "$lib/book";
-import { getDisplayName as getBibleBookDisplayName, getShortName } from "$lib/book";
+import { BibleBookSchema, getDisplayName as getBibleBookDisplayName, getShortName } from "$lib/book";
 import type { Translation } from "$lib/translations/translation";
+import { TranslationSchema } from "$lib/translations/translation";
 
-// BibleState type definition with Translation included
-export interface BibleState {
-	readonly id: string;
-	readonly currentBook: BibleBook;
-	readonly currentChapter: number;
-	readonly translation: Translation;
-	readonly showCanonExplorer: boolean;
-}
+// Effect Schema definitions
+export const BibleStateSchema = Schema.Struct({
+	id: Schema.String,
+	currentBook: BibleBookSchema,
+	currentChapter: Schema.Number,
+	translation: TranslationSchema,
+	showCanonExplorer: Schema.Boolean
+});
 
+export const StopwatchStateSchema = Schema.Struct({
+	id: Schema.String,
+	elapsedTime: Schema.Number, // in milliseconds
+	isRunning: Schema.Boolean
+});
+
+// Type exports
+export type BibleState = Schema.Schema.Type<typeof BibleStateSchema>;
+export type StopwatchState = Schema.Schema.Type<typeof StopwatchStateSchema>;
+
+// Maintain backward compatibility with Data constructors
 export const BibleState = Data.case<BibleState>();
-
-// StopwatchState type definition
-export interface StopwatchState {
-	readonly id: string;
-	readonly elapsedTime: number; // in milliseconds
-	readonly isRunning: boolean;
-}
-
 export const StopwatchState = Data.case<StopwatchState>();
 
-// App TaggedEnum using proper Effect pattern
-export type App = Data.TaggedEnum<{
-	Bible: { readonly bibleState: BibleState }
-	About: { readonly id: string }
-	ChooseApp: { readonly id: string }
-	Stopwatch: { readonly stopwatchState: StopwatchState }
-}>
+// Effect Schema for App TaggedEnum
+export const AppSchema = Schema.Union(
+	Schema.Struct({
+		_tag: Schema.Literal("Bible"),
+		bibleState: BibleStateSchema
+	}),
+	Schema.Struct({
+		_tag: Schema.Literal("About"),
+		id: Schema.String
+	}),
+	Schema.Struct({
+		_tag: Schema.Literal("ChooseApp"),
+		id: Schema.String
+	}),
+	Schema.Struct({
+		_tag: Schema.Literal("Stopwatch"),
+		stopwatchState: StopwatchStateSchema
+	})
+);
 
+export type App = Schema.Schema.Type<typeof AppSchema>;
+
+// Maintain backward compatibility with Data TaggedEnum
 export const { Bible, About, ChooseApp, Stopwatch, $match } = Data.taggedEnum<App>()
 
 // Tab ID management using Effect

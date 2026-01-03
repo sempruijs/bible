@@ -162,7 +162,7 @@
 					const currentBook = activeApp.bibleState.currentBook;
 					const currentChapter = activeApp.bibleState.currentChapter;
 					
-					if (currentBook._tag !== urlState.book._tag || currentChapter !== urlState.chapter) {
+					if (currentBook !== urlState.book || currentChapter !== urlState.chapter) {
 						const updatedApp = await Effect.runPromise(
 							createBibleApp(
 								activeApp.bibleState.id,
