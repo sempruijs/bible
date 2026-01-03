@@ -118,6 +118,47 @@
 		}
 	}
 
+	// Tab navigation functions
+	function goToNextTab() {
+		const currentIndex = tabs.findIndex(tab => getTabId(tab) === activeTabId);
+		if (currentIndex !== -1 && currentIndex < tabs.length - 1) {
+			setActiveTab(getTabId(tabs[currentIndex + 1]));
+		} else if (tabs.length > 1) {
+			// Wrap to first tab
+			setActiveTab(getTabId(tabs[0]));
+		}
+	}
+
+	function goToPreviousTab() {
+		const currentIndex = tabs.findIndex(tab => getTabId(tab) === activeTabId);
+		if (currentIndex > 0) {
+			setActiveTab(getTabId(tabs[currentIndex - 1]));
+		} else if (tabs.length > 1) {
+			// Wrap to last tab
+			setActiveTab(getTabId(tabs[tabs.length - 1]));
+		}
+	}
+
+	// Handle keyboard shortcuts
+	function handleGlobalKeydown(event: KeyboardEvent) {
+		// Only handle shortcuts if not typing in an input/textarea
+		const target = event.target as HTMLElement;
+		if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true')) {
+			return;
+		}
+
+		if (event.key === 't') {
+			event.preventDefault();
+			addTab();
+		} else if (event.key === 'n') {
+			event.preventDefault();
+			goToNextTab();
+		} else if (event.key === 'p') {
+			event.preventDefault();
+			goToPreviousTab();
+		}
+	}
+
 	// Handle app choice in ChooseApp tabs
 	async function handleAppChoice(appType: "bible" | "about" | "stopwatch") {
 		try {
@@ -185,6 +226,12 @@
 	onMount(async () => {
 		await initializeTab();
 		await syncFromURL();
+		
+		// Add global keyboard event listener
+		if (typeof window !== 'undefined') {
+			window.addEventListener('keydown', handleGlobalKeydown);
+			return () => window.removeEventListener('keydown', handleGlobalKeydown);
+		}
 	});
 
 	// Watch for URL changes

@@ -92,6 +92,12 @@
     }
 
     function handleGlobalKeydown(event: KeyboardEvent) {
+        // Only handle if not typing in an input/textarea and if this is a Bible tab
+        const target = event.target as HTMLElement;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true')) {
+            return;
+        }
+
         // Handle 'o' key to open canon explorer and focus search
         if (event.key === 'o' && !showCanonExplorer) {
             event.preventDefault();
