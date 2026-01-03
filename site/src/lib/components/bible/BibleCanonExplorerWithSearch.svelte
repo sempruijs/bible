@@ -11,12 +11,14 @@
 		translation,
 		currentBook,
 		currentChapter,
-		onChapterSelect
+		onChapterSelect,
+		shouldFocusSearch = false
 	}: {
 		translation: Translation;
 		currentBook: BibleBook;
 		currentChapter: number;
 		onChapterSelect: (book: string, chapter: number) => void;
+		shouldFocusSearch?: boolean;
 	} = $props();
 
 	let searchInputRef: HTMLInputElement;
@@ -71,6 +73,16 @@
 		searchInputRef?.blur();
 	}
 
+	// Focus search input when shouldFocusSearch prop changes
+	$effect(() => {
+		if (shouldFocusSearch && searchInputRef) {
+			// Small delay to ensure the component is fully rendered
+			setTimeout(() => {
+				searchInputRef?.focus();
+			}, 100);
+		}
+	});
+
 	onMount(() => {
 		const handleGlobalKeydown = (event: KeyboardEvent) => handleKeydown(event);
 		if (typeof window !== 'undefined') {
@@ -87,7 +99,7 @@
 			<input
 				bind:this={searchInputRef}
 				type="text"
-				placeholder="Search chapters... (press 'o' to focus)"
+				placeholder="Search chapters... (o)"
 				value={searchQuery}
 				oninput={handleSearchInput}
 				onfocus={handleSearchFocus}
@@ -108,7 +120,7 @@
 		</div>
 		{#if !isSearchFocused}
 			<div class="text-xs text-gray-500 mt-1">
-				Press 'o' to search quickly
+				(o) to search quickly
 			</div>
 		{/if}
 	</div>
