@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { App } from "$lib/app";
 	import { Bible, BibleState } from "$lib/app";
-	import BibleComponent from "$lib/bible.svelte";
-	import ChooseAppComponent from "$lib/components/ChooseApp.svelte";
+	import BibleComponent from "$lib/components/bible/BibleReader.svelte";
+	import ChooseAppComponent from "$lib/components/ui/ChooseApp.svelte";
 
 	let { 
 		app,

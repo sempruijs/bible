@@ -1,271 +1,199 @@
 <script lang="ts">
 	import type { Translation } from "$lib/translations/translation";
-	import { BibleBook, getShortName, toBibleBook } from "$lib/book";
-	import { type App, Bible, BibleState, About, ChooseApp, getDisplayName } from "$lib/app";
-	import Tab from "$lib/components/tab.svelte";
-	import { goto } from "$app/navigation";
+	import { BibleBook } from "$lib/book";
+	import { 
+		type App, 
+		getTabId, 
+		createBibleApp, 
+		createAboutApp, 
+		createChooseApp 
+	} from "$lib/app";
+	import { NavigationServiceLive } from "$lib/services/NavigationService";
+	import { ResponsiveServiceLive } from "$lib/services/ResponsiveService";
+	import TabBar from "$lib/components/tabs/TabBar.svelte";
+	import TabContent from "$lib/components/tabs/TabContent.svelte";
 	import { page } from "$app/stores";
 	import { onMount } from "svelte";
-	import { Option } from "effect";
+	import { Effect } from "effect";
 
 	let { translation }: { translation: Translation } = $props();
 
-	// Initialize with URL params or default to John 1
-	function getInitialBookAndChapter() {
-		if (typeof window !== 'undefined') {
-			const urlParts = window.location.pathname.split('/');
-			if (urlParts.length >= 3) {
-				const bookOption = toBibleBook(urlParts[1]);
-				const chapter = parseInt(urlParts[2]);
-				if (Option.isSome(bookOption) && !isNaN(chapter) && chapter > 0) {
-					return { book: bookOption.value, chapter };
-				}
-			}
-		}
-		return { book: BibleBook.John, chapter: 1 };
-	}
-
-	// Determine initial canon explorer state based on device type
-	function getInitialCanonExplorerState() {
-		if (typeof window !== 'undefined') {
-			const isMobile = window.innerWidth < 768;
-			// On mobile, start with canon closed to show the chapter content
-			// On desktop, start with canon open for better usability
-			return !isMobile;
-		}
-		// Default to open for SSR
-		return true;
-	}
-
-	const initial = getInitialBookAndChapter();
-	const initialCanonState = getInitialCanonExplorerState();
-
-	// Store apps instead of just BibleStates
-	let apps = $state<App[]>([
-		Bible({ bibleState: BibleState({
-			id: "tab1",
-			currentBook: initial.book,
-			currentChapter: initial.chapter,
-			translation: translation,
-			showCanonExplorer: initialCanonState
-		}) })
-	]);
-
+	// State management
+	let apps = $state<App[]>([]);
 	let activeTabId = $state<string>("tab1");
 	let nextTabId = $state<number>(2);
 
-	// Track tab IDs separately for non-Bible apps
-	let tabIds = $state<Record<string, string>>({});
-
-	// Get active app reference
-	let activeApp = $derived(apps.find((app, index) => {
-		const tabId = getTabId(app, index);
-		return tabId === activeTabId;
-	}));
-
-	// Update a specific app's state
-	function updateAppState(app: App) {
-		if (app._tag === "Bible") {
-			apps = apps.map(existingApp => 
-				existingApp._tag === "Bible" && existingApp.bibleState.id === app.bibleState.id
-					? app
-					: existingApp
+	// Initialize the first tab using Effect
+	async function initializeApp() {
+		try {
+			const initialState = await Effect.runPromise(NavigationServiceLive.getInitialState());
+			const canonState = await Effect.runPromise(ResponsiveServiceLive.getInitialCanonState());
+			
+			const initialApp = await Effect.runPromise(
+				createBibleApp(
+					"tab1", 
+					initialState.book, 
+					initialState.chapter, 
+					translation, 
+					canonState
+				)
 			);
 			
-			// Update URL if this is the active tab
-			if (app.bibleState.id === activeTabId) {
-				updateURL(app.bibleState.currentBook, app.bibleState.currentChapter);
-			}
+			apps = [initialApp];
+		} catch (error) {
+			console.error("Failed to initialize app:", error);
+			// Fallback to default
+			const fallbackApp = await Effect.runPromise(
+				createBibleApp("tab1", BibleBook.John, 1, translation, true)
+			);
+			apps = [fallbackApp];
 		}
 	}
 
-	function addTab() {
-		const tabId = `tab${nextTabId}`;
-		const newApp = ChooseApp({});
-		const newIndex = apps.length;
-		apps = [...apps, newApp];
-		tabIds[newIndex] = tabId;
-		activeTabId = tabId;
-		nextTabId++;
-	}
+	// Get active app reference
+	let activeApp = $derived(apps.find(app => getTabId(app) === activeTabId));
 
-	function handleAppChoice(appType: "bible" | "about") {
-		// Find the current active tab index
-		const activeIndex = apps.findIndex((app, index) => getTabId(app, index) === activeTabId);
-		if (activeIndex === -1) return;
-
-		if (appType === "bible") {
-			const newBibleApp = Bible({ bibleState: BibleState({
-				id: activeTabId,
-				currentBook: BibleBook.John,
-				currentChapter: 1,
-				translation: translation,
-				showCanonExplorer: getInitialCanonExplorerState()
-			}) });
-			apps = apps.map((app, index) => index === activeIndex ? newBibleApp : app);
-			// Update URL for the new Bible tab
-			updateURL(BibleBook.John, 1);
-		} else if (appType === "about") {
-			const newAboutApp = About({});
-			apps = apps.map((app, index) => index === activeIndex ? newAboutApp : app);
+	// Update app state
+	function updateAppState(updatedApp: App) {
+		const tabId = getTabId(updatedApp);
+		apps = apps.map(app => getTabId(app) === tabId ? updatedApp : app);
+		
+		// Update URL for Bible apps
+		if (updatedApp._tag === "Bible" && tabId === activeTabId) {
+			Effect.runPromise(
+				NavigationServiceLive.updateURL(
+					updatedApp.bibleState.currentBook, 
+					updatedApp.bibleState.currentChapter
+				)
+			);
 		}
 	}
 
-	// Helper function to get tab ID from any app type
-	function getTabId(app: App, index?: number): string {
-		if (app._tag === "Bible") {
-			return app.bibleState.id;
-		} else {
-			// For non-Bible apps, use index-based ID
-			const appIndex = index !== undefined ? index : apps.indexOf(app);
-			return tabIds[appIndex] || `tab${appIndex + 1}`;
+	// Add new tab
+	async function addTab() {
+		try {
+			const tabId = `tab${nextTabId}`;
+			const newApp = await Effect.runPromise(createChooseApp(tabId));
+			apps = [...apps, newApp];
+			activeTabId = tabId;
+			nextTabId++;
+		} catch (error) {
+			console.error("Failed to add tab:", error);
 		}
 	}
 
+	// Remove tab
 	function removeTab(tabId: string) {
-		if (apps.length === 1) return; // Don't allow removing the last tab
+		if (apps.length === 1) return;
 		
-		// Find the index of the tab to remove
-		const indexToRemove = apps.findIndex((app, index) => getTabId(app, index) === tabId);
-		if (indexToRemove === -1) return;
+		apps = apps.filter(app => getTabId(app) !== tabId);
 		
-		// Remove the app and update tabIds
-		apps = apps.filter((_, index) => index !== indexToRemove);
-		
-		// Update tabIds mapping (shift indices down)
-		const newTabIds: Record<string, string> = {};
-		Object.entries(tabIds).forEach(([index, id]) => {
-			const numIndex = parseInt(index);
-			if (numIndex < indexToRemove) {
-				newTabIds[numIndex] = id;
-			} else if (numIndex > indexToRemove) {
-				newTabIds[numIndex - 1] = id;
-			}
-		});
-		tabIds = newTabIds;
-		
-		// If we removed the active tab, switch to the first remaining tab
 		if (activeTabId === tabId) {
 			const firstApp = apps[0];
 			if (firstApp) {
-				activeTabId = getTabId(firstApp, 0);
+				activeTabId = getTabId(firstApp);
 			}
 		}
 	}
 
+	// Set active tab
 	function setActiveTab(tabId: string) {
 		activeTabId = tabId;
 		
-		// Update URL when switching tabs
-		const app = apps.find(app => app._tag === "Bible" && app.bibleState.id === tabId);
+		// Update URL when switching to Bible tabs
+		const app = apps.find(app => getTabId(app) === tabId);
 		if (app && app._tag === "Bible") {
-			updateURL(app.bibleState.currentBook, app.bibleState.currentChapter);
+			Effect.runPromise(
+				NavigationServiceLive.updateURL(
+					app.bibleState.currentBook, 
+					app.bibleState.currentChapter
+				)
+			);
 		}
 	}
 
-	// Update the URL to reflect current book and chapter
-	function updateURL(book: typeof BibleBook.John, chapter: number) {
-		const bookShort = getShortName(book);
-		goto(`/${bookShort}/${chapter}`, { replaceState: true });
+	// Handle app choice in ChooseApp tabs
+	async function handleAppChoice(appType: "bible" | "about") {
+		try {
+			const tabIndex = apps.findIndex(app => getTabId(app) === activeTabId);
+			if (tabIndex === -1) return;
+
+			let newApp: App;
+			if (appType === "bible") {
+				const canonState = await Effect.runPromise(ResponsiveServiceLive.getInitialCanonState());
+				newApp = await Effect.runPromise(
+					createBibleApp(activeTabId, BibleBook.John, 1, translation, canonState)
+				);
+				// Update URL for new Bible tab
+				Effect.runPromise(NavigationServiceLive.updateURL(BibleBook.John, 1));
+			} else {
+				newApp = await Effect.runPromise(createAboutApp(activeTabId));
+			}
+			
+			apps = apps.map((app, index) => index === tabIndex ? newApp : app);
+		} catch (error) {
+			console.error("Failed to handle app choice:", error);
+		}
 	}
 
-	// Handle browser navigation (back/forward buttons)
-	function syncFromURL() {
-		const params = $page.params;
-		if (params.book && params.chapter) {
-			const bookOption = toBibleBook(params.book);
-			const chapter = parseInt(params.chapter);
-			
-			if (Option.isSome(bookOption) && !isNaN(chapter) && chapter > 0) {
-				const book = bookOption.value;
+	// Handle browser navigation
+	async function syncFromURL() {
+		try {
+			const currentPage = $page;
+			const params = currentPage.params;
+			if (params.book && params.chapter) {
+				const urlState = await Effect.runPromise(
+					NavigationServiceLive.parseURL(currentPage.url.pathname)
+				);
 				
-				// Update the active tab to match the URL only if it's different
-				if (activeApp && activeApp._tag === "Bible") {
+				if (urlState && activeApp && activeApp._tag === "Bible") {
 					const currentBook = activeApp.bibleState.currentBook;
 					const currentChapter = activeApp.bibleState.currentChapter;
 					
-					// Only update if the URL state differs from current state
-					if (currentBook._tag !== book._tag || currentChapter !== chapter) {
-						const updatedBibleState = BibleState({
-							...activeApp.bibleState,
-							currentBook: book,
-							currentChapter: chapter
-						});
-						// Update without triggering URL change
-						apps = apps.map(existingApp => 
-							existingApp._tag === "Bible" && existingApp.bibleState.id === activeApp.bibleState.id
-								? Bible({ bibleState: updatedBibleState })
-								: existingApp
+					if (currentBook._tag !== urlState.book._tag || currentChapter !== urlState.chapter) {
+						const updatedApp = await Effect.runPromise(
+							createBibleApp(
+								activeApp.bibleState.id,
+								urlState.book,
+								urlState.chapter,
+								activeApp.bibleState.translation,
+								activeApp.bibleState.showCanonExplorer
+							)
 						);
+						updateAppState(updatedApp);
 					}
 				}
 			}
+		} catch (error) {
+			console.error("Failed to sync from URL:", error);
 		}
 	}
 
-	// Initialize from URL params on mount and handle route changes
-	onMount(() => {
-		syncFromURL();
+	// Initialize on mount
+	onMount(async () => {
+		await initializeApp();
+		await syncFromURL();
 	});
 
-	// Watch for URL changes (browser back/forward)
+	// Watch for URL changes
 	$effect(() => {
-		// Access $page.params to create dependency
-		$page.params;
+		$page;
 		syncFromURL();
 	});
-
-
 </script>
 
 <div class="h-full flex flex-col bg-gray-900">
-	<!-- Tab Bar -->
-	<div class="bg-gray-800 border-b border-gray-700 flex items-center px-4 py-2">
-		<div class="flex items-center gap-2 flex-1 overflow-x-auto">
-			{#each apps as app, index}
-				{@const tabId = getTabId(app, index)}
-				{@const tabTitle = getDisplayName(app)}
-				<div class="flex items-center bg-gray-700 rounded-lg overflow-hidden min-w-0">
-					<button
-						onclick={() => setActiveTab(tabId)}
-						class="px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap {
-							activeTabId === tabId 
-								? 'bg-blue-600 text-white' 
-								: 'text-gray-300 hover:bg-gray-600'
-						}"
-					>
-						{tabTitle}
-					</button>
-					{#if apps.length > 1}
-						<button
-							onclick={() => removeTab(tabId)}
-							class="px-2 py-2 text-gray-400 hover:text-red-400 hover:bg-gray-600 transition-colors"
-							title="Close tab"
-						>
-							×
-						</button>
-					{/if}
-				</div>
-			{/each}
-		</div>
-		
-		<button
-			onclick={addTab}
-			class="ml-4 px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors"
-			title="Add new tab"
-		>
-			+ New Tab
-		</button>
-	</div>
+	<TabBar 
+		{apps}
+		{activeTabId}
+		onTabSelect={setActiveTab}
+		onTabRemove={removeTab}
+		onAddTab={addTab}
+	/>
 
-	<!-- App Content -->
-	<div class="flex-1 overflow-hidden">
-		{#if activeApp}
-			<Tab 
-				app={activeApp}
-				onStateChange={updateAppState}
-				onAppChoice={handleAppChoice}
-			/>
-		{/if}
-	</div>
+	<TabContent 
+		{activeApp}
+		onStateChange={updateAppState}
+		onAppChoice={handleAppChoice}
+	/>
 </div>
