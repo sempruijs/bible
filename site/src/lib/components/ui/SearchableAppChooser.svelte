@@ -1,0 +1,158 @@
+<script lang="ts">
+    import { onMount } from "svelte";
+
+    let { 
+        onChooseApp 
+    }: { 
+        onChooseApp: (appType: "bible" | "about" | "stopwatch") => void;
+    } = $props();
+
+    type AppOption = {
+        id: "bible" | "about" | "stopwatch";
+        name: string;
+        description: string;
+    };
+
+    const apps: AppOption[] = [
+        { id: "bible", name: "bible", description: "Read and explore the Bible" },
+        { id: "about", name: "about", description: "Learn more about Bible Computer" },
+        { id: "stopwatch", name: "stopwatch", description: "Track time with a precise stopwatch" }
+    ];
+
+    let searchInputRef: HTMLInputElement;
+    let searchQuery = $state("");
+    let selectedIndex = $state(0);
+
+    // Filter apps based on search query
+    let filteredApps = $derived.by(() => {
+        if (!searchQuery.trim()) {
+            return apps;
+        }
+        
+        const query = searchQuery.toLowerCase();
+        return apps.filter(app => 
+            app.name.toLowerCase().includes(query) || 
+            app.description.toLowerCase().includes(query)
+        );
+    });
+
+    // Reset selection when filtered apps change
+    $effect(() => {
+        if (selectedIndex >= filteredApps.length) {
+            selectedIndex = 0;
+        }
+    });
+
+    function handleSearchInput(event: Event) {
+        const target = event.target as HTMLInputElement;
+        searchQuery = target.value;
+        selectedIndex = 0; // Reset selection when query changes
+    }
+
+    function handleKeydown(event: KeyboardEvent) {
+        if (filteredApps.length === 0) return;
+
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            selectedIndex = Math.min(selectedIndex + 1, filteredApps.length - 1);
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            selectedIndex = Math.max(selectedIndex - 1, 0);
+        } else if (event.key === 'Enter') {
+            event.preventDefault();
+            if (filteredApps[selectedIndex]) {
+                selectApp(filteredApps[selectedIndex]);
+            }
+        } else if (event.key === 'Escape') {
+            event.preventDefault();
+            searchQuery = "";
+            searchInputRef?.blur();
+        }
+    }
+
+    function selectApp(app: AppOption) {
+        onChooseApp(app.id);
+    }
+
+    function handleAppClick(app: AppOption) {
+        selectApp(app);
+    }
+
+    onMount(() => {
+        // Auto-focus the search input
+        if (searchInputRef) {
+            searchInputRef.focus();
+        }
+
+        // Add global keyboard event listener
+        const handleGlobalKeydown = (event: KeyboardEvent) => handleKeydown(event);
+        if (typeof window !== 'undefined') {
+            window.addEventListener('keydown', handleGlobalKeydown);
+            return () => window.removeEventListener('keydown', handleGlobalKeydown);
+        }
+    });
+</script>
+
+<div class="h-full flex items-center justify-center bg-gray-900">
+    <div class="max-w-md w-full mx-4">
+        <div class="text-center mb-8">
+            <h2 class="text-2xl font-bold text-gray-100 mb-2">Choose App</h2>
+            <p class="text-gray-400">Type to search or use arrow keys</p>
+        </div>
+
+        <!-- Search Input -->
+        <div class="mb-6 relative">
+            <input
+                bind:this={searchInputRef}
+                type="text"
+                placeholder="Search apps..."
+                value={searchQuery}
+                oninput={handleSearchInput}
+                class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-gray-200 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-gray-700 transition-colors"
+            />
+            {#if searchQuery}
+                <button
+                    onclick={() => {
+                        searchQuery = "";
+                        searchInputRef?.focus();
+                    }}
+                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200 transition-colors"
+                >
+                    ×
+                </button>
+            {/if}
+        </div>
+
+        <!-- App Results -->
+        <div class="space-y-2">
+            {#if filteredApps.length > 0}
+                {#each filteredApps as app, index}
+                    <button
+                        onclick={() => handleAppClick(app)}
+                        class="w-full p-4 text-left rounded-lg transition-colors {
+                            index === selectedIndex 
+                                ? 'bg-blue-600 text-white border border-blue-500' 
+                                : 'bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-600 hover:border-gray-500'
+                        }"
+                    >
+                        <div class="font-medium text-lg mb-1">
+                            {app.name}
+                        </div>
+                        <div class="text-sm {index === selectedIndex ? 'text-blue-100' : 'text-gray-400'}">
+                            {app.description}
+                        </div>
+                    </button>
+                {/each}
+            {:else}
+                <div class="text-center text-gray-500 py-8">
+                    <div class="text-sm">No apps found</div>
+                    <div class="text-xs mt-1">Try "bible", "about", or "stopwatch"</div>
+                </div>
+            {/if}
+        </div>
+
+        <div class="mt-6 text-center text-xs text-gray-500">
+            Use ↑↓ arrow keys to navigate, Enter to select
+        </div>
+    </div>
+</div>
