@@ -7,7 +7,8 @@
 		getAppUrl,
 		createBibleApp, 
 		createAboutApp, 
-		createChooseApp 
+		createChooseApp,
+		createStopwatchApp
 	} from "$lib/app";
 	import { NavigationServiceLive } from "$lib/services/NavigationService";
 	import { ResponsiveServiceLive } from "$lib/services/ResponsiveService";
@@ -33,6 +34,9 @@
 			if (initialState.isAbout) {
 				// Create About tab if URL is /about
 				initialApp = await Effect.runPromise(createAboutApp("tab1"));
+			} else if (initialState.isStopwatch) {
+				// Create Stopwatch tab if URL is /stopwatch
+				initialApp = await Effect.runPromise(createStopwatchApp("tab1"));
 			} else {
 				// Create Bible tab with parsed book/chapter
 				const canonState = await Effect.runPromise(ResponsiveServiceLive.getInitialCanonState());
@@ -113,7 +117,7 @@
 	}
 
 	// Handle app choice in ChooseApp tabs
-	async function handleAppChoice(appType: "bible" | "about") {
+	async function handleAppChoice(appType: "bible" | "about" | "stopwatch") {
 		try {
 			const tabIndex = apps.findIndex(app => getTabId(app) === activeTabId);
 			if (tabIndex === -1) return;
@@ -124,8 +128,12 @@
 				newApp = await Effect.runPromise(
 					createBibleApp(activeTabId, BibleBook.John, 1, translation, canonState)
 				);
-			} else {
+			} else if (appType === "about") {
 				newApp = await Effect.runPromise(createAboutApp(activeTabId));
+			} else if (appType === "stopwatch") {
+				newApp = await Effect.runPromise(createStopwatchApp(activeTabId));
+			} else {
+				throw new Error(`Unknown app type: ${appType}`);
 			}
 			
 			apps = apps.map((app, index) => index === tabIndex ? newApp : app);

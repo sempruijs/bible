@@ -8,7 +8,7 @@ export interface NavigationService {
   readonly updateURL: (book: BibleBook, chapter: number) => Effect.Effect<void>;
   readonly navigateToUrl: (url: string) => Effect.Effect<void>;
   readonly parseURL: (pathname: string) => Effect.Effect<{ book: BibleBook; chapter: number } | null>;
-  readonly getInitialState: () => Effect.Effect<{ book: BibleBook; chapter: number; isAbout: boolean }>;
+  readonly getInitialState: () => Effect.Effect<{ book: BibleBook; chapter: number; isAbout: boolean; isStopwatch: boolean }>;
 }
 
 export const NavigationService = Context.GenericTag<NavigationService>("NavigationService");
@@ -45,7 +45,12 @@ export const NavigationServiceLive = NavigationService.of({
         
         // Check if it's the about page
         if (pathname === '/about') {
-          return { book: BibleBook.John, chapter: 1, isAbout: true };
+          return { book: BibleBook.John, chapter: 1, isAbout: true, isStopwatch: false };
+        }
+        
+        // Check if it's the stopwatch page
+        if (pathname === '/stopwatch') {
+          return { book: BibleBook.John, chapter: 1, isAbout: false, isStopwatch: true };
         }
         
         // Parse as Bible route
@@ -54,10 +59,10 @@ export const NavigationServiceLive = NavigationService.of({
           const bookOption = toBibleBook(urlParts[1]);
           const chapter = parseInt(urlParts[2]);
           if (Option.isSome(bookOption) && !isNaN(chapter) && chapter > 0) {
-            return { book: bookOption.value, chapter, isAbout: false };
+            return { book: bookOption.value, chapter, isAbout: false, isStopwatch: false };
           }
         }
       }
-      return { book: BibleBook.John, chapter: 1, isAbout: false };
+      return { book: BibleBook.John, chapter: 1, isAbout: false, isStopwatch: false };
     })
 });
