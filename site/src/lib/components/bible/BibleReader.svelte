@@ -150,17 +150,16 @@
         >
             {#if isMobile}
                 {#if showCanonExplorer}
-                    📖 Chapter
+                    📖 Chapter (b)
                 {:else}
-                    📚 Books
+                    📚 Books (b)
                 {/if}
             {:else}
                 {#if showCanonExplorer}
-                    ← Hide
+                    ← Hide Canon (b)
                 {:else}
-                    → Show
+                    → Show Canon (b)
                 {/if}
-                Canon
             {/if}
         </button>
 

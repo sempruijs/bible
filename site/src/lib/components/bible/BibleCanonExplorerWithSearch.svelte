@@ -118,11 +118,6 @@
 				</button>
 			{/if}
 		</div>
-		{#if !isSearchFocused}
-			<div class="text-xs text-gray-500 mt-1">
-				(o) to search quickly
-			</div>
-		{/if}
 	</div>
 
 	<!-- Content Area -->
