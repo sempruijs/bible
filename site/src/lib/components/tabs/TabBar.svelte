@@ -18,7 +18,7 @@
 </script>
 
 <div class="bg-gray-800 border-b border-gray-700 flex items-center px-4 py-2">
-	<div class="flex items-center gap-2 flex-1 overflow-x-auto">
+	<div class="flex items-center gap-2 flex-1 overflow-x-auto" title="Navigate tabs: (n) next, (p) previous">
 		{#each tabs as tab}
 			{@const tabId = getTabId(tab)}
 			{@const tabTitle = getDisplayName(tab)}
@@ -49,8 +49,8 @@
 	<button
 		onclick={onAddTab}
 		class="ml-4 px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors"
-		title="Add new tab"
+		title="Add new tab (t)"
 	>
-		+ New Tab
+		+ New Tab (t)
 	</button>
 </div>
