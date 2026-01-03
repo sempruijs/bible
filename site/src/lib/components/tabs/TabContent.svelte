@@ -1,30 +1,30 @@
 <script lang="ts">
-	import type { App } from "$lib/app";
-	import Tab from "./Tab.svelte";
+	import type { Tab } from "$lib/app";
+	import TabComponent from "./Tab.svelte";
 
 	let { 
-		apps,
+		tabs,
 		activeTabId,
 		onStateChange,
 		onAppChoice,
 		getTabId
 	}: { 
-		apps: App[];
+		tabs: Tab[];
 		activeTabId: string;
-		onStateChange?: (app: App) => void;
+		onStateChange?: (tab: Tab) => void;
 		onAppChoice?: (appType: "bible" | "about" | "stopwatch") => void;
-		getTabId: (app: App) => string;
+		getTabId: (tab: Tab) => string;
 	} = $props();
 </script>
 
 <div class="flex-1 overflow-hidden">
-	{#each apps as app (getTabId(app))}
+	{#each tabs as tab (getTabId(tab))}
 		<div 
-			class="h-full w-full {getTabId(app) === activeTabId ? 'block' : 'hidden'}"
-			aria-hidden={getTabId(app) !== activeTabId}
+			class="h-full w-full {getTabId(tab) === activeTabId ? 'block' : 'hidden'}"
+			aria-hidden={getTabId(tab) !== activeTabId}
 		>
-			<Tab 
-				{app}
+			<TabComponent 
+				app={tab}
 				{onStateChange}
 				{onAppChoice}
 			/>

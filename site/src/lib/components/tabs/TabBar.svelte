@@ -1,15 +1,15 @@
 <script lang="ts">
-	import type { App } from "$lib/app";
+	import type { Tab } from "$lib/app";
 	import { getDisplayName, getTabId } from "$lib/app";
 
 	let { 
-		apps,
+		tabs,
 		activeTabId,
 		onTabSelect,
 		onTabRemove,
 		onAddTab
 	}: { 
-		apps: App[]; 
+		tabs: Tab[]; 
 		activeTabId: string;
 		onTabSelect: (tabId: string) => void;
 		onTabRemove: (tabId: string) => void;
@@ -19,9 +19,9 @@
 
 <div class="bg-gray-800 border-b border-gray-700 flex items-center px-4 py-2">
 	<div class="flex items-center gap-2 flex-1 overflow-x-auto">
-		{#each apps as app}
-			{@const tabId = getTabId(app)}
-			{@const tabTitle = getDisplayName(app)}
+		{#each tabs as tab}
+			{@const tabId = getTabId(tab)}
+			{@const tabTitle = getDisplayName(tab)}
 			<div class="flex items-center bg-gray-700 rounded-lg overflow-hidden min-w-0">
 				<button
 					onclick={() => onTabSelect(tabId)}
@@ -33,7 +33,7 @@
 				>
 					{tabTitle}
 				</button>
-				{#if apps.length > 1}
+				{#if tabs.length > 1}
 					<button
 						onclick={() => onTabRemove(tabId)}
 						class="px-2 py-2 text-gray-400 hover:text-red-400 hover:bg-gray-600 transition-colors"
