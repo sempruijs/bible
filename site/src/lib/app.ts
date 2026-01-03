@@ -43,13 +43,26 @@ export const getTabId = (app: App): string => {
 	});
 };
 
+// Format time as MM:SS for tab title
+const formatTimeForTitle = (milliseconds: number): string => {
+	const totalSeconds = Math.floor(milliseconds / 1000);
+	const minutes = Math.floor(totalSeconds / 60);
+	const seconds = totalSeconds % 60;
+	return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+};
+
 // Get display name for App (tab title) using $match
 export const getDisplayName = (app: App): string => {
 	return $match(app, {
 		Bible: ({ bibleState }) => `${getBibleBookDisplayName(bibleState.currentBook)} ${bibleState.currentChapter}`,
 		About: () => "About",
 		ChooseApp: () => "Choose App",
-		Stopwatch: () => "Stopwatch"
+		Stopwatch: ({ stopwatchState }) => {
+			if (stopwatchState.elapsedTime > 0 || stopwatchState.isRunning) {
+				return formatTimeForTitle(stopwatchState.elapsedTime);
+			}
+			return "Stopwatch";
+		}
 	});
 };
 
