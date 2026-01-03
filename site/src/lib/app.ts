@@ -1,6 +1,6 @@
 import { Data, Effect } from "effect";
 import type { BibleBook } from "$lib/book";
-import { getDisplayName as getBibleBookDisplayName } from "$lib/book";
+import { getDisplayName as getBibleBookDisplayName, getShortName } from "$lib/book";
 import type { Translation } from "$lib/translations/translation";
 
 // BibleState type definition with Translation included
@@ -67,3 +67,15 @@ export const createAboutApp = (id: string): Effect.Effect<App> =>
 
 export const createChooseApp = (id: string): Effect.Effect<App> =>
 	Effect.succeed(ChooseApp({ id }));
+
+// Map App instances to their corresponding URLs
+export const getAppUrl = (app: App): string => {
+	return $match(app, {
+		Bible: ({ bibleState }) => {
+			const bookShort = getShortName(bibleState.currentBook);
+			return `/${bookShort}/${bibleState.currentChapter}`;
+		},
+		About: () => "/about",
+		ChooseApp: () => "/" // Default to home for choose app
+	});
+};
