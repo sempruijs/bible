@@ -1,5 +1,6 @@
 import { BibleBook, BibleBookSchema } from "$lib/book";
 import { Data, Effect, Option, Schema } from "effect";
+import type { BookOrder } from "$lib/translations/bookOrder";
 
 // Effect Schema definitions
 export const VerseSchema = Schema.Struct({
@@ -47,3 +48,63 @@ export const getChapter = (translation: Translation, bookName: BibleBook, chapte
     const chapter = book.chapters.find(c => c.chapter === chapterNumber);
     return chapter ? Option.some(chapter) : Option.none<Chapter>();
 });
+
+export const getNextChapter = (
+    translation: Translation, 
+    currentBook: BibleBook, 
+    currentChapter: number, 
+    bookOrder: BookOrder
+): Option.Option<{ book: BibleBook; chapter: number }> => {
+    const book = translation.books.find(b => b.name === currentBook);
+    if (!book) return Option.none();
+    
+    // Check if there's a next chapter in current book
+    if (book.chapters.find(c => c.chapter === currentChapter + 1)) {
+        return Option.some({ book: currentBook, chapter: currentChapter + 1 });
+    }
+    
+    // Find next book in order
+    const currentBookIndex = bookOrder.books.findIndex(b => b === currentBook);
+    if (currentBookIndex === -1 || currentBookIndex === bookOrder.books.length - 1) {
+        return Option.none(); // Last book
+    }
+    
+    const nextBook = bookOrder.books[currentBookIndex + 1];
+    const nextBookData = translation.books.find(b => b.name === nextBook);
+    if (!nextBookData || nextBookData.chapters.length === 0) {
+        return Option.none();
+    }
+    
+    return Option.some({ book: nextBook, chapter: 1 });
+};
+
+export const getPreviousChapter = (
+    translation: Translation, 
+    currentBook: BibleBook, 
+    currentChapter: number, 
+    bookOrder: BookOrder
+): Option.Option<{ book: BibleBook; chapter: number }> => {
+    const book = translation.books.find(b => b.name === currentBook);
+    if (!book) return Option.none();
+    
+    // Check if there's a previous chapter in current book
+    if (currentChapter > 1 && book.chapters.find(c => c.chapter === currentChapter - 1)) {
+        return Option.some({ book: currentBook, chapter: currentChapter - 1 });
+    }
+    
+    // Find previous book in order
+    const currentBookIndex = bookOrder.books.findIndex(b => b === currentBook);
+    if (currentBookIndex === -1 || currentBookIndex === 0) {
+        return Option.none(); // First book
+    }
+    
+    const previousBook = bookOrder.books[currentBookIndex - 1];
+    const previousBookData = translation.books.find(b => b.name === previousBook);
+    if (!previousBookData || previousBookData.chapters.length === 0) {
+        return Option.none();
+    }
+    
+    // Get last chapter of previous book
+    const lastChapter = Math.max(...previousBookData.chapters.map(c => c.chapter));
+    return Option.some({ book: previousBook, chapter: lastChapter });
+};

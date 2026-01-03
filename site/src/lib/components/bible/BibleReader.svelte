@@ -1,7 +1,8 @@
 <script lang="ts">
     import type { Translation } from "$lib/translations/translation";
-    import { getChapter } from "$lib/translations/translation";
+    import { getChapter, getNextChapter, getPreviousChapter } from "$lib/translations/translation";
     import { BibleBook, getShortName, toBibleBook } from "$lib/book";
+    import { protestantBookOrder } from "$lib/translations/bookOrder";
     import { Option, Effect } from "effect";
     import BibleCanonExplorer from "$lib/components/bible/BibleCanonExplorer.svelte";
     import BibleChapterViewer from "$lib/components/bible/BibleChapterViewer.svelte";
@@ -67,6 +68,26 @@
         }
     }
 
+    function navigateToNextChapter() {
+        const nextChapterOption = getNextChapter(translation, internalBook, internalChapter, protestantBookOrder);
+        if (Option.isSome(nextChapterOption)) {
+            const { book, chapter } = nextChapterOption.value;
+            internalBook = book;
+            internalChapter = chapter;
+            onStateChange(book, chapter);
+        }
+    }
+
+    function navigateToPreviousChapter() {
+        const previousChapterOption = getPreviousChapter(translation, internalBook, internalChapter, protestantBookOrder);
+        if (Option.isSome(previousChapterOption)) {
+            const { book, chapter } = previousChapterOption.value;
+            internalBook = book;
+            internalChapter = chapter;
+            onStateChange(book, chapter);
+        }
+    }
+
     // Mobile detection and responsive behavior
     function checkIsMobile() {
         if (typeof window !== 'undefined') {
@@ -88,7 +109,7 @@
 
 <div class="h-full flex flex-col">
     <!-- Toolbar -->
-    <div class="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center gap-2">
+    <div class="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center gap-2 justify-between">
         <button
             onclick={onToggleCanonExplorer}
             class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors flex items-center gap-1"
@@ -111,6 +132,26 @@
                 Canon
             {/if}
         </button>
+
+        <!-- Navigation buttons -->
+        <div class="flex items-center gap-1">
+            <button
+                onclick={navigateToPreviousChapter}
+                disabled={Option.isNone(getPreviousChapter(translation, internalBook, internalChapter, protestantBookOrder))}
+                class="px-2 py-1 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-gray-300 text-sm rounded transition-colors"
+                title="Previous chapter"
+            >
+                ←
+            </button>
+            <button
+                onclick={navigateToNextChapter}
+                disabled={Option.isNone(getNextChapter(translation, internalBook, internalChapter, protestantBookOrder))}
+                class="px-2 py-1 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-gray-300 text-sm rounded transition-colors"
+                title="Next chapter"
+            >
+                →
+            </button>
+        </div>
     </div>
 
     <!-- Main Content -->
