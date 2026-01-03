@@ -10,9 +10,11 @@
 		onStateChange?: (newState: StopwatchState) => void;
 	} = $props();
 
+	// Simple local state
+	let displayTime = $state<number>(0);
+	let isRunning = $state<boolean>(false);
+	let startTime = $state<number | null>(null);
 	let intervalId: number | undefined;
-	let startTime = $state<number>(0);
-	let currentTime = $state<number>(stopwatchState.elapsedTime);
 
 	// Format time as MM:SS.mmm
 	function formatTime(milliseconds: number): string {
@@ -24,71 +26,78 @@
 		return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
 	}
 
+
 	function startStopwatch() {
-		if (!stopwatchState.isRunning) {
-			startTime = Date.now() - stopwatchState.elapsedTime;
+		if (!isRunning) {
+			const now = Date.now();
+			startTime = now - displayTime; // Account for existing elapsed time
+			isRunning = true;
 			
+			// Simple interval that will work even when tab is hidden (since element stays in DOM)
 			intervalId = setInterval(() => {
-				currentTime = Date.now() - startTime;
-			}, 10) as unknown as number; // Update every 10ms for smooth display
-			
-			updateState({
-				...stopwatchState,
-				isRunning: true
-			});
+				if (startTime !== null) {
+					displayTime = Date.now() - startTime;
+					onStateChange?.({
+						id: stopwatchState.id,
+						elapsedTime: displayTime,
+						isRunning: true
+					});
+				}
+			}, 50) as unknown as number; // 20 times per second - smooth but not excessive
 		}
 	}
 
 	function stopStopwatch() {
-		if (stopwatchState.isRunning && intervalId) {
-			clearInterval(intervalId);
-			intervalId = undefined;
+		if (isRunning) {
+			isRunning = false;
 			
-			updateState({
-				...stopwatchState,
-				elapsedTime: currentTime,
+			if (intervalId) {
+				clearInterval(intervalId);
+				intervalId = undefined;
+			}
+			
+			onStateChange?.({
+				id: stopwatchState.id,
+				elapsedTime: displayTime,
 				isRunning: false
 			});
 		}
 	}
 
 	function resetStopwatch() {
-		if (intervalId) {
-			clearInterval(intervalId);
-			intervalId = undefined;
+		if (isRunning) {
+			isRunning = false;
+			if (intervalId) {
+				clearInterval(intervalId);
+				intervalId = undefined;
+			}
 		}
 		
-		currentTime = 0;
-		startTime = 0;
+		displayTime = 0;
+		startTime = null;
 		
-		updateState({
-			...stopwatchState,
+		onStateChange?.({
+			id: stopwatchState.id,
 			elapsedTime: 0,
 			isRunning: false
 		});
 	}
 
 	function toggleStopwatch() {
-		if (stopwatchState.isRunning) {
+		if (isRunning) {
 			stopStopwatch();
 		} else {
 			startStopwatch();
 		}
 	}
 
-	function updateState(newState: StopwatchState) {
-		onStateChange?.(newState);
-	}
-
-	// Sync with prop changes
-	$effect(() => {
-		currentTime = stopwatchState.elapsedTime;
+	// Initialize state on mount
+	onMount(() => {
+		displayTime = stopwatchState.elapsedTime;
+		isRunning = stopwatchState.isRunning;
 		
-		if (stopwatchState.isRunning && !intervalId) {
+		if (isRunning) {
 			startStopwatch();
-		} else if (!stopwatchState.isRunning && intervalId) {
-			clearInterval(intervalId);
-			intervalId = undefined;
 		}
 	});
 
@@ -107,10 +116,10 @@
 			<h1 class="text-2xl font-bold text-gray-100 mb-6">Stopwatch</h1>
 			<div class="bg-gray-800 rounded-2xl p-8 border border-gray-700">
 				<div class="text-6xl font-mono font-bold text-blue-400 mb-4">
-					{formatTime(currentTime)}
+					{formatTime(displayTime)}
 				</div>
 				<div class="text-sm text-gray-400">
-					{stopwatchState.isRunning ? 'Running' : 'Stopped'}
+					{isRunning ? 'Running' : 'Stopped'}
 				</div>
 			</div>
 		</div>
@@ -120,12 +129,12 @@
 			<button
 				onclick={toggleStopwatch}
 				class="px-6 py-3 rounded-lg font-semibold transition-all duration-200 {
-					stopwatchState.isRunning 
+					isRunning 
 						? 'bg-red-600 hover:bg-red-700 text-white' 
 						: 'bg-green-600 hover:bg-green-700 text-white'
 				}"
 			>
-				{stopwatchState.isRunning ? 'Stop' : 'Start'}
+				{isRunning ? 'Stop' : 'Start'}
 			</button>
 
 			<button

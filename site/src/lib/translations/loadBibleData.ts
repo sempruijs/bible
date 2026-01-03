@@ -73,7 +73,7 @@ export const loadBibleData = () => Effect.gen(function* () {
                     localStorage.setItem('bibleData', JSON.stringify(translation));
                     console.log('Data cached successfully');
                 } catch (quotaError) {
-                    console.log('LocalStorage quota exceeded, skipping cache:', quotaError.message);
+                    console.log('LocalStorage quota exceeded, skipping cache:', quotaError instanceof Error ? quotaError.message : quotaError);
                     // Clear some space and try with a smaller version
                     localStorage.clear();
                 }
