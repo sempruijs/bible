@@ -1,8 +1,9 @@
 <script lang="ts">
 	import type { App } from "$lib/app";
-	import { Bible, BibleState } from "$lib/app";
+	import { Bible, BibleState, Stopwatch, StopwatchState } from "$lib/app";
 	import BibleComponent from "$lib/components/bible/BibleReader.svelte";
 	import ChooseAppComponent from "$lib/components/ui/ChooseApp.svelte";
+	import StopwatchComponent from "$lib/components/ui/Stopwatch.svelte";
 
 	let { 
 		app,
@@ -11,7 +12,7 @@
 	}: { 
 		app: App; 
 		onStateChange?: (app: App) => void;
-		onAppChoice?: (appType: "bible" | "about") => void;
+		onAppChoice?: (appType: "bible" | "about" | "stopwatch") => void;
 	} = $props();
 
 	function handleBibleStateChange(book: any, chapter: any) {
@@ -32,6 +33,12 @@
 				showCanonExplorer: !app.bibleState.showCanonExplorer
 			});
 			onStateChange(Bible({ bibleState: updatedBibleState }));
+		}
+	}
+
+	function handleStopwatchStateChange(newStopwatchState: any) {
+		if (app._tag === "Stopwatch" && onStateChange) {
+			onStateChange(Stopwatch({ stopwatchState: newStopwatchState }));
 		}
 	}
 </script>
@@ -55,4 +62,9 @@
 	</div>
 {:else if app._tag === "ChooseApp"}
 	<ChooseAppComponent onChooseApp={(appType) => onAppChoice?.(appType)} />
+{:else if app._tag === "Stopwatch"}
+	<StopwatchComponent 
+		stopwatchState={app.stopwatchState}
+		onStateChange={handleStopwatchStateChange}
+	/>
 {/if}

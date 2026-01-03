@@ -2,7 +2,7 @@
     let { 
         onChooseApp 
     }: { 
-        onChooseApp: (appType: "bible" | "about") => void;
+        onChooseApp: (appType: "bible" | "about" | "stopwatch") => void;
     } = $props();
 
     function selectBible() {
@@ -11,6 +11,10 @@
 
     function selectAbout() {
         onChooseApp("about");
+    }
+
+    function selectStopwatch() {
+        onChooseApp("stopwatch");
     }
 </script>
 
@@ -29,7 +33,7 @@
                        rounded-lg transition-all duration-200 text-left group"
             >
                 <div class="flex items-center gap-4">
-                    <div class="text-3xl">=÷</div>
+                    <div class="text-3xl">=ÔøΩ</div>
                     <div class="flex-1">
                         <h3 class="text-lg font-semibold text-gray-100 group-hover:text-blue-400">
                             Bible Reader
@@ -39,7 +43,7 @@
                         </p>
                     </div>
                     <div class="text-gray-500 group-hover:text-blue-500">
-                        í
+                        ÔøΩ
                     </div>
                 </div>
             </button>
@@ -61,7 +65,29 @@
                         </p>
                     </div>
                     <div class="text-gray-500 group-hover:text-blue-500">
-                        í
+                        ÔøΩ
+                    </div>
+                </div>
+            </button>
+
+            <!-- Stopwatch App Option -->
+            <button
+                onclick={selectStopwatch}
+                class="w-full p-6 bg-gray-800 hover:bg-gray-700 border border-gray-600 hover:border-blue-500 
+                       rounded-lg transition-all duration-200 text-left group"
+            >
+                <div class="flex items-center gap-4">
+                    <div class="text-3xl">‚è±Ô∏è</div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold text-gray-100 group-hover:text-blue-400">
+                            Stopwatch
+                        </h3>
+                        <p class="text-gray-400 text-sm">
+                            Track time with a precise stopwatch
+                        </p>
+                    </div>
+                    <div class="text-gray-500 group-hover:text-blue-500">
+                        ‚Üí
                     </div>
                 </div>
             </button>

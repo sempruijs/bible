@@ -14,21 +14,32 @@ export interface BibleState {
 
 export const BibleState = Data.case<BibleState>();
 
+// StopwatchState type definition
+export interface StopwatchState {
+	readonly id: string;
+	readonly elapsedTime: number; // in milliseconds
+	readonly isRunning: boolean;
+}
+
+export const StopwatchState = Data.case<StopwatchState>();
+
 // App TaggedEnum using proper Effect pattern
 export type App = Data.TaggedEnum<{
 	Bible: { readonly bibleState: BibleState }
 	About: { readonly id: string }
 	ChooseApp: { readonly id: string }
+	Stopwatch: { readonly stopwatchState: StopwatchState }
 }>
 
-export const { Bible, About, ChooseApp, $match } = Data.taggedEnum<App>()
+export const { Bible, About, ChooseApp, Stopwatch, $match } = Data.taggedEnum<App>()
 
 // Tab ID management using Effect
 export const getTabId = (app: App): string => {
 	return $match(app, {
 		Bible: ({ bibleState }) => bibleState.id,
 		About: ({ id }) => id,
-		ChooseApp: ({ id }) => id
+		ChooseApp: ({ id }) => id,
+		Stopwatch: ({ stopwatchState }) => stopwatchState.id
 	});
 };
 
@@ -37,7 +48,8 @@ export const getDisplayName = (app: App): string => {
 	return $match(app, {
 		Bible: ({ bibleState }) => `${getBibleBookDisplayName(bibleState.currentBook)} ${bibleState.currentChapter}`,
 		About: () => "About",
-		ChooseApp: () => "Choose App"
+		ChooseApp: () => "Choose App",
+		Stopwatch: () => "Stopwatch"
 	});
 };
 
@@ -46,13 +58,13 @@ export const transformApp = (app: App, transform: (app: App) => App): Effect.Eff
 	Effect.succeed(transform(app));
 
 export const createBibleApp = (
-	id: string, 
-	book: BibleBook, 
-	chapter: number, 
-	translation: Translation, 
+	id: string,
+	book: BibleBook,
+	chapter: number,
+	translation: Translation,
 	showCanonExplorer: boolean
 ): Effect.Effect<App> =>
-	Effect.succeed(Bible({ 
+	Effect.succeed(Bible({
 		bibleState: BibleState({
 			id,
 			currentBook: book,
@@ -68,6 +80,15 @@ export const createAboutApp = (id: string): Effect.Effect<App> =>
 export const createChooseApp = (id: string): Effect.Effect<App> =>
 	Effect.succeed(ChooseApp({ id }));
 
+export const createStopwatchApp = (id: string): Effect.Effect<App> =>
+	Effect.succeed(Stopwatch({
+		stopwatchState: StopwatchState({
+			id,
+			elapsedTime: 0,
+			isRunning: false
+		})
+	}));
+
 // Map App instances to their corresponding URLs
 export const getAppUrl = (app: App): string => {
 	return $match(app, {
@@ -76,6 +97,7 @@ export const getAppUrl = (app: App): string => {
 			return `/${bookShort}/${bibleState.currentChapter}`;
 		},
 		About: () => "/about",
-		ChooseApp: () => "/" // Default to home for choose app
+		ChooseApp: () => "/", // Default to home for choose app
+		Stopwatch: () => "/stopwatch"
 	});
 };
