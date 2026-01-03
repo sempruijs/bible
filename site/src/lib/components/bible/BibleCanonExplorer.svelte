@@ -23,7 +23,7 @@
 	// Auto-expand the book that contains the current chapter
 	$effect(() => {
 		if (currentBook && Option.isNone(selectedBook)) {
-			const book = orderedBooks.find(book => book.name._tag === currentBook._tag);
+			const book = orderedBooks.find(book => book.name === currentBook);
 			if (book) {
 				selectedBook = Option.some(book.name);
 			}
@@ -32,7 +32,7 @@
 
 	function setSelected(book: BibleBook) {
 		const result =
-			Option.isSome(selectedBook) && selectedBook.value._tag === book._tag
+			Option.isSome(selectedBook) && selectedBook.value === book
 				? Option.none()
 				: Option.some(book);
 		selectedBook = result;
@@ -41,7 +41,7 @@
 	let orderedBooks = $derived(
 		bookOrder.books
 			.map((bookName) =>
-				translation?.books?.find((book) => book.name._tag === bookName._tag),
+				translation?.books?.find((book) => book.name === bookName),
 			)
 			.filter((book) => book !== undefined),
 	);
@@ -57,18 +57,18 @@
 				>
 					<span>{getDisplayName(book.name)}</span>
 					<span class="text-sm text-gray-400">
-						{Option.isSome(selectedBook) && selectedBook.value._tag === book.name._tag ? '−' : '+'}
+						{Option.isSome(selectedBook) && selectedBook.value === book.name ? '−' : '+'}
 					</span>
 				</button>
 				
-				{#if Option.isSome(selectedBook) && selectedBook.value._tag === book.name._tag}
+				{#if Option.isSome(selectedBook) && selectedBook.value === book.name}
 					<div class="p-4 bg-gray-900 border-t border-gray-700">
 						<div class="flex flex-col gap-3 max-w-fit">
 							{#each Array.from({ length: Math.ceil(book.chapters.length / 5) }, (_, rowIndex) => book.chapters.slice(rowIndex * 5, (rowIndex + 1) * 5)) as chapterRow}
 								<div class="flex gap-3">
 									{#each chapterRow as chapter}
 										{@const isCurrentChapter = currentBook && 
-											book.name._tag === currentBook._tag && 
+											book.name === currentBook && 
 											chapter.chapter === currentChapter}
 										<button
 											onclick={() => onChapterSelect(getShortName(book.name), chapter.chapter)}
