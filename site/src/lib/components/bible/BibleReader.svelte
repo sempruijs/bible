@@ -30,6 +30,9 @@
     
     // Mobile responsiveness state
     let isMobile = $state<boolean>(false);
+    
+    // Track when canon explorer should focus search
+    let shouldFocusSearch = $state(false);
 
     // Update internal state when props change (tab switch)
     $effect(() => {
@@ -88,6 +91,30 @@
         }
     }
 
+    function handleGlobalKeydown(event: KeyboardEvent) {
+        // Handle 'o' key to open canon explorer and focus search
+        if (event.key === 'o' && !showCanonExplorer) {
+            event.preventDefault();
+            shouldFocusSearch = true;
+            onToggleCanonExplorer();
+        }
+        // Handle 'b' key to toggle canon explorer
+        else if (event.key === 'b') {
+            event.preventDefault();
+            if (!showCanonExplorer) {
+                shouldFocusSearch = false; // Don't auto-focus when using 'b'
+            }
+            onToggleCanonExplorer();
+        }
+    }
+
+    // Reset focus flag when canon explorer is hidden
+    $effect(() => {
+        if (!showCanonExplorer) {
+            shouldFocusSearch = false;
+        }
+    });
+
     // Mobile detection and responsive behavior
     function checkIsMobile() {
         if (typeof window !== 'undefined') {
@@ -98,11 +125,15 @@
     onMount(() => {
         checkIsMobile();
         
-        // Listen for window resize
+        // Listen for window resize and global keyboard events
         const handleResize = () => checkIsMobile();
         if (typeof window !== 'undefined') {
             window.addEventListener('resize', handleResize);
-            return () => window.removeEventListener('resize', handleResize);
+            window.addEventListener('keydown', handleGlobalKeydown);
+            return () => {
+                window.removeEventListener('resize', handleResize);
+                window.removeEventListener('keydown', handleGlobalKeydown);
+            };
         }
     });
 </script>
@@ -114,8 +145,8 @@
             onclick={onToggleCanonExplorer}
             class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors flex items-center gap-1"
             title={showCanonExplorer 
-                ? (isMobile ? "Show Chapter" : "Hide Canon Explorer") 
-                : "Show Canon Explorer"}
+                ? (isMobile ? "Show Chapter" : "Hide Canon Explorer (b)") 
+                : "Show Canon Explorer (b)"}
         >
             {#if isMobile}
                 {#if showCanonExplorer}
@@ -169,6 +200,7 @@
                     currentBook={internalBook}
                     currentChapter={internalChapter}
                     onChapterSelect={selectChapter}
+                    {shouldFocusSearch}
                 />
             </div>
         {/if}
