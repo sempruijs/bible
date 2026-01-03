@@ -91,8 +91,10 @@
 	}
 
 	// Remove tab
-	function removeTab(tabId: string) {
+	async function removeTab(tabId: string) {
 		if (apps.length === 1) return;
+		
+		// Clean up background tasks for the removed tab (no longer needed with simplified approach)
 		
 		apps = apps.filter(app => getTabId(app) !== tabId);
 		
@@ -202,7 +204,9 @@
 	/>
 
 	<TabContent 
-		{activeApp}
+		{apps}
+		{activeTabId}
+		{getTabId}
 		onStateChange={updateAppState}
 		onAppChoice={handleAppChoice}
 	/>

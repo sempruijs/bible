@@ -3,22 +3,31 @@
 	import Tab from "./Tab.svelte";
 
 	let { 
-		activeApp,
+		apps,
+		activeTabId,
 		onStateChange,
-		onAppChoice
+		onAppChoice,
+		getTabId
 	}: { 
-		activeApp: App | undefined;
+		apps: App[];
+		activeTabId: string;
 		onStateChange?: (app: App) => void;
-		onAppChoice?: (appType: "bible" | "about") => void;
+		onAppChoice?: (appType: "bible" | "about" | "stopwatch") => void;
+		getTabId: (app: App) => string;
 	} = $props();
 </script>
 
 <div class="flex-1 overflow-hidden">
-	{#if activeApp}
-		<Tab 
-			app={activeApp}
-			{onStateChange}
-			{onAppChoice}
-		/>
-	{/if}
+	{#each apps as app (getTabId(app))}
+		<div 
+			class="h-full w-full {getTabId(app) === activeTabId ? 'block' : 'hidden'}"
+			aria-hidden={getTabId(app) !== activeTabId}
+		>
+			<Tab 
+				{app}
+				{onStateChange}
+				{onAppChoice}
+			/>
+		</div>
+	{/each}
 </div>
