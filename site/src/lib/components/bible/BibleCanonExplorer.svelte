@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { BibleBook, getDisplayName, getShortName } from "$lib/book";
-	import type { BookOrder } from "$lib/translations/bookOrder";
-	import { bookOrders } from "$lib/translations/bookOrder";
+	import { protestantBookOrder } from "$lib/translations/bookOrder";
 	import type { Translation } from "$lib/translations/translation";
 	import { Option } from "effect";
 
@@ -17,7 +16,8 @@
 		onChapterSelect: (book: string, chapter: number) => void;
 	} = $props();
 
-	let bookOrder = $state<BookOrder>(bookOrders[0]);
+	// Use Greek order as default (keeping the type system for potential future use)
+	const bookOrder = protestantBookOrder;
 	let selectedBook = $state<Option.Option<BibleBook>>(Option.none());
 
 	// Auto-expand the book that contains the current chapter
@@ -48,24 +48,6 @@
 </script>
 
 <div class="p-4">
-	<div class="mb-6">
-		<h2 class="text-xl font-semibold mb-3 text-gray-800">Book Order</h2>
-		<div class="flex gap-2 flex-wrap">
-			{#each bookOrders as order}
-				<button
-					onclick={() => (bookOrder = order)}
-					class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {
-						bookOrder.name === order.name 
-							? 'bg-blue-600 text-white' 
-							: 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-					}"
-				>
-					{order.name}
-				</button>
-			{/each}
-		</div>
-	</div>
-
 	<div class="space-y-4">
 		{#each orderedBooks as book}
 			<div class="border border-gray-600 rounded-lg overflow-hidden bg-gray-800">
