@@ -1,12 +1,13 @@
 <script lang="ts">
 	import type { Translation } from "$lib/translations/translation";
 	import { BibleBook } from "$lib/book";
-	import { 
-		type Tab, 
-		getTabId, 
+	import {
+		type Tab,
+		getTabId,
 		getTabUrl,
-		createBibleTab, 
-		createAboutTab, 
+		getDisplayName,
+		createBibleTab,
+		createAboutTab,
 		createChooseTab,
 		createStopwatchTab
 	} from "$lib/app";
@@ -64,6 +65,13 @@
 
 	// Get active tab reference
 	let activeTab = $derived(tabs.find(tab => getTabId(tab) === activeTabId));
+
+	// Update browser title when active tab changes
+	$effect(() => {
+		if (activeTab && typeof document !== 'undefined') {
+			document.title = getDisplayName(activeTab);
+		}
+	});
 
 	// Update tab state
 	function updateTabState(updatedTab: Tab) {
