@@ -1,11 +1,13 @@
 <script lang="ts">
-    import type { Translation } from "$lib/translations/translation";
-    import { getChapter, getNextChapter, getPreviousChapter } from "$lib/translations/translation";
+    import type { Translation, TranslationContent } from "$lib/translations/translation";
+    import { getChapterFromContent, getNextChapterFromContent, getPreviousChapterFromContent } from "$lib/translations/translation";
+    import { loadTranslationContent } from "$lib/translations/loadTranslationContent";
     import { BibleBook, getShortName, toBibleBook } from "$lib/book";
     import { protestantBookOrder } from "$lib/translations/bookOrder";
     import { Option, Effect } from "effect";
     import BibleCanonExplorerWithSearch from "$lib/components/bible/BibleCanonExplorerWithSearch.svelte";
     import BibleChapterViewer from "$lib/components/bible/BibleChapterViewer.svelte";
+    import { availableTranslations } from "$lib/translations/availableTranslations";
     import { onMount } from "svelte";
 
     let {
@@ -15,6 +17,7 @@
         showCanonExplorer = true,
         onStateChange = () => {},
         onToggleCanonExplorer = () => {},
+        onTranslationChange = () => {},
     }: {
         translation: Translation;
         currentBook?: BibleBook;
@@ -22,17 +25,21 @@
         showCanonExplorer?: boolean;
         onStateChange?: (book: BibleBook, chapter: number) => void;
         onToggleCanonExplorer?: () => void;
+        onTranslationChange?: (translation: Translation) => void;
     } = $props();
 
     // Internal state that gets updated by user interactions
     let internalBook = $state<BibleBook>(currentBook);
     let internalChapter = $state<number>(currentChapter);
-    
+
     // Mobile responsiveness state
     let isMobile = $state<boolean>(false);
-    
+
     // Track when canon explorer should focus search
     let shouldFocusSearch = $state(false);
+
+    // Translation content state
+    let translationContent = $state<TranslationContent | null>(null);
 
     // Update internal state when props change (tab switch)
     $effect(() => {
@@ -40,12 +47,26 @@
         internalChapter = currentChapter;
     });
 
+    // Load translation content when translation changes
+    $effect(() => {
+        if (translation) {
+            Effect.runPromise(loadTranslationContent(translation))
+                .then((content) => {
+                    translationContent = content;
+                })
+                .catch((error) => {
+                    console.error("Failed to load translation content:", error);
+                    translationContent = null;
+                });
+        }
+    });
+
     let currentChapterData = $state<Option.Option<any>>(Option.none());
 
-    // Update chapter data when internal state changes
+    // Update chapter data when internal state or translation content changes
     $effect(() => {
-        if (internalBook && internalChapter && translation) {
-            Effect.runPromise(getChapter(translation, internalBook, internalChapter))
+        if (internalBook && internalChapter && translationContent) {
+            Effect.runPromise(getChapterFromContent(translationContent, internalBook, internalChapter))
                 .then((chapterOption) => {
                     currentChapterData = chapterOption;
                 })
@@ -72,7 +93,8 @@
     }
 
     function navigateToNextChapter() {
-        const nextChapterOption = getNextChapter(translation, internalBook, internalChapter, protestantBookOrder);
+        if (!translationContent) return;
+        const nextChapterOption = getNextChapterFromContent(translationContent, internalBook, internalChapter, protestantBookOrder);
         if (Option.isSome(nextChapterOption)) {
             const { book, chapter } = nextChapterOption.value;
             internalBook = book;
@@ -82,12 +104,21 @@
     }
 
     function navigateToPreviousChapter() {
-        const previousChapterOption = getPreviousChapter(translation, internalBook, internalChapter, protestantBookOrder);
+        if (!translationContent) return;
+        const previousChapterOption = getPreviousChapterFromContent(translationContent, internalBook, internalChapter, protestantBookOrder);
         if (Option.isSome(previousChapterOption)) {
             const { book, chapter } = previousChapterOption.value;
             internalBook = book;
             internalChapter = chapter;
             onStateChange(book, chapter);
+        }
+    }
+
+    function handleTranslationChange(event: Event) {
+        const target = event.target as HTMLSelectElement;
+        const selectedTranslation = availableTranslations.find(t => t.metadata.shortName === target.value);
+        if (selectedTranslation) {
+            onTranslationChange(selectedTranslation);
         }
     }
 
@@ -147,33 +178,49 @@
 <div class="h-full flex flex-col">
     <!-- Toolbar -->
     <div class="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center gap-2 justify-between">
-        <button
-            onclick={onToggleCanonExplorer}
-            class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors flex items-center gap-1"
-            title={showCanonExplorer 
-                ? (isMobile ? "Show Chapter" : "Hide Canon Explorer (b)") 
-                : "Show Canon Explorer (b)"}
-        >
-            {#if isMobile}
-                {#if showCanonExplorer}
-                    📖 Chapter (b)
+        <div class="flex items-center gap-2">
+            <button
+                onclick={onToggleCanonExplorer}
+                class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors flex items-center gap-1"
+                title={showCanonExplorer
+                    ? (isMobile ? "Show Chapter" : "Hide Canon Explorer (b)")
+                    : "Show Canon Explorer (b)"}
+            >
+                {#if isMobile}
+                    {#if showCanonExplorer}
+                        📖 Chapter (b)
+                    {:else}
+                        📚 Books (b)
+                    {/if}
                 {:else}
-                    📚 Books (b)
+                    {#if showCanonExplorer}
+                        ← Hide Canon (b)
+                    {:else}
+                        → Show Canon (b)
+                    {/if}
                 {/if}
-            {:else}
-                {#if showCanonExplorer}
-                    ← Hide Canon (b)
-                {:else}
-                    → Show Canon (b)
-                {/if}
-            {/if}
-        </button>
+            </button>
+
+            <!-- Translation Selector -->
+            <select
+                value={translation.metadata.shortName}
+                onchange={handleTranslationChange}
+                class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors border border-gray-600 focus:outline-none focus:border-blue-500"
+                title="Select translation"
+            >
+                {#each availableTranslations as trans}
+                    <option value={trans.metadata.shortName}>
+                        {trans.metadata.shortName}
+                    </option>
+                {/each}
+            </select>
+        </div>
 
         <!-- Navigation buttons -->
         <div class="flex items-center gap-1">
             <button
                 onclick={navigateToPreviousChapter}
-                disabled={Option.isNone(getPreviousChapter(translation, internalBook, internalChapter, protestantBookOrder))}
+                disabled={!translationContent || Option.isNone(getPreviousChapterFromContent(translationContent, internalBook, internalChapter, protestantBookOrder))}
                 class="px-2 py-1 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-gray-300 text-sm rounded transition-colors"
                 title="Previous chapter"
             >
@@ -181,7 +228,7 @@
             </button>
             <button
                 onclick={navigateToNextChapter}
-                disabled={Option.isNone(getNextChapter(translation, internalBook, internalChapter, protestantBookOrder))}
+                disabled={!translationContent || Option.isNone(getNextChapterFromContent(translationContent, internalBook, internalChapter, protestantBookOrder))}
                 class="px-2 py-1 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-gray-300 text-sm rounded transition-colors"
                 title="Next chapter"
             >
@@ -201,7 +248,7 @@
                          : 'w-80 border-r relative'}"
             >
                 <BibleCanonExplorerWithSearch
-                    {translation}
+                    content={translationContent}
                     currentBook={internalBook}
                     currentChapter={internalChapter}
                     onChapterSelect={selectChapter}

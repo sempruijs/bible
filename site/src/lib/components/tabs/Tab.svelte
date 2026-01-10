@@ -31,9 +31,22 @@
 
 	function handleToggleCanonExplorer() {
 		if (app.app._tag === "Bible" && onStateChange) {
-			const updatedBibleState = BibleState({ 
-				...app.app.bibleState, 
+			const updatedBibleState = BibleState({
+				...app.app.bibleState,
 				showCanonExplorer: !app.app.bibleState.showCanonExplorer
+			});
+			onStateChange({
+				...app,
+				app: Bible({ bibleState: updatedBibleState })
+			});
+		}
+	}
+
+	function handleTranslationChange(translation: any) {
+		if (app.app._tag === "Bible" && onStateChange) {
+			const updatedBibleState = BibleState({
+				...app.app.bibleState,
+				translation
 			});
 			onStateChange({
 				...app,
@@ -54,13 +67,14 @@
 
 <!-- Content rendering based on app type -->
 {#if app.app._tag === "Bible"}
-	<BibleComponent 
+	<BibleComponent
 		translation={app.app.bibleState.translation}
 		currentBook={app.app.bibleState.currentBook}
 		currentChapter={app.app.bibleState.currentChapter}
 		showCanonExplorer={app.app.bibleState.showCanonExplorer}
 		onStateChange={handleBibleStateChange}
 		onToggleCanonExplorer={handleToggleCanonExplorer}
+		onTranslationChange={handleTranslationChange}
 	/>
 {:else if app.app._tag === "About"}
 	<div class="flex items-center justify-center h-full">
