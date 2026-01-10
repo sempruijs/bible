@@ -84,10 +84,13 @@
             internalBook = bookOption.value;
             internalChapter = chapter;
             onStateChange(bookOption.value, chapter);
-            
+
             // Auto-hide canon explorer on mobile after chapter selection
+            // Use setTimeout to ensure state update completes before toggling
             if (isMobile) {
-                onToggleCanonExplorer();
+                setTimeout(() => {
+                    onToggleCanonExplorer();
+                }, 0);
             }
         }
     }
