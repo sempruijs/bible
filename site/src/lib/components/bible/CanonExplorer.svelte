@@ -1,13 +1,35 @@
 <script lang="ts">
     import { BibleBook, getDisplayName, getShortName } from "$lib/book";
     import { protestantBookOrder } from "$lib/translations/bookOrder";
-    import type { Translation } from "$lib/translations/translation";
-    import { Option } from "effect";
+    import type { Translation, TranslationContent } from "$lib/translations/translation";
+    import { load } from "$lib/translations/storage";
+    import { Effect, Option } from "effect";
     let { translation, currentPath }: { translation: Translation; currentPath: string } = $props();
 
     // Use Greek order as default (keeping the type system for potential future use)
     const bookOrder = protestantBookOrder;
     let selectedBook = $state<Option.Option<BibleBook>>(Option.none());
+    let content = $state<TranslationContent | null>(null);
+    let isLoading = $state(false);
+
+    // Load translation content
+    $effect(() => {
+        if (translation.content._tag === "Local") {
+            content = translation.content.data;
+            isLoading = false;
+        } else {
+            isLoading = true;
+            Effect.runPromise(load(translation.content))
+                .then((loadedContent) => {
+                    content = loadedContent;
+                    isLoading = false;
+                })
+                .catch((error) => {
+                    console.error("Failed to load translation:", error);
+                    isLoading = false;
+                });
+        }
+    });
 
     // Parse current path to get book and chapter
     const parseCurrentPath = (path: string) => {
@@ -42,15 +64,20 @@
     }
 
     let orderedBooks = $derived(
-        bookOrder.books
+        content ? bookOrder.books
             .map((bookName) =>
-                translation?.books?.find((book) => book.name === bookName),
+                content.books.find((book) => book.name === bookName),
             )
-            .filter((book) => book !== undefined),
+            .filter((book) => book !== undefined) : []
     );
 </script>
 
 <div class="space-y-4">
+    {#if isLoading}
+        <div class="flex items-center justify-center py-8 text-gray-400">
+            <span>Loading...</span>
+        </div>
+    {:else}
     {#each orderedBooks as book}
         <div class="border border-gray-600 rounded-lg overflow-hidden bg-gray-800">
             <button 
@@ -90,4 +117,5 @@
             {/if}
         </div>
     {/each}
+    {/if}
 </div>

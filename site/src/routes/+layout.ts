@@ -8,18 +8,24 @@ export async function load() {
     try {
         console.log('Starting to load bible data...');
         const bibleData = await Effect.runPromise(loadBibleData());
-        console.log('Bible data loaded successfully:', bibleData.books?.length, 'books');
-        
+
+        // Check if content is loaded
+        if (bibleData.content._tag === "Local") {
+            console.log('Bible data loaded successfully:', bibleData.content.data.books?.length, 'books');
+        } else {
+            console.log('Bible data metadata loaded, content will be fetched from:', bibleData.content.url);
+        }
+
         return {
             bibleData
         };
     } catch (error) {
         console.error('Failed to load bible data:', error);
         console.error('Error details:', JSON.stringify(error, null, 2));
-        
-        // Return a minimal fallback instead of throwing
+
+        // Return null to indicate failure
         return {
-            bibleData: { books: [] }
+            bibleData: null
         };
     }
 }
