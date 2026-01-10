@@ -2,18 +2,9 @@ import { Effect } from "effect";
 import type { TranslationV0 } from "./v0";
 import { toTranslation } from "./v0";
 import type { Translation } from "./translation";
+import { Cloud, load, FetchError, ParseError } from "./storage";
 
 // https://raw.githubusercontent.com/biblecomputer/translations/refs/heads/main/v0/english/kjv.json
-
-export class FetchError {
-    readonly _tag = "FetchError";
-    constructor(readonly message: string) { }
-}
-
-export class ParseError {
-    readonly _tag = "ParseError";
-    constructor(readonly message: string) { }
-}
 
 export const loadBibleData = () => Effect.gen(function* () {
     console.log('Step 1: Checking cache...');

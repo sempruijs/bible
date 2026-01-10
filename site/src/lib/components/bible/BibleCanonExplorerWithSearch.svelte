@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { BibleBook, getDisplayName, getShortName } from "$lib/book";
 	import { protestantBookOrder } from "$lib/translations/bookOrder";
-	import type { Translation } from "$lib/translations/translation";
-	import { Option } from "effect";
+	import type { Translation, TranslationContent } from "$lib/translations/translation";
+	import { load } from "$lib/translations/storage";
+	import { Effect, Option } from "effect";
 	import BibleCanonExplorer from "$lib/components/bible/BibleCanonExplorer.svelte";
 	import BibleSearchResults from "$lib/components/bible/BibleSearchResults.svelte";
 	import { onMount } from "svelte";
@@ -24,6 +25,27 @@
 	let searchInputRef: HTMLInputElement;
 	let searchQuery = $state("");
 	let isSearchFocused = $state(false);
+	let content = $state<TranslationContent | null>(null);
+	let isLoading = $state(false);
+
+	// Load translation content
+	$effect(() => {
+		if (translation.content._tag === "Local") {
+			content = translation.content.data;
+			isLoading = false;
+		} else {
+			isLoading = true;
+			Effect.runPromise(load(translation.content))
+				.then((loadedContent) => {
+					content = loadedContent;
+					isLoading = false;
+				})
+				.catch((error) => {
+					console.error("Failed to load translation:", error);
+					isLoading = false;
+				});
+		}
+	});
 
 	function handleSearchFocus() {
 		isSearchFocused = true;
@@ -122,23 +144,29 @@
 
 	<!-- Content Area -->
 	<div class="flex-1 overflow-hidden">
-		{#if isSearchFocused}
-			<!-- Search Results -->
-			<BibleSearchResults 
-				{translation}
-				{searchQuery}
-				onChapterSelect={handleChapterSelect}
-			/>
-		{:else}
-			<!-- Normal Canon Explorer -->
-			<div class="h-full overflow-y-auto">
-				<BibleCanonExplorer 
-					{translation}
-					{currentBook}
-					{currentChapter}
+		{#if isLoading}
+			<div class="flex items-center justify-center h-full text-gray-400">
+				<span>Loading...</span>
+			</div>
+		{:else if content}
+			{#if isSearchFocused}
+				<!-- Search Results -->
+				<BibleSearchResults
+					{content}
+					{searchQuery}
 					onChapterSelect={handleChapterSelect}
 				/>
-			</div>
+			{:else}
+				<!-- Normal Canon Explorer -->
+				<div class="h-full overflow-y-auto">
+					<BibleCanonExplorer
+						{translation}
+						{currentBook}
+						{currentChapter}
+						onChapterSelect={handleChapterSelect}
+					/>
+				</div>
+			{/if}
 		{/if}
 	</div>
 </div>

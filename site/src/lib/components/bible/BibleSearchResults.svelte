@@ -1,15 +1,15 @@
 <script lang="ts">
-	import type { Translation } from "$lib/translations/translation";
+	import type { TranslationContent } from "$lib/translations/translation";
 	import type { BibleBook } from "$lib/book";
 	import { getDisplayName, getShortName } from "$lib/book";
 	import { Option } from "effect";
 
 	let {
-		translation,
+		content,
 		searchQuery = "",
 		onChapterSelect = () => {}
 	}: {
-		translation: Translation;
+		content: TranslationContent;
 		searchQuery: string;
 		onChapterSelect?: (bookShort: string, chapter: number) => void;
 	} = $props();
@@ -50,7 +50,7 @@
 		}
 
 		// Find matching books
-		for (const book of translation.books) {
+		for (const book of content.books) {
 			const bookDisplay = getDisplayName(book.name);
 			const bookShort = getShortName(book.name);
 			

@@ -1,11 +1,14 @@
 import { Data, Effect } from "effect";
 import { BibleBook } from "$lib/book";
-import { 
-  Translation, 
-  Book as TranslationBook, 
-  Chapter as TranslationChapter, 
-  Verse as TranslationVerse 
+import {
+  Translation,
+  TranslationMetadata,
+  TranslationContent,
+  Book as TranslationBook,
+  Chapter as TranslationChapter,
+  Verse as TranslationVerse
 } from "./translation";
+import { Local } from "./storage";
 
 export interface TranslationV0 {
   readonly books: Book[];
@@ -143,7 +146,16 @@ export const toTranslation = (translationV0: TranslationV0) => Effect.gen(functi
     })
   );
 
-  return Translation({ books });
+  return Translation({
+    metadata: TranslationMetadata({
+      name: "King James Version",
+      shortName: "KJV",
+      language: "English"
+    }),
+    content: Local({
+      data: TranslationContent({ books })
+    })
+  });
 });
 
 
