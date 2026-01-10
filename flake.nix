@@ -26,9 +26,11 @@
               src = ./site;
               pname = packageJSON.name;
               inherit (packageJSON) version;
+              # 404.html is needed for github pages
               installPhase = ''
                 mkdir -p $out
                 cp -r ./build/* $out
+                cp ./build/index.html $out/404.html
               '';
               doCheck = false;
               # checkPhase = ''
