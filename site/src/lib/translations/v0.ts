@@ -124,7 +124,8 @@ const parseBookName = (bookName: string): Effect.Effect<BibleBook, BookNameParse
     : Effect.fail(BookNameParseError({ bookName }));
 };
 
-export const toTranslation = (translationV0: TranslationV0) => Effect.gen(function* () {
+// Convert v0 format to TranslationContent (without metadata)
+export const toTranslationContent = (translationV0: TranslationV0) => Effect.gen(function* () {
   const books = yield* Effect.forEach(
     translationV0.books,
     (bookV0: Book) => Effect.gen(function* () {
@@ -146,6 +147,13 @@ export const toTranslation = (translationV0: TranslationV0) => Effect.gen(functi
     })
   );
 
+  return TranslationContent({ books });
+});
+
+// Convert v0 format to full Translation (for backward compatibility)
+export const toTranslation = (translationV0: TranslationV0) => Effect.gen(function* () {
+  const content = yield* toTranslationContent(translationV0);
+
   return Translation({
     metadata: TranslationMetadata({
       name: "King James Version",
@@ -153,7 +161,7 @@ export const toTranslation = (translationV0: TranslationV0) => Effect.gen(functi
       language: "English"
     }),
     content: Local({
-      data: TranslationContent({ books })
+      data: content
     })
   });
 });
