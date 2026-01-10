@@ -71,7 +71,7 @@ const formatTimeForTitle = (milliseconds: number): string => {
 // Get display name for Tab (tab title) using $match
 export const getDisplayName = (tab: Tab): string => {
 	return $match(tab.app, {
-		Bible: ({ bibleState }) => `${getBibleBookDisplayName(bibleState.currentBook)} ${bibleState.currentChapter}`,
+		Bible: ({ bibleState }) => `${getBibleBookDisplayName(bibleState.currentBook)} ${bibleState.currentChapter} (${bibleState.translation.metadata.shortName})`,
 		About: () => "About",
 		ChooseApp: () => "Choose App",
 		Stopwatch: ({ stopwatchState }) => {
