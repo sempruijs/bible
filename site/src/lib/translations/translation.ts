@@ -2,7 +2,7 @@ import { BibleBook, BibleBookSchema } from "$lib/book";
 import { Data, Effect, Option, Schema } from "effect";
 import type { BookOrder } from "$lib/translations/bookOrder";
 import { LanguageSchema } from "$lib/translations/language";
-import { StorageSchema, type StorageUnion } from "$lib/translations/storage";
+import { StorageSchema } from "$lib/translations/storage";
 
 // Effect Schema definitions
 export const VerseSchema = Schema.Struct({
@@ -130,42 +130,3 @@ export const getPreviousChapterFromContent = (
     return Option.some({ book: previousBook, chapter: lastChapter });
 };
 
-// Helper to extract content from Translation
-// Assumes translation content is Local (already loaded)
-export class ContentNotLoadedError {
-    readonly _tag = "ContentNotLoadedError";
-    constructor(readonly message: string) { }
-}
-
-const extractContent = (translation: Translation): Effect.Effect<TranslationContent, ContentNotLoadedError> => {
-    if (translation.content._tag === "Local") {
-        return Effect.succeed(translation.content.data);
-    }
-    return Effect.fail(new ContentNotLoadedError("Translation content must be loaded before accessing. Use load() function first."));
-};
-
-// Primary functions that work with Translation (for backward compatibility with existing code)
-export const getChapter = (translation: Translation, bookName: BibleBook, chapterNumber: number) => Effect.gen(function* () {
-    const content = yield* extractContent(translation);
-    return yield* getChapterFromContent(content, bookName, chapterNumber);
-});
-
-export const getNextChapter = (
-    translation: Translation,
-    currentBook: BibleBook,
-    currentChapter: number,
-    bookOrder: BookOrder
-): Effect.Effect<Option.Option<{ book: BibleBook; chapter: number }>, ContentNotLoadedError> => Effect.gen(function* () {
-    const content = yield* extractContent(translation);
-    return getNextChapterFromContent(content, currentBook, currentChapter, bookOrder);
-});
-
-export const getPreviousChapter = (
-    translation: Translation,
-    currentBook: BibleBook,
-    currentChapter: number,
-    bookOrder: BookOrder
-): Effect.Effect<Option.Option<{ book: BibleBook; chapter: number }>, ContentNotLoadedError> => Effect.gen(function* () {
-    const content = yield* extractContent(translation);
-    return getPreviousChapterFromContent(content, currentBook, currentChapter, bookOrder);
-});
