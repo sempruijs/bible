@@ -1,8 +1,10 @@
 import type { Translation } from "$lib/translations/translation";
 import { kjvTranslation } from "$lib/translations/kjv";
 import { svTranslation } from "$lib/translations/sv";
+import { bsbTranslation } from "$lib/translations/bsb";
 
 export const availableTranslations: Translation[] = [
+    bsbTranslation,
     kjvTranslation,
     svTranslation
 ];
@@ -15,7 +17,7 @@ export const getTranslationByShortName = (shortName: string): Translation | unde
 export const getDefaultTranslation = (): Translation => {
     if (typeof navigator === 'undefined') {
         // Server-side rendering fallback
-        return kjvTranslation;
+        return bsbTranslation;
     }
 
     // Get browser language (e.g., "nl", "nl-NL", "en-US", "en-GB")
@@ -27,9 +29,9 @@ export const getDefaultTranslation = (): Translation => {
         return svTranslation;
     }
 
-    // Default to KJV for English and all other languages
-    return kjvTranslation;
+    // Default to BSB for English and all other languages
+    return bsbTranslation;
 };
 
 // Static default for backward compatibility
-export const defaultTranslation = kjvTranslation;
+export const defaultTranslation = bsbTranslation;
