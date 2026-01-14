@@ -1,19 +1,19 @@
 <script lang="ts">
-	import type { Tab } from "$lib/app";
+	import type { TabState } from "$lib/app";
 	import TabComponent from "./Tab.svelte";
 
-	let { 
+	let {
 		tabs,
 		activeTabId,
 		onStateChange,
 		onAppChoice,
 		getTabId
-	}: { 
-		tabs: Tab[];
+	}: {
+		tabs: TabState[];
 		activeTabId: string;
-		onStateChange?: (tab: Tab) => void;
+		onStateChange?: (tab: TabState) => void;
 		onAppChoice?: (appType: "bible" | "about" | "stopwatch") => void;
-		getTabId: (tab: Tab) => string;
+		getTabId: (tab: TabState) => string;
 	} = $props();
 </script>
 

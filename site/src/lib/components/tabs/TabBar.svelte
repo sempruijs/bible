@@ -1,15 +1,15 @@
 <script lang="ts">
-	import type { Tab } from "$lib/app";
+	import type { TabState } from "$lib/app";
 	import { getDisplayName, getTabId } from "$lib/app";
 
-	let { 
+	let {
 		tabs,
 		activeTabId,
 		onTabSelect,
 		onTabRemove,
 		onAddTab
-	}: { 
-		tabs: Tab[]; 
+	}: {
+		tabs: TabState[];
 		activeTabId: string;
 		onTabSelect: (tabId: string) => void;
 		onTabRemove: (tabId: string) => void;

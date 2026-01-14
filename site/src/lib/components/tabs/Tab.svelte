@@ -1,17 +1,17 @@
 <script lang="ts">
-	import type { Tab } from "$lib/app";
+	import type { TabState } from "$lib/app";
 	import { Bible, BibleState, Stopwatch, StopwatchState } from "$lib/app";
 	import BibleComponent from "$lib/components/bible/BibleReader.svelte";
 	import ChooseAppComponent from "$lib/components/ui/ChooseApp.svelte";
 	import StopwatchComponent from "$lib/components/ui/Stopwatch.svelte";
 
-	let { 
+	let {
 		app,
 		onStateChange,
 		onAppChoice
-	}: { 
-		app: Tab; 
-		onStateChange?: (app: Tab) => void;
+	}: {
+		app: TabState;
+		onStateChange?: (app: TabState) => void;
 		onAppChoice?: (appType: "bible" | "about" | "stopwatch") => void;
 	} = $props();
 
