@@ -4,7 +4,7 @@ import { BibleBookSchema, getDisplayName as getBibleBookDisplayName, getShortNam
 import type { Translation } from "$lib/translations/translation";
 import { TranslationSchema } from "$lib/translations/translation";
 
-// Effect Schema definitions - App content without IDs
+// Effect Schema definitions - App-specific state
 export const BibleStateSchema = Schema.Struct({
 	currentBook: BibleBookSchema,
 	currentChapter: Schema.Number,
@@ -17,8 +17,8 @@ export const StopwatchStateSchema = Schema.Struct({
 	isRunning: Schema.Boolean
 });
 
-// App content schema - just the app-specific data
-export const AppContentSchema = Schema.Union(
+// App schema - represents the application running in a tab
+export const AppSchema = Schema.Union(
 	Schema.Struct({
 		_tag: Schema.Literal("Bible"),
 		bibleState: BibleStateSchema
@@ -35,28 +35,50 @@ export const AppContentSchema = Schema.Union(
 	})
 );
 
-// Tab schema - combines ID with app content
-export const TabSchema = Schema.Struct({
+// TabState schema - combines ID with app
+export const TabStateSchema = Schema.Struct({
 	id: Schema.String,
-	app: AppContentSchema
+	app: AppSchema
 });
 
-// Type exports
-export type BibleState = Schema.Schema.Type<typeof BibleStateSchema>;
-export type StopwatchState = Schema.Schema.Type<typeof StopwatchStateSchema>;
-export type AppContent = Schema.Schema.Type<typeof AppContentSchema>;
-export type Tab = Schema.Schema.Type<typeof TabSchema>;
+// TabsState schema - the complete tabs system state
+export const TabsStateSchema = Schema.Struct({
+	tabs: Schema.Array(TabStateSchema),
+	activeTabId: Schema.String,
+	nextTabId: Schema.Number
+});
 
+// Helper type to make deeply readonly types writable (for Svelte $state compatibility)
+type DeepWritable<T> = T extends object
+	? { -readonly [P in keyof T]: DeepWritable<T[P]> }
+	: T;
+
+// Type exports - Schema.Type generates readonly types, make them writable for $state
+type BibleStateReadonly = Schema.Schema.Type<typeof BibleStateSchema>;
+type StopwatchStateReadonly = Schema.Schema.Type<typeof StopwatchStateSchema>;
+type AppReadonly = Schema.Schema.Type<typeof AppSchema>;
+type TabStateReadonly = Schema.Schema.Type<typeof TabStateSchema>;
+type TabsStateReadonly = Schema.Schema.Type<typeof TabsStateSchema>;
+
+export type BibleState = DeepWritable<BibleStateReadonly>;
+export type StopwatchState = DeepWritable<StopwatchStateReadonly>;
+export type App = DeepWritable<AppReadonly>;
+export type TabState = DeepWritable<TabStateReadonly>;
+export type TabsState = DeepWritable<TabsStateReadonly>;
 
 // Maintain backward compatibility with Data constructors
 export const BibleState = Data.case<BibleState>();
 export const StopwatchState = Data.case<StopwatchState>();
 
-// AppContent constructors
-export const { Bible, About, ChooseApp, Stopwatch, $match } = Data.taggedEnum<AppContent>()
+// App constructors
+export const { Bible, About, ChooseApp, Stopwatch, $match } = Data.taggedEnum<App>()
 
-// Tab ID management using Effect
-export const getTabId = (tab: Tab): string => {
+// Legacy type aliases for backward compatibility (will be removed later)
+export type AppContent = App;
+export type Tab = TabState;
+
+// Selectors - extract information from TabState
+export const getTabId = (tab: TabState): string => {
 	return tab.id;
 };
 
@@ -68,8 +90,8 @@ const formatTimeForTitle = (milliseconds: number): string => {
 	return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
-// Get display name for Tab (tab title) using $match
-export const getDisplayName = (tab: Tab): string => {
+// Get display name for TabState (tab title) using $match
+export const getDisplayName = (tab: TabState): string => {
 	return $match(tab.app, {
 		Bible: ({ bibleState }) => `${getBibleBookDisplayName(bibleState.currentBook)} ${bibleState.currentChapter} (${bibleState.translation.metadata.shortName})`,
 		About: () => "About",
@@ -83,55 +105,8 @@ export const getDisplayName = (tab: Tab): string => {
 	});
 };
 
-// Tab state transformations using Effect
-export const transformTab = (tab: Tab, transform: (tab: Tab) => Tab): Effect.Effect<Tab> =>
-	Effect.succeed(transform(tab));
-
-export const createBibleTab = (
-	id: string,
-	book: BibleBook,
-	chapter: number,
-	translation: Translation,
-	showCanonExplorer: boolean
-): Effect.Effect<Tab> =>
-	Effect.succeed({
-		id,
-		app: Bible({
-			bibleState: BibleState({
-				currentBook: book,
-				currentChapter: chapter,
-				translation,
-				showCanonExplorer
-			})
-		})
-	});
-
-export const createAboutTab = (id: string): Effect.Effect<Tab> =>
-	Effect.succeed({
-		id,
-		app: About()
-	});
-
-export const createChooseTab = (id: string): Effect.Effect<Tab> =>
-	Effect.succeed({
-		id,
-		app: ChooseApp()
-	});
-
-export const createStopwatchTab = (id: string): Effect.Effect<Tab> =>
-	Effect.succeed({
-		id,
-		app: Stopwatch({
-			stopwatchState: StopwatchState({
-				elapsedTime: 0,
-				isRunning: false
-			})
-		})
-	});
-
-
-// Map Tab instances to their corresponding URLs
-export const getTabUrl = (tab: Tab): string => {
+// Map TabState instances to their corresponding URLs
+export const getTabUrl = (tab: TabState): string => {
 	return $match(tab.app, {
 		Bible: ({ bibleState }) => {
 			const bookShort = getShortName(bibleState.currentBook);
@@ -142,3 +117,67 @@ export const getTabUrl = (tab: Tab): string => {
 		Stopwatch: () => "/stopwatch"
 	});
 };
+
+// Create tab configuration types
+export type CreateTabConfig =
+	| { app: "Bible", id: string, book: BibleBook, chapter: number, translation: Translation, showCanonExplorer: boolean }
+	| { app: "Stopwatch", id: string }
+	| { app: "About", id: string }
+	| { app: "ChooseApp", id: string };
+
+// Unified tab creation function
+export const createTab = (config: CreateTabConfig): Effect.Effect<TabState> => {
+	switch (config.app) {
+		case "Bible":
+			return Effect.succeed({
+				id: config.id,
+				app: Bible({
+					bibleState: BibleState({
+						currentBook: config.book,
+						currentChapter: config.chapter,
+						translation: config.translation as any, // Translation types are readonly but compatible
+						showCanonExplorer: config.showCanonExplorer
+					})
+				})
+			});
+		case "Stopwatch":
+			return Effect.succeed({
+				id: config.id,
+				app: Stopwatch({
+					stopwatchState: StopwatchState({
+						elapsedTime: 0,
+						isRunning: false
+					})
+				})
+			});
+		case "About":
+			return Effect.succeed({
+				id: config.id,
+				app: About()
+			});
+		case "ChooseApp":
+			return Effect.succeed({
+				id: config.id,
+				app: ChooseApp()
+			});
+	}
+};
+
+// Legacy functions for backward compatibility (will be removed later)
+export const createBibleTab = (
+	id: string,
+	book: BibleBook,
+	chapter: number,
+	translation: Translation,
+	showCanonExplorer: boolean
+): Effect.Effect<TabState> =>
+	createTab({ app: "Bible", id, book, chapter, translation, showCanonExplorer });
+
+export const createAboutTab = (id: string): Effect.Effect<TabState> =>
+	createTab({ app: "About", id });
+
+export const createChooseTab = (id: string): Effect.Effect<TabState> =>
+	createTab({ app: "ChooseApp", id });
+
+export const createStopwatchTab = (id: string): Effect.Effect<TabState> =>
+	createTab({ app: "Stopwatch", id });
