@@ -15,6 +15,7 @@
         currentBook = BibleBook.John,
         currentChapter = 1,
         showCanonExplorer = true,
+        isActive = true,
         onStateChange = () => {},
         onToggleCanonExplorer = () => {},
         onTranslationChange = () => {},
@@ -23,6 +24,7 @@
         currentBook?: BibleBook;
         currentChapter?: number;
         showCanonExplorer?: boolean;
+        isActive?: boolean;
         onStateChange?: (book: BibleBook, chapter: number) => void;
         onToggleCanonExplorer?: () => void;
         onTranslationChange?: (translation: Translation) => void;
@@ -127,7 +129,10 @@
     }
 
     function handleGlobalKeydown(event: KeyboardEvent) {
-        // Only handle if not typing in an input/textarea and if this is a Bible tab
+        // Only handle if this tab is active
+        if (!isActive) return;
+
+        // Only handle if not typing in an input/textarea
         const target = event.target as HTMLElement;
         if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true')) {
             return;

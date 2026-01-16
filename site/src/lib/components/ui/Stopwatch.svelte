@@ -5,9 +5,11 @@
 
 	let {
 		stopwatchState,
+		isActive = false,
 		onStateChange
 	}: {
 		stopwatchState: StopwatchState;
+		isActive?: boolean;
 		onStateChange?: (newState: StopwatchState) => void;
 	} = $props();
 
@@ -91,6 +93,9 @@
 
 	// Handle keyboard shortcuts
 	function handleKeydown(event: KeyboardEvent) {
+		// Only handle if this tab is active
+		if (!isActive) return;
+
 		// Only handle if not typing in an input/textarea
 		const target = event.target as HTMLElement;
 		if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true')) {

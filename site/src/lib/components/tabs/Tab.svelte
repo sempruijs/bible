@@ -7,10 +7,12 @@
 
 	let {
 		app,
+		isActive = false,
 		onStateChange,
 		onAppChoice
 	}: {
 		app: TabState;
+		isActive?: boolean;
 		onStateChange?: (app: TabState) => void;
 		onAppChoice?: (appType: "bible" | "about" | "stopwatch") => void;
 	} = $props();
@@ -72,6 +74,7 @@
 		currentBook={app.app.bibleState.currentBook}
 		currentChapter={app.app.bibleState.currentChapter}
 		showCanonExplorer={app.app.bibleState.showCanonExplorer}
+		{isActive}
 		onStateChange={handleBibleStateChange}
 		onToggleCanonExplorer={handleToggleCanonExplorer}
 		onTranslationChange={handleTranslationChange}
@@ -104,8 +107,9 @@
 {:else if app.app._tag === "ChooseApp"}
 	<ChooseAppComponent onChooseApp={(appType) => onAppChoice?.(appType)} />
 {:else if app.app._tag === "Stopwatch"}
-	<StopwatchComponent 
+	<StopwatchComponent
 		stopwatchState={app.app.stopwatchState}
+		{isActive}
 		onStateChange={handleStopwatchStateChange}
 	/>
 {/if}
