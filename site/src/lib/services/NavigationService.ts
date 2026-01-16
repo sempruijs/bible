@@ -1,13 +1,11 @@
-import { Effect, Context } from "effect";
+import { Effect, Context, Option } from "effect";
 import { goto } from "$app/navigation";
-import { page } from "$app/stores";
 import { BibleBook, getShortName, toBibleBook } from "$lib/book";
-import { Option } from "effect";
 
 export interface NavigationService {
   readonly updateURL: (book: BibleBook, chapter: number) => Effect.Effect<void>;
   readonly navigateToUrl: (url: string) => Effect.Effect<void>;
-  readonly parseURL: (pathname: string) => Effect.Effect<{ book: BibleBook; chapter: number } | null>;
+  readonly parseURL: (pathname: string) => Effect.Effect<Option.Option<{ book: BibleBook; chapter: number }>>;
   readonly getInitialState: () => Effect.Effect<{ book: BibleBook; chapter: number; isAbout: boolean; isStopwatch: boolean }>;
 }
 
@@ -32,10 +30,10 @@ export const NavigationServiceLive = NavigationService.of({
         const bookOption = toBibleBook(urlParts[1]);
         const chapter = parseInt(urlParts[2]);
         if (Option.isSome(bookOption) && !isNaN(chapter) && chapter > 0) {
-          return { book: bookOption.value, chapter };
+          return Option.some({ book: bookOption.value, chapter });
         }
       }
-      return null;
+      return Option.none();
     }),
 
   getInitialState: () =>

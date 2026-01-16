@@ -4,10 +4,10 @@
 	import {
 		type TabsState,
 		type TabState,
-		getTabId,
-		getTabUrl,
-		getDisplayName,
-		createTab
+		App,
+		TabsState as TabsStateNS,
+		createTab,
+		ChooseApp
 	} from "$lib/app";
 	import { NavigationServiceLive } from "$lib/services/NavigationService";
 	import { ResponsiveServiceLive } from "$lib/services/ResponsiveService";
@@ -15,7 +15,7 @@
 	import TabContent from "$lib/components/tabs/TabContent.svelte";
 	import { page } from "$app/stores";
 	import { onMount } from "svelte";
-	import { Effect } from "effect";
+	import { Effect, Option } from "effect";
 
 	let { translation }: { translation: Translation } = $props();
 
@@ -28,131 +28,125 @@
 
 	// Initialize the first tab using Effect
 	async function initializeTab() {
-		try {
-			const initialState = await Effect.runPromise(NavigationServiceLive.getInitialState());
+		const initialState = await Effect.runPromise(NavigationServiceLive.getInitialState())
+			.catch(error => {
+				console.error("Failed to get initial state:", error);
+				return { book: BibleBook.John, chapter: 1, isAbout: false, isStopwatch: false };
+			});
 
-			let initialTab: TabState;
-			if (initialState.isAbout) {
-				// Create About tab if URL is /about
-				initialTab = await Effect.runPromise(createTab({ app: "About", id: "tab1" }));
-			} else if (initialState.isStopwatch) {
-				// Create Stopwatch tab if URL is /stopwatch
-				initialTab = await Effect.runPromise(createTab({ app: "Stopwatch", id: "tab1" }));
-			} else {
-				// Create Bible tab with parsed book/chapter
-				const canonState = await Effect.runPromise(ResponsiveServiceLive.getInitialCanonState());
-				initialTab = await Effect.runPromise(
-					createTab({
-						app: "Bible",
-						id: "tab1",
-						book: initialState.book,
-						chapter: initialState.chapter,
-						translation,
-						showCanonExplorer: canonState
-					})
-				);
-			}
-
-			tabsState.tabs = [initialTab];
-		} catch (error) {
-			console.error("Failed to initialize tab:", error);
-			// Fallback to default
-			const fallbackTab = await Effect.runPromise(
+		let initialTab: TabState;
+		if (initialState.isAbout) {
+			// Create About tab if URL is /about
+			initialTab = await Effect.runPromise(createTab({ app: "About", id: "tab1" }));
+		} else if (initialState.isStopwatch) {
+			// Create Stopwatch tab if URL is /stopwatch
+			initialTab = await Effect.runPromise(createTab({ app: "Stopwatch", id: "tab1" }));
+		} else {
+			// Create Bible tab with parsed book/chapter
+			const canonState = await Effect.runPromise(ResponsiveServiceLive.getInitialCanonState());
+			initialTab = await Effect.runPromise(
 				createTab({
 					app: "Bible",
 					id: "tab1",
-					book: BibleBook.John,
-					chapter: 1,
+					book: initialState.book,
+					chapter: initialState.chapter,
 					translation,
-					showCanonExplorer: true
+					showCanonExplorer: canonState
 				})
 			);
-			tabsState.tabs = [fallbackTab];
 		}
+
+		tabsState.tabs = [initialTab];
 	}
 
 	// Get active tab reference - derived from tabsState
-	let activeTab = $derived(tabsState.tabs.find(tab => getTabId(tab) === tabsState.activeTabId));
+	let activeTabOption = $derived(TabsStateNS.getActiveTab(tabsState));
 
 	// Update browser title when active tab changes
 	$effect(() => {
-		if (activeTab && typeof document !== 'undefined') {
-			document.title = getDisplayName(activeTab);
+		if (Option.isSome(activeTabOption) && typeof document !== 'undefined') {
+			document.title = App.getTitle(activeTabOption.value.app);
 		}
 	});
 
 	// Update tab state
 	function updateTabState(updatedTab: TabState) {
-		const tabId = getTabId(updatedTab);
-		tabsState.tabs = tabsState.tabs.map(tab => getTabId(tab) === tabId ? updatedTab : tab);
+		Effect.runPromise(TabsStateNS.updateTab(tabsState, updatedTab))
+			.then(newState => {
+				tabsState = newState;
 
-		// Update URL if this is the active tab
-		if (tabId === tabsState.activeTabId) {
-			const url = getTabUrl(updatedTab);
-			Effect.runPromise(NavigationServiceLive.navigateToUrl(url));
-		}
+				// Update URL if this is the active tab
+				if (updatedTab.id === tabsState.activeTabId) {
+					const url = App.getUrl(updatedTab.app);
+					Effect.runPromise(NavigationServiceLive.navigateToUrl(url))
+						.catch(error => console.error("Failed to navigate:", error));
+				}
+			})
+			.catch(error => console.error("Failed to update tab:", error));
 	}
 
 	// Add new tab
-	async function addTab() {
-		try {
-			const tabId = `tab${tabsState.nextTabId}`;
-			const newTab = await Effect.runPromise(createTab({ app: "ChooseApp", id: tabId }));
-			tabsState.tabs = [...tabsState.tabs, newTab];
-			tabsState.activeTabId = tabId;
-			tabsState.nextTabId++;
-		} catch (error) {
-			console.error("Failed to add tab:", error);
-		}
+	function addTab() {
+		Effect.runPromise(TabsStateNS.addTab(tabsState, ChooseApp()))
+			.then(newState => {
+				tabsState = newState;
+			})
+			.catch(error => console.error("Failed to add tab:", error));
 	}
 
 	// Remove tab
-	async function removeTab(tabId: string) {
-		if (tabsState.tabs.length === 1) return;
-
-		// Clean up background tasks for the removed tab (no longer needed with simplified approach)
-
-		tabsState.tabs = tabsState.tabs.filter(tab => getTabId(tab) !== tabId);
-
-		if (tabsState.activeTabId === tabId) {
-			const firstTab = tabsState.tabs[0];
-			if (firstTab) {
-				tabsState.activeTabId = getTabId(firstTab);
-			}
-		}
+	function removeTab(tabId: string) {
+		Effect.runPromise(TabsStateNS.removeTab(tabsState, tabId))
+			.then(newState => {
+				tabsState = newState;
+			})
+			.catch(error => console.error("Failed to remove tab:", error));
 	}
 
 	// Set active tab
 	function setActiveTab(tabId: string) {
-		tabsState.activeTabId = tabId;
+		Effect.runPromise(TabsStateNS.setActiveTab(tabsState, tabId))
+			.then(newState => {
+				tabsState = newState;
 
-		// Update URL for any tab type using the mapping function
-		const tab = tabsState.tabs.find(tab => getTabId(tab) === tabId);
-		if (tab) {
-			const url = getTabUrl(tab);
-			Effect.runPromise(NavigationServiceLive.navigateToUrl(url));
-		}
+				// Update URL
+				const activeTabOption = TabsStateNS.getActiveTab(newState);
+				if (Option.isSome(activeTabOption)) {
+					const url = App.getUrl(activeTabOption.value.app);
+					Effect.runPromise(NavigationServiceLive.navigateToUrl(url))
+						.catch(error => console.error("Failed to navigate:", error));
+				}
+			})
+			.catch(error => console.error("Failed to set active tab:", error));
 	}
 
 	// Tab navigation functions
 	function goToNextTab() {
-		const currentIndex = tabsState.tabs.findIndex(tab => getTabId(tab) === tabsState.activeTabId);
-		if (currentIndex !== -1 && currentIndex < tabsState.tabs.length - 1) {
-			setActiveTab(getTabId(tabsState.tabs[currentIndex + 1]));
-		} else if (tabsState.tabs.length > 1) {
-			// Wrap to first tab
-			setActiveTab(getTabId(tabsState.tabs[0]));
-		}
+		Effect.runPromise(TabsStateNS.nextTab(tabsState))
+			.then(newState => {
+				tabsState = newState;
+				const activeTabOption = TabsStateNS.getActiveTab(newState);
+				if (Option.isSome(activeTabOption)) {
+					const url = App.getUrl(activeTabOption.value.app);
+					Effect.runPromise(NavigationServiceLive.navigateToUrl(url))
+						.catch(error => console.error("Failed to navigate:", error));
+				}
+			})
+			.catch(error => console.error("Failed to navigate to next tab:", error));
 	}
 
 	function goToPreviousTab() {
-		const currentIndex = tabsState.tabs.findIndex(tab => getTabId(tab) === tabsState.activeTabId);
-		if (currentIndex > 0) {
-			setActiveTab(getTabId(tabsState.tabs[currentIndex - 1]));
-		} else if (tabsState.tabs.length > 1) {
-			// Wrap to last tab
-			setActiveTab(getTabId(tabsState.tabs[tabsState.tabs.length - 1]));
-		}
+		Effect.runPromise(TabsStateNS.previousTab(tabsState))
+			.then(newState => {
+				tabsState = newState;
+				const activeTabOption = TabsStateNS.getActiveTab(newState);
+				if (Option.isSome(activeTabOption)) {
+					const url = App.getUrl(activeTabOption.value.app);
+					Effect.runPromise(NavigationServiceLive.navigateToUrl(url))
+						.catch(error => console.error("Failed to navigate:", error));
+				}
+			})
+			.catch(error => console.error("Failed to navigate to previous tab:", error));
 	}
 
 	// Handle keyboard shortcuts
@@ -180,73 +174,80 @@
 
 	// Handle app choice in ChooseApp tabs
 	async function handleAppChoice(appType: "bible" | "about" | "stopwatch") {
-		try {
-			const tabIndex = tabsState.tabs.findIndex(tab => getTabId(tab) === tabsState.activeTabId);
-			if (tabIndex === -1) return;
+		const tabIndex = tabsState.tabs.findIndex(tab => tab.id === tabsState.activeTabId);
+		if (tabIndex === -1) return;
 
-			let newTab: TabState;
-			if (appType === "bible") {
-				const canonState = await Effect.runPromise(ResponsiveServiceLive.getInitialCanonState());
-				newTab = await Effect.runPromise(
-					createTab({
-						app: "Bible",
-						id: tabsState.activeTabId,
-						book: BibleBook.John,
-						chapter: 1,
-						translation,
-						showCanonExplorer: canonState
-					})
-				);
-			} else if (appType === "about") {
-				newTab = await Effect.runPromise(createTab({ app: "About", id: tabsState.activeTabId }));
-			} else if (appType === "stopwatch") {
-				newTab = await Effect.runPromise(createTab({ app: "Stopwatch", id: tabsState.activeTabId }));
-			} else {
-				throw new Error(`Unknown app type: ${appType}`);
-			}
-
-			tabsState.tabs = tabsState.tabs.map((tab, index) => index === tabIndex ? newTab : tab);
-
-			// Update URL using the mapping function
-			const url = getTabUrl(newTab);
-			Effect.runPromise(NavigationServiceLive.navigateToUrl(url));
-		} catch (error) {
-			console.error("Failed to handle app choice:", error);
+		let newTab: TabState;
+		if (appType === "bible") {
+			const canonState = await Effect.runPromise(ResponsiveServiceLive.getInitialCanonState());
+			newTab = await Effect.runPromise(
+				createTab({
+					app: "Bible",
+					id: tabsState.activeTabId,
+					book: BibleBook.John,
+					chapter: 1,
+					translation,
+					showCanonExplorer: canonState
+				})
+			);
+		} else if (appType === "about") {
+			newTab = await Effect.runPromise(createTab({ app: "About", id: tabsState.activeTabId }));
+		} else if (appType === "stopwatch") {
+			newTab = await Effect.runPromise(createTab({ app: "Stopwatch", id: tabsState.activeTabId }));
+		} else {
+			console.error(`Unknown app type: ${appType}`);
+			return;
 		}
+
+		tabsState.tabs = tabsState.tabs.map((tab, index) => index === tabIndex ? newTab : tab);
+
+		// Update URL using the mapping function
+		const url = App.getUrl(newTab.app);
+		Effect.runPromise(NavigationServiceLive.navigateToUrl(url))
+			.catch(error => console.error("Failed to navigate:", error));
 	}
 
 	// Handle browser navigation
 	async function syncFromURL() {
-		try {
-			const currentPage = $page;
-			const params = currentPage.params;
-			if (params.book && params.chapter) {
-				const urlState = await Effect.runPromise(
-					NavigationServiceLive.parseURL(currentPage.url.pathname)
-				);
+		const currentPage = $page;
+		const params = currentPage.params;
 
-				if (urlState && activeTab && activeTab.app._tag === "Bible") {
-					const currentBook = activeTab.app.bibleState.currentBook;
-					const currentChapter = activeTab.app.bibleState.currentChapter;
+		if (!params.book || !params.chapter) return;
 
-					if (currentBook !== urlState.book || currentChapter !== urlState.chapter) {
-						const updatedTab = await Effect.runPromise(
-							createTab({
-								app: "Bible",
-								id: activeTab.id,
-								book: urlState.book,
-								chapter: urlState.chapter,
-								translation: activeTab.app.bibleState.translation,
-								showCanonExplorer: activeTab.app.bibleState.showCanonExplorer
-							})
-						);
-						updateTabState(updatedTab);
-					}
-				}
-			}
-		} catch (error) {
-			console.error("Failed to sync from URL:", error);
-		}
+		const urlStateOption = await Effect.runPromise(
+			NavigationServiceLive.parseURL(currentPage.url.pathname)
+		).catch(error => {
+			console.error("Failed to parse URL:", error);
+			return Option.none();
+		});
+
+		if (Option.isNone(urlStateOption)) return;
+		if (Option.isNone(activeTabOption)) return;
+
+		const activeTab = activeTabOption.value;
+		if (activeTab.app._tag !== "Bible") return;
+
+		const urlState = urlStateOption.value;
+		const currentBook = activeTab.app.bibleState.currentBook;
+		const currentChapter = activeTab.app.bibleState.currentChapter;
+
+		if (currentBook === urlState.book && currentChapter === urlState.chapter) return;
+
+		const updatedTab = await Effect.runPromise(
+			createTab({
+				app: "Bible",
+				id: activeTab.id,
+				book: urlState.book,
+				chapter: urlState.chapter,
+				translation: activeTab.app.bibleState.translation,
+				showCanonExplorer: activeTab.app.bibleState.showCanonExplorer
+			})
+		).catch(error => {
+			console.error("Failed to create updated tab:", error);
+			return activeTab; // Return unchanged on error
+		});
+
+		updateTabState(updatedTab);
 	}
 
 	// Initialize on mount
@@ -280,7 +281,6 @@
 	<TabContent
 		tabs={tabsState.tabs}
 		activeTabId={tabsState.activeTabId}
-		{getTabId}
 		onStateChange={updateTabState}
 		onAppChoice={handleAppChoice}
 	/>

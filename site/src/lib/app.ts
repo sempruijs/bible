@@ -1,4 +1,4 @@
-import { Data, Effect, Schema } from "effect";
+import { Data, Effect, Schema, Option } from "effect";
 import type { BibleBook } from "$lib/book";
 import { BibleBookSchema, getDisplayName as getBibleBookDisplayName, getShortName } from "$lib/book";
 import type { Translation } from "$lib/translations/translation";
@@ -73,15 +73,6 @@ export const StopwatchState = Data.case<StopwatchState>();
 // App constructors
 export const { Bible, About, ChooseApp, Stopwatch, $match } = Data.taggedEnum<App>()
 
-// Legacy type aliases for backward compatibility (will be removed later)
-export type AppContent = App;
-export type Tab = TabState;
-
-// Selectors - extract information from TabState
-export const getTabId = (tab: TabState): string => {
-	return tab.id;
-};
-
 // Format time as MM:SS for tab title
 const formatTimeForTitle = (milliseconds: number): string => {
 	const totalSeconds = Math.floor(milliseconds / 1000);
@@ -90,33 +81,129 @@ const formatTimeForTitle = (milliseconds: number): string => {
 	return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
-// Get display name for TabState (tab title) using $match
-export const getDisplayName = (tab: TabState): string => {
-	return $match(tab.app, {
-		Bible: ({ bibleState }) => `${getBibleBookDisplayName(bibleState.currentBook)} ${bibleState.currentChapter} (${bibleState.translation.metadata.shortName})`,
-		About: () => "About",
-		ChooseApp: () => "Choose App",
-		Stopwatch: ({ stopwatchState }) => {
-			if (stopwatchState.elapsedTime > 0 || stopwatchState.isRunning) {
-				return formatTimeForTitle(stopwatchState.elapsedTime);
-			}
-			return "Stopwatch";
-		}
-	});
-};
+// App namespace - operations on App type
+export namespace App {
+	export const getUrl = (app: App): string => {
+		return $match(app, {
+			Bible: ({ bibleState }) => {
+				const bookShort = getShortName(bibleState.currentBook);
+				return `/${bookShort}/${bibleState.currentChapter}`;
+			},
+			About: () => "/about",
+			ChooseApp: () => "/",
+			Stopwatch: () => "/stopwatch"
+		});
+	};
 
-// Map TabState instances to their corresponding URLs
-export const getTabUrl = (tab: TabState): string => {
-	return $match(tab.app, {
-		Bible: ({ bibleState }) => {
-			const bookShort = getShortName(bibleState.currentBook);
-			return `/${bookShort}/${bibleState.currentChapter}`;
-		},
-		About: () => "/about",
-		ChooseApp: () => "/", // Default to home for choose app
-		Stopwatch: () => "/stopwatch"
-	});
-};
+	export const getTitle = (app: App): string => {
+		return $match(app, {
+			Bible: ({ bibleState }) => `${getBibleBookDisplayName(bibleState.currentBook)} ${bibleState.currentChapter} (${bibleState.translation.metadata.shortName})`,
+			About: () => "About",
+			ChooseApp: () => "Choose App",
+			Stopwatch: ({ stopwatchState }) => {
+				if (stopwatchState.elapsedTime > 0 || stopwatchState.isRunning) {
+					return formatTimeForTitle(stopwatchState.elapsedTime);
+				}
+				return "Stopwatch";
+			}
+		});
+	};
+}
+
+// TabsState namespace - operations on TabsState type
+export namespace TabsState {
+	export const addTab = (state: TabsState, app: App): Effect.Effect<TabsState> => {
+		return Effect.sync(() => {
+			const tabId = `tab${state.nextTabId}`;
+			const newTab: TabState = { id: tabId, app };
+
+			return {
+				tabs: [...state.tabs, newTab],
+				activeTabId: tabId,
+				nextTabId: state.nextTabId + 1
+			};
+		});
+	};
+
+	export const removeTab = (state: TabsState, tabId: string): Effect.Effect<TabsState> => {
+		return Effect.sync(() => {
+			// Don't allow removing last tab
+			if (state.tabs.length === 1) {
+				return state;
+			}
+
+			const newTabs = state.tabs.filter(tab => tab.id !== tabId);
+
+			// If removing active tab, switch to first tab
+			const newActiveTabId = state.activeTabId === tabId
+				? newTabs[0]?.id ?? state.activeTabId
+				: state.activeTabId;
+
+			return {
+				tabs: newTabs,
+				activeTabId: newActiveTabId,
+				nextTabId: state.nextTabId
+			};
+		});
+	};
+
+	export const setActiveTab = (state: TabsState, tabId: string): Effect.Effect<TabsState> => {
+		return Effect.sync(() => {
+			// Verify tab exists
+			const tabExists = state.tabs.some(tab => tab.id === tabId);
+			if (!tabExists) {
+				console.error(`Tab ${tabId} not found`);
+				return state;
+			}
+
+			return {
+				...state,
+				activeTabId: tabId
+			};
+		});
+	};
+
+	export const nextTab = (state: TabsState): Effect.Effect<TabsState> => {
+		return Effect.sync(() => {
+			const currentIndex = state.tabs.findIndex(tab => tab.id === state.activeTabId);
+			if (currentIndex === -1) return state;
+
+			const nextIndex = (currentIndex + 1) % state.tabs.length;
+			return {
+				...state,
+				activeTabId: state.tabs[nextIndex].id
+			};
+		});
+	};
+
+	export const previousTab = (state: TabsState): Effect.Effect<TabsState> => {
+		return Effect.sync(() => {
+			const currentIndex = state.tabs.findIndex(tab => tab.id === state.activeTabId);
+			if (currentIndex === -1) return state;
+
+			const prevIndex = currentIndex === 0 ? state.tabs.length - 1 : currentIndex - 1;
+			return {
+				...state,
+				activeTabId: state.tabs[prevIndex].id
+			};
+		});
+	};
+
+	export const updateTab = (state: TabsState, updatedTab: TabState): Effect.Effect<TabsState> => {
+		return Effect.sync(() => {
+			return {
+				...state,
+				tabs: state.tabs.map(tab => tab.id === updatedTab.id ? updatedTab : tab)
+			};
+		});
+	};
+
+	export const getActiveTab = (state: TabsState): Option.Option<TabState> => {
+		const tab = state.tabs.find(t => t.id === state.activeTabId);
+		return tab ? Option.some(tab) : Option.none();
+	};
+}
+
 
 // Create tab configuration types
 export type CreateTabConfig =
@@ -163,21 +250,3 @@ export const createTab = (config: CreateTabConfig): Effect.Effect<TabState> => {
 	}
 };
 
-// Legacy functions for backward compatibility (will be removed later)
-export const createBibleTab = (
-	id: string,
-	book: BibleBook,
-	chapter: number,
-	translation: Translation,
-	showCanonExplorer: boolean
-): Effect.Effect<TabState> =>
-	createTab({ app: "Bible", id, book, chapter, translation, showCanonExplorer });
-
-export const createAboutTab = (id: string): Effect.Effect<TabState> =>
-	createTab({ app: "About", id });
-
-export const createChooseTab = (id: string): Effect.Effect<TabState> =>
-	createTab({ app: "ChooseApp", id });
-
-export const createStopwatchTab = (id: string): Effect.Effect<TabState> =>
-	createTab({ app: "Stopwatch", id });

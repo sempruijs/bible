@@ -39,7 +39,7 @@
     let shouldFocusSearch = $state(false);
 
     // Translation content state
-    let translationContent = $state<TranslationContent | null>(null);
+    let translationContent = $state<Option.Option<TranslationContent>>(Option.none());
 
     // Update internal state when props change (tab switch)
     $effect(() => {
@@ -52,11 +52,11 @@
         if (translation) {
             Effect.runPromise(loadTranslationContent(translation))
                 .then((content) => {
-                    translationContent = content;
+                    translationContent = Option.some(content);
                 })
                 .catch((error) => {
                     console.error("Failed to load translation content:", error);
-                    translationContent = null;
+                    translationContent = Option.none();
                 });
         }
     });
@@ -65,12 +65,13 @@
 
     // Update chapter data when internal state or translation content changes
     $effect(() => {
-        if (internalBook && internalChapter && translationContent) {
-            Effect.runPromise(getChapterFromContent(translationContent, internalBook, internalChapter))
+        if (internalBook && internalChapter && Option.isSome(translationContent)) {
+            Effect.runPromise(getChapterFromContent(translationContent.value, internalBook, internalChapter))
                 .then((chapterOption) => {
                     currentChapterData = chapterOption;
                 })
-                .catch(() => {
+                .catch((error) => {
+                    console.error("Failed to get chapter:", error);
                     currentChapterData = Option.none();
                 });
         } else {
@@ -96,8 +97,8 @@
     }
 
     function navigateToNextChapter() {
-        if (!translationContent) return;
-        const nextChapterOption = getNextChapterFromContent(translationContent, internalBook, internalChapter, protestantBookOrder);
+        if (Option.isNone(translationContent)) return;
+        const nextChapterOption = getNextChapterFromContent(translationContent.value, internalBook, internalChapter, protestantBookOrder);
         if (Option.isSome(nextChapterOption)) {
             const { book, chapter } = nextChapterOption.value;
             internalBook = book;
@@ -107,8 +108,8 @@
     }
 
     function navigateToPreviousChapter() {
-        if (!translationContent) return;
-        const previousChapterOption = getPreviousChapterFromContent(translationContent, internalBook, internalChapter, protestantBookOrder);
+        if (Option.isNone(translationContent)) return;
+        const previousChapterOption = getPreviousChapterFromContent(translationContent.value, internalBook, internalChapter, protestantBookOrder);
         if (Option.isSome(previousChapterOption)) {
             const { book, chapter } = previousChapterOption.value;
             internalBook = book;
@@ -223,7 +224,7 @@
         <div class="flex items-center gap-1">
             <button
                 onclick={navigateToPreviousChapter}
-                disabled={!translationContent || Option.isNone(getPreviousChapterFromContent(translationContent, internalBook, internalChapter, protestantBookOrder))}
+                disabled={Option.isNone(translationContent) || Option.isNone(getPreviousChapterFromContent(translationContent.value, internalBook, internalChapter, protestantBookOrder))}
                 class="px-2 py-1 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-gray-300 text-sm rounded transition-colors"
                 title="Previous chapter"
             >
@@ -231,7 +232,7 @@
             </button>
             <button
                 onclick={navigateToNextChapter}
-                disabled={!translationContent || Option.isNone(getNextChapterFromContent(translationContent, internalBook, internalChapter, protestantBookOrder))}
+                disabled={Option.isNone(translationContent) || Option.isNone(getNextChapterFromContent(translationContent.value, internalBook, internalChapter, protestantBookOrder))}
                 class="px-2 py-1 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-gray-300 text-sm rounded transition-colors"
                 title="Next chapter"
             >
@@ -251,7 +252,7 @@
                          : 'w-80 border-r relative'}"
             >
                 <BibleCanonExplorerWithSearch
-                    content={translationContent}
+                    content={Option.isSome(translationContent) ? translationContent.value : null}
                     currentBook={internalBook}
                     currentChapter={internalChapter}
                     onChapterSelect={selectChapter}

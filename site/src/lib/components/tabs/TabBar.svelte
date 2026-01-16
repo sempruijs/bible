@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { TabState } from "$lib/app";
-	import { getDisplayName, getTabId } from "$lib/app";
+	import { App } from "$lib/app";
 
 	let {
 		tabs,
@@ -20,14 +20,14 @@
 <div class="bg-gray-800 border-b border-gray-700 flex items-center px-4 py-2">
 	<div class="flex items-center gap-2 flex-1 overflow-x-auto" title="Navigate tabs: (n) next, (p) previous">
 		{#each tabs as tab}
-			{@const tabId = getTabId(tab)}
-			{@const tabTitle = getDisplayName(tab)}
+			{@const tabId = tab.id}
+			{@const tabTitle = App.getTitle(tab.app)}
 			<div class="flex items-center bg-gray-700 rounded-lg overflow-hidden min-w-0">
 				<button
 					onclick={() => onTabSelect(tabId)}
 					class="px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap {
-						activeTabId === tabId 
-							? 'bg-blue-600 text-white' 
+						activeTabId === tabId
+							? 'bg-blue-600 text-white'
 							: 'text-gray-300 hover:bg-gray-600'
 					}"
 				>

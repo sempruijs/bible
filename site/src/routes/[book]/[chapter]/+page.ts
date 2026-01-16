@@ -19,8 +19,12 @@ export const load: PageLoad = async ({ params, parent }) => {
 
     const { bibleData } = await parent();
 
+    if (Option.isNone(bibleData)) {
+        error(500, 'Failed to load Bible data');
+    }
+
     // Load translation content
-    const content = await Effect.runPromise(loadTranslationContent(bibleData));
+    const content = await Effect.runPromise(loadTranslationContent(bibleData.value));
 
     const chapterOption = await Effect.runPromise(getChapterFromContent(content, bibleBook.value, chapterNumber));
 
