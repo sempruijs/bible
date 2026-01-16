@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { onMount, onDestroy } from "svelte";
+	import { Option } from "effect";
 	import type { StopwatchState } from "$lib/app";
 
-	let { 
+	let {
 		stopwatchState,
-		onStateChange 
-	}: { 
+		onStateChange
+	}: {
 		stopwatchState: StopwatchState;
 		onStateChange?: (newState: StopwatchState) => void;
 	} = $props();
@@ -13,7 +14,7 @@
 	// Simple local state
 	let displayTime = $state<number>(0);
 	let isRunning = $state<boolean>(false);
-	let startTime = $state<number | null>(null);
+	let startTime = $state<Option.Option<number>>(Option.none());
 	let intervalId: number | undefined;
 
 	// Format time as MM:SS.mmm
@@ -30,13 +31,13 @@
 	function startStopwatch() {
 		if (!isRunning) {
 			const now = Date.now();
-			startTime = now - displayTime; // Account for existing elapsed time
+			startTime = Option.some(now - displayTime); // Account for existing elapsed time
 			isRunning = true;
-			
+
 			// Simple interval that will work even when tab is hidden (since element stays in DOM)
 			intervalId = setInterval(() => {
-				if (startTime !== null) {
-					displayTime = Date.now() - startTime;
+				if (Option.isSome(startTime)) {
+					displayTime = Date.now() - startTime.value;
 					onStateChange?.({
 						elapsedTime: displayTime,
 						isRunning: true
@@ -70,10 +71,10 @@
 				intervalId = undefined;
 			}
 		}
-		
+
 		displayTime = 0;
-		startTime = null;
-		
+		startTime = Option.none();
+
 		onStateChange?.({
 			elapsedTime: 0,
 			isRunning: false

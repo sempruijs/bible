@@ -6,24 +6,22 @@
 		tabs,
 		activeTabId,
 		onStateChange,
-		onAppChoice,
-		getTabId
+		onAppChoice
 	}: {
 		tabs: TabState[];
 		activeTabId: string;
 		onStateChange?: (tab: TabState) => void;
 		onAppChoice?: (appType: "bible" | "about" | "stopwatch") => void;
-		getTabId: (tab: TabState) => string;
 	} = $props();
 </script>
 
 <div class="flex-1 overflow-hidden">
-	{#each tabs as tab (getTabId(tab))}
-		<div 
-			class="h-full w-full {getTabId(tab) === activeTabId ? 'block' : 'hidden'}"
-			aria-hidden={getTabId(tab) !== activeTabId}
+	{#each tabs as tab (tab.id)}
+		<div
+			class="h-full w-full {tab.id === activeTabId ? 'block' : 'hidden'}"
+			aria-hidden={tab.id !== activeTabId}
 		>
-			<TabComponent 
+			<TabComponent
 				app={tab}
 				{onStateChange}
 				{onAppChoice}

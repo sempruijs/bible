@@ -1,5 +1,6 @@
 <script lang="ts">
 	import "../app.css";
+	import { Option } from "effect";
 	import AppContainer from "$lib/components/AppContainer.svelte";
 	import type { LayoutData } from "./$types";
 
@@ -8,8 +9,8 @@
 
 <div class="h-screen bg-gray-900 text-white">
 	<div class="h-full">
-		{#if data.bibleData}
-			<AppContainer translation={data.bibleData} />
+		{#if Option.isSome(data.bibleData)}
+			<AppContainer translation={data.bibleData.value} />
 		{:else}
 			<div class="flex items-center justify-center h-full">
 				<div class="text-center">
