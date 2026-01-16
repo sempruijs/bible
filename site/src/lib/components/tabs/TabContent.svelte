@@ -21,11 +21,14 @@
 			class="h-full w-full {tab.id === activeTabId ? 'block' : 'hidden'}"
 			aria-hidden={tab.id !== activeTabId}
 		>
-			<TabComponent
-				app={tab}
-				{onStateChange}
-				{onAppChoice}
-			/>
+			{#key tab.id}
+				<TabComponent
+					app={tab}
+					isActive={tab.id === activeTabId}
+					{onStateChange}
+					{onAppChoice}
+				/>
+			{/key}
 		</div>
 	{/each}
 </div>
