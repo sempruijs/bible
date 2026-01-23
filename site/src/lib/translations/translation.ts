@@ -130,3 +130,70 @@ export const getPreviousChapterFromContent = (
     return Option.some({ book: previousBook, chapter: lastChapter });
 };
 
+// Chapter reference type for virtual scrolling
+export interface ChapterReference {
+    book: BibleBook;
+    chapter: number;
+    key: string;
+}
+
+// Helper to create a unique key for a chapter
+export const getChapterKey = (book: BibleBook, chapter: number): string => {
+    return `${book}-${chapter}`;
+};
+
+// Check if a chapter is the first in the Bible
+export const isFirstChapterInBible = (
+    ref: { book: BibleBook; chapter: number },
+    bookOrder: BookOrder
+): boolean => {
+    const firstBook = bookOrder.books[0];
+    return ref.book === firstBook && ref.chapter === 1;
+};
+
+// Check if a chapter is the last in the Bible
+export const isLastChapterInBible = (
+    content: TranslationContent,
+    ref: { book: BibleBook; chapter: number },
+    bookOrder: BookOrder
+): boolean => {
+    const lastBook = bookOrder.books[bookOrder.books.length - 1];
+    if (ref.book !== lastBook) return false;
+
+    const bookData = content.books.find(b => b.name === lastBook);
+    if (!bookData || bookData.chapters.length === 0) return false;
+
+    const lastChapter = Math.max(...bookData.chapters.map(c => c.chapter));
+    return ref.chapter === lastChapter;
+};
+
+// Get a range of chapters in sequence (for virtual scrolling buffer)
+export const getChapterRangeFromContent = (
+    content: TranslationContent,
+    startRef: { book: BibleBook; chapter: number },
+    count: number,
+    direction: 'forward' | 'backward',
+    bookOrder: BookOrder
+): ChapterReference[] => {
+    const refs: ChapterReference[] = [];
+    let currentRef: Option.Option<{ book: BibleBook; chapter: number }> = Option.some(startRef);
+
+    for (let i = 0; i < count && Option.isSome(currentRef); i++) {
+        const ref = currentRef.value;
+        refs.push({
+            book: ref.book,
+            chapter: ref.chapter,
+            key: getChapterKey(ref.book, ref.chapter)
+        });
+
+        // Get next reference based on direction
+        if (direction === 'forward') {
+            currentRef = getNextChapterFromContent(content, ref.book, ref.chapter, bookOrder);
+        } else {
+            currentRef = getPreviousChapterFromContent(content, ref.book, ref.chapter, bookOrder);
+        }
+    }
+
+    return direction === 'backward' ? refs.reverse() : refs;
+};
+

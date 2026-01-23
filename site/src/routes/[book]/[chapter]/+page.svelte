@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { getChapter } from "$lib/translations/translation";
     import type { PageData } from "./$types";
 
     let { data }: { data: PageData } = $props();

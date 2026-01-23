@@ -1,12 +1,10 @@
 <script lang="ts">
     import type { Translation, TranslationContent } from "$lib/translations/translation";
-    import { getChapterFromContent, getNextChapterFromContent, getPreviousChapterFromContent } from "$lib/translations/translation";
     import { loadTranslationContent } from "$lib/translations/loadTranslationContent";
     import { BibleBook, getShortName, toBibleBook } from "$lib/book";
-    import { protestantBookOrder } from "$lib/translations/bookOrder";
     import { Option, Effect } from "effect";
     import BibleCanonExplorerWithSearch from "$lib/components/bible/BibleCanonExplorerWithSearch.svelte";
-    import BibleChapterViewer from "$lib/components/bible/BibleChapterViewer.svelte";
+    import VirtualBibleScroll from "$lib/components/bible/VirtualBibleScroll.svelte";
     import { availableTranslations } from "$lib/translations/availableTranslations";
     import { onMount } from "svelte";
 
@@ -52,32 +50,16 @@
     // Load translation content when translation changes
     $effect(() => {
         if (translation) {
+            console.log('BibleReader: Loading translation content for', translation.metadata.shortName);
             Effect.runPromise(loadTranslationContent(translation))
                 .then((content) => {
+                    console.log('BibleReader: Translation content loaded successfully, books:', content.books.length);
                     translationContent = Option.some(content);
                 })
                 .catch((error) => {
                     console.error("Failed to load translation content:", error);
                     translationContent = Option.none();
                 });
-        }
-    });
-
-    let currentChapterData = $state<Option.Option<any>>(Option.none());
-
-    // Update chapter data when internal state or translation content changes
-    $effect(() => {
-        if (internalBook && internalChapter && Option.isSome(translationContent)) {
-            Effect.runPromise(getChapterFromContent(translationContent.value, internalBook, internalChapter))
-                .then((chapterOption) => {
-                    currentChapterData = chapterOption;
-                })
-                .catch((error) => {
-                    console.error("Failed to get chapter:", error);
-                    currentChapterData = Option.none();
-                });
-        } else {
-            currentChapterData = Option.none();
         }
     });
 
@@ -95,28 +77,6 @@
                     onToggleCanonExplorer();
                 }, 0);
             }
-        }
-    }
-
-    function navigateToNextChapter() {
-        if (Option.isNone(translationContent)) return;
-        const nextChapterOption = getNextChapterFromContent(translationContent.value, internalBook, internalChapter, protestantBookOrder);
-        if (Option.isSome(nextChapterOption)) {
-            const { book, chapter } = nextChapterOption.value;
-            internalBook = book;
-            internalChapter = chapter;
-            onStateChange(book, chapter);
-        }
-    }
-
-    function navigateToPreviousChapter() {
-        if (Option.isNone(translationContent)) return;
-        const previousChapterOption = getPreviousChapterFromContent(translationContent.value, internalBook, internalChapter, protestantBookOrder);
-        if (Option.isSome(previousChapterOption)) {
-            const { book, chapter } = previousChapterOption.value;
-            internalBook = book;
-            internalChapter = chapter;
-            onStateChange(book, chapter);
         }
     }
 
@@ -224,26 +184,6 @@
                 {/each}
             </select>
         </div>
-
-        <!-- Navigation buttons -->
-        <div class="flex items-center gap-1">
-            <button
-                onclick={navigateToPreviousChapter}
-                disabled={Option.isNone(translationContent) || Option.isNone(getPreviousChapterFromContent(translationContent.value, internalBook, internalChapter, protestantBookOrder))}
-                class="px-2 py-1 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-gray-300 text-sm rounded transition-colors"
-                title="Previous chapter"
-            >
-                ←
-            </button>
-            <button
-                onclick={navigateToNextChapter}
-                disabled={Option.isNone(translationContent) || Option.isNone(getNextChapterFromContent(translationContent.value, internalBook, internalChapter, protestantBookOrder))}
-                class="px-2 py-1 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-gray-300 text-sm rounded transition-colors"
-                title="Next chapter"
-            >
-                →
-            </button>
-        </div>
     </div>
 
     <!-- Main Content -->
@@ -268,7 +208,12 @@
 
         <!-- Chapter Viewer -->
         <div class="flex-1 {isMobile && showCanonExplorer ? 'hidden' : 'block'}">
-            <BibleChapterViewer chapterData={currentChapterData} />
+            <VirtualBibleScroll
+                {translationContent}
+                initialBook={internalBook}
+                initialChapter={internalChapter}
+                onStateChange={onStateChange}
+            />
         </div>
     </div>
 </div>
