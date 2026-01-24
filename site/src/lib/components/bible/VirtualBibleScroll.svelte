@@ -448,12 +448,12 @@
 
 				// Scroll to target chapter after a brief delay
 				setTimeout(() => {
-					const targetElement = document.getElementById(`middle-sentinel-${initialRef.key}`);
+					const targetElement = document.getElementById(`top-sentinel-${initialRef.key}`);
 					if (targetElement) {
-						// Scroll to position the chapter near the top of the viewport
+						// Scroll to position the chapter at the top of the viewport
 						const container = targetElement.closest('.overflow-y-auto');
 						if (container) {
-							const offsetTop = targetElement.getBoundingClientRect().top + (container as HTMLElement).scrollTop - 100;
+							const offsetTop = targetElement.getBoundingClientRect().top + (container as HTMLElement).scrollTop - 20;
 							(container as HTMLElement).scrollTo({
 								top: offsetTop,
 								behavior: 'instant'
@@ -493,17 +493,17 @@
 			return;
 		}
 
-		// Check if chapter is already visible in viewport (don't snap if user is already viewing it)
-		const targetElement = document.getElementById(`middle-sentinel-${targetKey}`);
+		// Check if chapter heading is already visible at the top (don't snap if user is already viewing it properly)
+		const targetElement = document.getElementById(`top-sentinel-${targetKey}`);
 		if (targetElement) {
 			const rect = targetElement.getBoundingClientRect();
-			// Check if chapter is anywhere in the viewport - be very generous
-			// If user can see this chapter at all, don't snap
-			const isVisible = rect.top >= -200 && rect.top <= window.innerHeight;
+			// Check if the top of the chapter (including heading) is positioned near the top of viewport
+			// Only skip if it's already properly positioned (within 0-100px from top)
+			const isProperlyPositioned = rect.top >= 0 && rect.top <= 100;
 
-			if (isVisible) {
-				// Chapter is already visible - don't snap
-				console.log('Chapter already visible, skipping snap:', targetKey);
+			if (isProperlyPositioned) {
+				// Chapter heading is already visible at top - don't snap
+				console.log('Chapter already properly positioned, skipping snap:', targetKey);
 				return;
 			}
 		}
@@ -534,11 +534,11 @@
 			// Just scroll to it
 			setTimeout(() => {
 				try {
-					const targetElement = document.getElementById(`middle-sentinel-${targetKey}`);
+					const targetElement = document.getElementById(`top-sentinel-${targetKey}`);
 					if (targetElement) {
 						const container = targetElement.closest('.overflow-y-auto');
 						if (container) {
-							const offsetTop = targetElement.getBoundingClientRect().top + (container as HTMLElement).scrollTop - 100;
+							const offsetTop = targetElement.getBoundingClientRect().top + (container as HTMLElement).scrollTop - 20;
 							(container as HTMLElement).scrollTo({
 								top: offsetTop,
 								behavior: 'instant'
@@ -580,11 +580,11 @@
 				.then(() => {
 					setTimeout(() => {
 						try {
-							const targetElement = document.getElementById(`middle-sentinel-${targetKey}`);
+							const targetElement = document.getElementById(`top-sentinel-${targetKey}`);
 							if (targetElement) {
 								const container = targetElement.closest('.overflow-y-auto');
 								if (container) {
-									const offsetTop = targetElement.getBoundingClientRect().top + (container as HTMLElement).scrollTop - 100;
+									const offsetTop = targetElement.getBoundingClientRect().top + (container as HTMLElement).scrollTop - 20;
 									(container as HTMLElement).scrollTo({
 										top: offsetTop,
 										behavior: 'instant'
