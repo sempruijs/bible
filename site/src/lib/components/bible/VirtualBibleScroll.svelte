@@ -251,13 +251,15 @@
 
 		activeChapterRef = ref;
 
+		// Set timestamp IMMEDIATELY to prevent navigation effect from thinking this is a canon click
+		lastStateChangeTime = Date.now();
+
 		// Debounce URL update
 		if (urlUpdateTimer) {
 			clearTimeout(urlUpdateTimer);
 		}
 
 		urlUpdateTimer = setTimeout(() => {
-			lastStateChangeTime = Date.now();
 			onStateChange(ref.book, ref.chapter);
 		}, 500);
 	}
@@ -465,25 +467,39 @@
 		// Set flag to prevent observer updates during programmatic scroll
 		isProgrammaticScroll = true;
 
+		// Safety timeout to force-reset the flag in case something goes wrong
+		const safetyTimeout = setTimeout(() => {
+			if (isProgrammaticScroll) {
+				console.warn('Safety timeout triggered - resetting isProgrammaticScroll');
+				isProgrammaticScroll = false;
+			}
+		}, 2000);
+
 		// Check if chapter is already loaded
 		if (renderedChapters.has(targetKey)) {
 			// Just scroll to it
 			setTimeout(() => {
-				const targetElement = document.getElementById(`middle-sentinel-${targetKey}`);
-				if (targetElement) {
-					const container = targetElement.closest('.overflow-y-auto');
-					if (container) {
-						const offsetTop = targetElement.getBoundingClientRect().top + (container as HTMLElement).scrollTop - 100;
-						(container as HTMLElement).scrollTo({
-							top: offsetTop,
-							behavior: 'instant'
-						});
+				try {
+					const targetElement = document.getElementById(`middle-sentinel-${targetKey}`);
+					if (targetElement) {
+						const container = targetElement.closest('.overflow-y-auto');
+						if (container) {
+							const offsetTop = targetElement.getBoundingClientRect().top + (container as HTMLElement).scrollTop - 100;
+							(container as HTMLElement).scrollTo({
+								top: offsetTop,
+								behavior: 'instant'
+							});
+						}
 					}
+				} catch (error) {
+					console.error('Error during programmatic scroll:', error);
+				} finally {
+					// Re-enable observer updates after scroll completes
+					setTimeout(() => {
+						clearTimeout(safetyTimeout);
+						isProgrammaticScroll = false;
+					}, 500);
 				}
-				// Re-enable observer updates after scroll completes
-				setTimeout(() => {
-					isProgrammaticScroll = false;
-				}, 500);
 			}, 50);
 		} else {
 			// Load chapter and surrounding chapters
@@ -506,27 +522,39 @@
 			const allRefs = [...beforeRefs, ...afterRefs.slice(1)];
 			const newRefs = allRefs.filter(ref => !renderedChapters.has(ref.key));
 
-			loadChapterRange(newRefs).then(() => {
-				setTimeout(() => {
-					const targetElement = document.getElementById(`middle-sentinel-${targetKey}`);
-					if (targetElement) {
-						const container = targetElement.closest('.overflow-y-auto');
-						if (container) {
-							const offsetTop = targetElement.getBoundingClientRect().top + (container as HTMLElement).scrollTop - 100;
-							(container as HTMLElement).scrollTo({
-								top: offsetTop,
-								behavior: 'instant'
-							});
-						}
-					}
-					// Re-enable observer updates after scroll completes
+			loadChapterRange(newRefs)
+				.then(() => {
 					setTimeout(() => {
-						isProgrammaticScroll = false;
-					}, 500);
-				}, 100);
+						try {
+							const targetElement = document.getElementById(`middle-sentinel-${targetKey}`);
+							if (targetElement) {
+								const container = targetElement.closest('.overflow-y-auto');
+								if (container) {
+									const offsetTop = targetElement.getBoundingClientRect().top + (container as HTMLElement).scrollTop - 100;
+									(container as HTMLElement).scrollTo({
+										top: offsetTop,
+										behavior: 'instant'
+									});
+								}
+							}
+						} catch (error) {
+							console.error('Error during programmatic scroll:', error);
+						} finally {
+							// Re-enable observer updates after scroll completes
+							setTimeout(() => {
+								clearTimeout(safetyTimeout);
+								isProgrammaticScroll = false;
+							}, 500);
+						}
+					}, 100);
 
-				pruneRenderedChapters();
-			});
+					pruneRenderedChapters();
+				})
+				.catch((error) => {
+					console.error('Error loading chapters for navigation:', error);
+					clearTimeout(safetyTimeout);
+					isProgrammaticScroll = false;
+				});
 		}
 	});
 
