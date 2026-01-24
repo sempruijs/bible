@@ -257,6 +257,7 @@
 		}
 
 		urlUpdateTimer = setTimeout(() => {
+			lastStateChangeTime = Date.now();
 			onStateChange(ref.book, ref.chapter);
 		}, 300);
 	}
@@ -348,6 +349,7 @@
 	// Track if initial load has been done
 	let initialLoadDone = $state(false);
 	let isProgrammaticScroll = $state(false);
+	let lastStateChangeTime = $state(0);
 
 	// Initialize content when translation content becomes available
 	$effect(() => {
@@ -427,20 +429,31 @@
 			return;
 		}
 
-		// Check if the target chapter is already visible or near the viewport
+		// Check if this props update came shortly after we called onStateChange (from scrolling)
+		const timeSinceLastStateChange = Date.now() - lastStateChangeTime;
+		if (timeSinceLastStateChange < 1000) {
+			// Props update within 1000ms of our own state change - likely from scrolling
+			console.log('Props update from recent scroll feedback, skipping snap:', targetKey);
+			return;
+		}
+
+		// Check if chapter is already positioned at the TOP (where we snap to)
+		// Only skip if it's already correctly positioned, not just visible somewhere on screen
 		const targetElement = document.getElementById(`middle-sentinel-${targetKey}`);
 		if (targetElement) {
 			const rect = targetElement.getBoundingClientRect();
-			// Add generous buffer zones above and below viewport to catch fast scrolling
-			const bufferZone = window.innerHeight * 4; // 400% of viewport height
-			const isNearViewport = rect.top >= -bufferZone && rect.bottom <= window.innerHeight + bufferZone;
+			// Check if already positioned near the top (within our target snap position)
+			// We snap to top with -100 offset, so check if it's already there (within 150px tolerance)
+			const isAlreadyAtTop = rect.top >= 50 && rect.top <= 250;
 
-			if (isNearViewport) {
-				// Chapter is visible or close to viewport, so this is from scrolling - don't snap
-				console.log('Chapter near viewport, skipping snap:', targetKey);
+			if (isAlreadyAtTop) {
+				// Chapter is already positioned at the top - don't snap
+				console.log('Chapter already at top position, skipping snap:', targetKey);
 				return;
 			}
 		}
+
+		// Chapter is not at top position and not from recent scroll - this is a canon explorer click
 
 		console.log('Canon explorer navigation to:', targetKey);
 
