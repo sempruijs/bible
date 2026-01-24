@@ -158,7 +158,7 @@
 			const refs = getChapterRangeFromContent(
 				translationContent.value,
 				firstChapter.ref,
-				5, // Load 5 chapters
+				10, // Load 10 chapters
 				'backward',
 				protestantBookOrder
 			);
@@ -194,7 +194,7 @@
 			const refs = getChapterRangeFromContent(
 				translationContent.value,
 				lastChapter.ref,
-				5, // Load 5 chapters
+				10, // Load 10 chapters
 				'forward',
 				protestantBookOrder
 			);
@@ -214,15 +214,15 @@
 
 	// Remove chapters that are too far from the active chapter
 	function pruneRenderedChapters() {
-		if (Option.isNone(translationContent) || renderedChapters.size <= 21) return;
+		if (Option.isNone(translationContent) || renderedChapters.size <= 41) return;
 
 		// Find active chapter index in sorted array
 		const activeIndex = renderedChaptersArray.findIndex(c => c.ref.key === activeChapterRef.key);
 		if (activeIndex === -1) return;
 
-		// Keep chapters within 10 positions of active chapter
+		// Keep chapters within 20 positions of active chapter
 		const keysToKeep = new Set<string>();
-		const bufferSize = 10;
+		const bufferSize = 20;
 
 		for (let i = Math.max(0, activeIndex - bufferSize); i <= Math.min(renderedChaptersArray.length - 1, activeIndex + bufferSize); i++) {
 			keysToKeep.add(renderedChaptersArray[i].ref.key);
@@ -372,7 +372,7 @@
 			const beforeRefs = getChapterRangeFromContent(
 				content.value,
 				initialRef,
-				10, // Current + 10 before
+				20, // Current + 20 before
 				'backward',
 				protestantBookOrder
 			);
@@ -380,7 +380,7 @@
 			const afterRefs = getChapterRangeFromContent(
 				content.value,
 				initialRef,
-				10, // Current + 10 after (includes current)
+				20, // Current + 20 after (includes current)
 				'forward',
 				protestantBookOrder
 			);
@@ -506,7 +506,7 @@
 			const beforeRefs = getChapterRangeFromContent(
 				translationContent.value,
 				targetRef,
-				10,
+				20,
 				'backward',
 				protestantBookOrder
 			);
@@ -514,7 +514,7 @@
 			const afterRefs = getChapterRangeFromContent(
 				translationContent.value,
 				targetRef,
-				10,
+				20,
 				'forward',
 				protestantBookOrder
 			);
