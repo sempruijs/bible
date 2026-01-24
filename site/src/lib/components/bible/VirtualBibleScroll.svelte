@@ -244,6 +244,11 @@
 
 	// Update active chapter and URL (debounced)
 	function updateActiveChapter(ref: ChapterReference) {
+		// Don't update if we're in the middle of a programmatic scroll
+		if (isProgrammaticScroll) {
+			return;
+		}
+
 		activeChapterRef = ref;
 
 		// Debounce URL update
@@ -342,6 +347,7 @@
 
 	// Track if initial load has been done
 	let initialLoadDone = $state(false);
+	let isProgrammaticScroll = $state(false);
 
 	// Initialize content when translation content becomes available
 	$effect(() => {
@@ -402,6 +408,104 @@
 						setupObservers();
 					}, 100);
 				}, 100);
+			});
+		}
+	});
+
+	// Handle navigation from canon explorer clicks
+	$effect(() => {
+		const targetKey = getChapterKey(initialBook, initialChapter);
+
+		// Only run after initial load
+		if (!initialLoadDone || Option.isNone(translationContent)) {
+			return;
+		}
+
+		// Check if the target chapter is already visible in the viewport
+		const targetElement = document.getElementById(`middle-sentinel-${targetKey}`);
+		if (targetElement) {
+			const rect = targetElement.getBoundingClientRect();
+			const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+
+			if (isVisible) {
+				// Chapter is already visible, so this is from scrolling - don't snap
+				console.log('Chapter already visible, skipping snap:', targetKey);
+				return;
+			}
+		}
+
+		console.log('Canon explorer navigation to:', targetKey);
+
+		const targetRef: ChapterReference = {
+			book: initialBook,
+			chapter: initialChapter,
+			key: targetKey
+		};
+
+		// Set flag to prevent observer updates during programmatic scroll
+		isProgrammaticScroll = true;
+
+		// Check if chapter is already loaded
+		if (renderedChapters.has(targetKey)) {
+			// Just scroll to it
+			setTimeout(() => {
+				const targetElement = document.getElementById(`middle-sentinel-${targetKey}`);
+				if (targetElement) {
+					const container = targetElement.closest('.overflow-y-auto');
+					if (container) {
+						const offsetTop = targetElement.getBoundingClientRect().top + (container as HTMLElement).scrollTop - 100;
+						(container as HTMLElement).scrollTo({
+							top: offsetTop,
+							behavior: 'instant'
+						});
+					}
+				}
+				// Re-enable observer updates after scroll completes
+				setTimeout(() => {
+					isProgrammaticScroll = false;
+				}, 200);
+			}, 50);
+		} else {
+			// Load chapter and surrounding chapters
+			const beforeRefs = getChapterRangeFromContent(
+				translationContent.value,
+				targetRef,
+				3,
+				'backward',
+				protestantBookOrder
+			);
+
+			const afterRefs = getChapterRangeFromContent(
+				translationContent.value,
+				targetRef,
+				3,
+				'forward',
+				protestantBookOrder
+			);
+
+			const allRefs = [...beforeRefs, ...afterRefs.slice(1)];
+			const newRefs = allRefs.filter(ref => !renderedChapters.has(ref.key));
+
+			loadChapterRange(newRefs).then(() => {
+				setTimeout(() => {
+					const targetElement = document.getElementById(`middle-sentinel-${targetKey}`);
+					if (targetElement) {
+						const container = targetElement.closest('.overflow-y-auto');
+						if (container) {
+							const offsetTop = targetElement.getBoundingClientRect().top + (container as HTMLElement).scrollTop - 100;
+							(container as HTMLElement).scrollTo({
+								top: offsetTop,
+								behavior: 'instant'
+							});
+						}
+					}
+					// Re-enable observer updates after scroll completes
+					setTimeout(() => {
+						isProgrammaticScroll = false;
+					}, 200);
+				}, 100);
+
+				pruneRenderedChapters();
 			});
 		}
 	});
