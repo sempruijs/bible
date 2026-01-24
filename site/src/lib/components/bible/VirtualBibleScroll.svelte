@@ -41,6 +41,11 @@
 	});
 	let isLoadingPrevious = $state(false);
 	let isLoadingNext = $state(false);
+	let isScrolling = $state(false);
+	let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+	let scrollContainer: HTMLDivElement | null = null;
+	let pendingLoadPrevious = $state(false);
+	let pendingLoadNext = $state(false);
 
 	// Update active chapter ref when props change
 	$effect(() => {
@@ -142,6 +147,12 @@
 
 	// Load chapters before the first rendered chapter
 	async function loadPreviousChapters() {
+		// If scrolling, queue the request for later
+		if (isScrolling) {
+			pendingLoadPrevious = true;
+			return;
+		}
+
 		if (isLoadingPrevious || Option.isNone(translationContent)) return;
 
 		const firstChapter = renderedChaptersArray[0];
@@ -178,6 +189,12 @@
 
 	// Load chapters after the last rendered chapter
 	async function loadNextChapters() {
+		// If scrolling, queue the request for later
+		if (isScrolling) {
+			pendingLoadNext = true;
+			return;
+		}
+
 		if (isLoadingNext || Option.isNone(translationContent)) return;
 
 		const lastChapter = renderedChaptersArray[renderedChaptersArray.length - 1];
@@ -240,6 +257,31 @@
 		if (didDelete) {
 			renderedChaptersVersion++; // Trigger derived update
 		}
+	}
+
+	// Handle scroll events to detect when user is scrolling
+	function handleScroll() {
+		isScrolling = true;
+
+		if (scrollTimeout) {
+			clearTimeout(scrollTimeout);
+		}
+
+		// Wait 150ms after scrolling stops before allowing chapter loading
+		scrollTimeout = setTimeout(() => {
+			isScrolling = false;
+
+			// Execute any pending load requests
+			if (pendingLoadPrevious) {
+				pendingLoadPrevious = false;
+				loadPreviousChapters();
+			}
+
+			if (pendingLoadNext) {
+				pendingLoadNext = false;
+				loadNextChapters();
+			}
+		}, 150);
 	}
 
 	// Update active chapter and URL (debounced)
@@ -346,6 +388,18 @@
 		setTimeout(() => {
 			observeSentinels();
 		}, 50);
+	});
+
+	// Effect to setup scroll listener
+	$effect(() => {
+		if (scrollContainer) {
+			scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+			return () => {
+				if (scrollContainer) {
+					scrollContainer.removeEventListener('scroll', handleScroll);
+				}
+			};
+		}
 	});
 
 	// Track if initial load has been done
@@ -564,10 +618,11 @@
 		if (middleObserver) middleObserver.disconnect();
 		if (bottomObserver) bottomObserver.disconnect();
 		if (urlUpdateTimer) clearTimeout(urlUpdateTimer);
+		if (scrollTimeout) clearTimeout(scrollTimeout);
 	});
 </script>
 
-<div class="h-full overflow-y-auto">
+<div class="h-full overflow-y-auto" bind:this={scrollContainer}>
 	{#if renderedChaptersArray.length > 0}
 		{#each renderedChaptersArray as chapterData (chapterData.ref.key)}
 			<BibleChapterViewer
