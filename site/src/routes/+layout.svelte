@@ -7,7 +7,7 @@
 	let { children, data }: { children: any; data: LayoutData } = $props();
 </script>
 
-<div class="h-screen bg-gray-900 text-white">
+<div class="h-screen overflow-hidden bg-gray-900 text-white">
 	<div class="h-full">
 		{#if Option.isSome(data.bibleData)}
 			<AppContainer translation={data.bibleData.value} />
