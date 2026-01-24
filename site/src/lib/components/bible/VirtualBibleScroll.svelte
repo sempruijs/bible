@@ -421,12 +421,18 @@
 			return;
 		}
 
+		// Don't run if we're currently loading chapters (prevents feedback loop)
+		if (isLoadingPrevious || isLoadingNext || isProgrammaticScroll) {
+			console.log('Currently loading or scrolling, skipping navigation effect');
+			return;
+		}
+
 		// Check if the target chapter is already visible or near the viewport
 		const targetElement = document.getElementById(`middle-sentinel-${targetKey}`);
 		if (targetElement) {
 			const rect = targetElement.getBoundingClientRect();
 			// Add generous buffer zones above and below viewport to catch fast scrolling
-			const bufferZone = window.innerHeight * 2; // 200% of viewport height
+			const bufferZone = window.innerHeight * 4; // 400% of viewport height
 			const isNearViewport = rect.top >= -bufferZone && rect.bottom <= window.innerHeight + bufferZone;
 
 			if (isNearViewport) {
