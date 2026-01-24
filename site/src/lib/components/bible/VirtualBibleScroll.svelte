@@ -158,7 +158,7 @@
 			const refs = getChapterRangeFromContent(
 				translationContent.value,
 				firstChapter.ref,
-				2, // Load 2 chapters
+				5, // Load 5 chapters
 				'backward',
 				protestantBookOrder
 			);
@@ -194,7 +194,7 @@
 			const refs = getChapterRangeFromContent(
 				translationContent.value,
 				lastChapter.ref,
-				2, // Load 2 chapters
+				5, // Load 5 chapters
 				'forward',
 				protestantBookOrder
 			);
@@ -214,15 +214,15 @@
 
 	// Remove chapters that are too far from the active chapter
 	function pruneRenderedChapters() {
-		if (Option.isNone(translationContent) || renderedChapters.size <= 7) return;
+		if (Option.isNone(translationContent) || renderedChapters.size <= 21) return;
 
 		// Find active chapter index in sorted array
 		const activeIndex = renderedChaptersArray.findIndex(c => c.ref.key === activeChapterRef.key);
 		if (activeIndex === -1) return;
 
-		// Keep chapters within 5 positions of active chapter
+		// Keep chapters within 10 positions of active chapter
 		const keysToKeep = new Set<string>();
-		const bufferSize = 5;
+		const bufferSize = 10;
 
 		for (let i = Math.max(0, activeIndex - bufferSize); i <= Math.min(renderedChaptersArray.length - 1, activeIndex + bufferSize); i++) {
 			keysToKeep.add(renderedChaptersArray[i].ref.key);
@@ -259,7 +259,7 @@
 		urlUpdateTimer = setTimeout(() => {
 			lastStateChangeTime = Date.now();
 			onStateChange(ref.book, ref.chapter);
-		}, 300);
+		}, 500);
 	}
 
 	// Setup IntersectionObservers
@@ -370,7 +370,7 @@
 			const beforeRefs = getChapterRangeFromContent(
 				content.value,
 				initialRef,
-				3, // Current + 2 before
+				10, // Current + 10 before
 				'backward',
 				protestantBookOrder
 			);
@@ -378,7 +378,7 @@
 			const afterRefs = getChapterRangeFromContent(
 				content.value,
 				initialRef,
-				3, // Current + 2 after (includes current)
+				10, // Current + 10 after (includes current)
 				'forward',
 				protestantBookOrder
 			);
@@ -431,24 +431,23 @@
 
 		// Check if this props update came shortly after we called onStateChange (from scrolling)
 		const timeSinceLastStateChange = Date.now() - lastStateChangeTime;
-		if (timeSinceLastStateChange < 1000) {
-			// Props update within 1000ms of our own state change - likely from scrolling
+		if (timeSinceLastStateChange < 2000) {
+			// Props update within 2000ms of our own state change - likely from scrolling
 			console.log('Props update from recent scroll feedback, skipping snap:', targetKey);
 			return;
 		}
 
-		// Check if chapter is already positioned at the TOP (where we snap to)
-		// Only skip if it's already correctly positioned, not just visible somewhere on screen
+		// Check if chapter is already visible in viewport (don't snap if user is already viewing it)
 		const targetElement = document.getElementById(`middle-sentinel-${targetKey}`);
 		if (targetElement) {
 			const rect = targetElement.getBoundingClientRect();
-			// Check if already positioned near the top (within our target snap position)
-			// We snap to top with -100 offset, so check if it's already there (within 150px tolerance)
-			const isAlreadyAtTop = rect.top >= 50 && rect.top <= 250;
+			// Check if chapter is anywhere in the viewport - be very generous
+			// If user can see this chapter at all, don't snap
+			const isVisible = rect.top >= -200 && rect.top <= window.innerHeight;
 
-			if (isAlreadyAtTop) {
-				// Chapter is already positioned at the top - don't snap
-				console.log('Chapter already at top position, skipping snap:', targetKey);
+			if (isVisible) {
+				// Chapter is already visible - don't snap
+				console.log('Chapter already visible, skipping snap:', targetKey);
 				return;
 			}
 		}
@@ -484,14 +483,14 @@
 				// Re-enable observer updates after scroll completes
 				setTimeout(() => {
 					isProgrammaticScroll = false;
-				}, 200);
+				}, 500);
 			}, 50);
 		} else {
 			// Load chapter and surrounding chapters
 			const beforeRefs = getChapterRangeFromContent(
 				translationContent.value,
 				targetRef,
-				3,
+				10,
 				'backward',
 				protestantBookOrder
 			);
@@ -499,7 +498,7 @@
 			const afterRefs = getChapterRangeFromContent(
 				translationContent.value,
 				targetRef,
-				3,
+				10,
 				'forward',
 				protestantBookOrder
 			);
@@ -523,7 +522,7 @@
 					// Re-enable observer updates after scroll completes
 					setTimeout(() => {
 						isProgrammaticScroll = false;
-					}, 200);
+					}, 500);
 				}, 100);
 
 				pruneRenderedChapters();
