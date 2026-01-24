@@ -421,15 +421,17 @@
 			return;
 		}
 
-		// Check if the target chapter is already visible in the viewport
+		// Check if the target chapter is already visible or near the viewport
 		const targetElement = document.getElementById(`middle-sentinel-${targetKey}`);
 		if (targetElement) {
 			const rect = targetElement.getBoundingClientRect();
-			const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+			// Add generous buffer zones above and below viewport to catch fast scrolling
+			const bufferZone = window.innerHeight * 2; // 200% of viewport height
+			const isNearViewport = rect.top >= -bufferZone && rect.bottom <= window.innerHeight + bufferZone;
 
-			if (isVisible) {
-				// Chapter is already visible, so this is from scrolling - don't snap
-				console.log('Chapter already visible, skipping snap:', targetKey);
+			if (isNearViewport) {
+				// Chapter is visible or close to viewport, so this is from scrolling - don't snap
+				console.log('Chapter near viewport, skipping snap:', targetKey);
 				return;
 			}
 		}
