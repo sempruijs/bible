@@ -27,6 +27,7 @@
 
 	// Build flat list of all chapters
 	let items = $state<ChapterItem[]>([]);
+	let virtualListRef: any = $state(null);
 
 	$effect(() => {
 		if (Option.isSome(translationContent)) {
@@ -52,10 +53,24 @@
 			items = chapterItems;
 		}
 	});
+
+	// Scroll to chapter when initialBook or initialChapter changes
+	$effect(() => {
+		if (virtualListRef && items.length > 0 && initialBook && initialChapter) {
+			const targetIndex = items.findIndex(
+				item => item.book === initialBook && item.chapterNumber === initialChapter
+			);
+
+			if (targetIndex >= 0) {
+				console.log(`Scrolling to ${initialBook} ${initialChapter} at index ${targetIndex}`);
+				virtualListRef.scrollToIndex(targetIndex, { align: 'start' });
+			}
+		}
+	});
 </script>
 
 {#if items.length > 0}
-	<VList data={items} style="height: 100%;">
+	<VList bind:this={virtualListRef} data={items} style="height: 100%;">
 		{#snippet children(item, index)}
 			<BibleChapterViewer
 				chapter={item.chapter}
