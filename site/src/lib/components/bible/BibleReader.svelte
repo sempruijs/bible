@@ -269,6 +269,24 @@
                     </option>
                 {/each}
             </select>
+
+            <!-- Chapter Navigation Buttons -->
+            <div class="flex items-center gap-1 ml-2">
+                <button
+                    onclick={goToPreviousChapter}
+                    class="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors"
+                    title="Previous chapter (← or ↑)"
+                >
+                    ←
+                </button>
+                <button
+                    onclick={goToNextChapter}
+                    class="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors"
+                    title="Next chapter (→ or ↓)"
+                >
+                    →
+                </button>
+            </div>
         </div>
     </div>
 
