@@ -21,7 +21,7 @@
           in
           {
             app = pkgs.buildNpmPackage {
-              npmDepsHash = "sha256-d9jQRyf6oKU/qtB/BW3Uj6K+PhKbphL/fq06VKKxDqw=";
+              npmDepsHash = "sha256-nufN4JVqMrJWCGemywjIZFVkTQT1asEea5Qr1eeHu2c=";
               NODE_OPTIONS = "--openssl-legacy-provider";
               src = ./site;
               pname = packageJSON.name;
