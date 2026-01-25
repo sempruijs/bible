@@ -17,7 +17,7 @@
 
 <div class="w-full">
 	<div class="p-8">
-		<div class="max-w-4xl mx-auto">
+		<div class="max-w-2xl mx-auto">
 			<!-- Book header (when crossing book boundaries) -->
 			{#if showBookHeader}
 				<header class="mb-6 text-center">
@@ -31,17 +31,10 @@
 				<h2 class="text-xl text-gray-400 font-light">— {chapterNumber} —</h2>
 			</div>
 
-			<!-- Verses -->
-			<div class="space-y-4">
+			<!-- Verses as continuous paragraph -->
+			<div class="text-gray-200 leading-relaxed text-lg">
 				{#each chapter.verses as verse}
-					<div class="flex gap-4 group">
-						<span class="text-blue-400 font-medium text-sm mt-1 min-w-[2rem] text-right">
-							{verse.verse}
-						</span>
-						<span class="text-gray-200 leading-relaxed">
-							{verse.text}
-						</span>
-					</div>
+					<sup class="text-blue-400 font-medium text-xs mr-1">{verse.verse}</sup><span class="text-gray-200">{verse.text} </span>
 				{/each}
 			</div>
 		</div>
