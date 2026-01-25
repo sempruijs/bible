@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "@meshsdk/svelte": "^1.9.0-beta.42",
-    "@sveltejs/svelte-virtual-list": "^3.0.1",
+    "virtua": "^0.48.3",
     "vite-plugin-node-polyfills": "^0.23.0",
     "vite-plugin-top-level-await": "^1.5.0",
     "vite-plugin-wasm": "^3.4.1"
