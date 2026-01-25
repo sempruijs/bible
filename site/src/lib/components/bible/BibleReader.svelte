@@ -6,6 +6,7 @@
     import BibleCanonExplorerWithSearch from "$lib/components/bible/BibleCanonExplorerWithSearch.svelte";
     import VirtualBibleScroll from "$lib/components/bible/VirtualBibleScroll.svelte";
     import { availableTranslations } from "$lib/translations/availableTranslations";
+    import { protestantBookOrder } from "$lib/translations/bookOrder";
     import { onMount } from "svelte";
 
     let {
@@ -99,6 +100,63 @@
         // Note: We DON'T update scrollTarget here, so no scroll is triggered
     }
 
+    // Navigate to next chapter
+    function goToNextChapter() {
+        if (!Option.isSome(translationContent)) return;
+
+        const currentBookData = translationContent.value.books.find(b => b.name === internalBook);
+        if (!currentBookData) return;
+
+        // Check if there's a next chapter in the current book
+        if (internalChapter < currentBookData.chapters.length) {
+            // Go to next chapter in same book
+            const nextChapter = internalChapter + 1;
+            scrollTarget = { book: internalBook, chapter: nextChapter, version: scrollTarget.version + 1 };
+            internalBook = internalBook;
+            internalChapter = nextChapter;
+            onStateChange(internalBook, nextChapter);
+        } else {
+            // Go to first chapter of next book
+            const currentBookIndex = protestantBookOrder.books.indexOf(internalBook);
+            if (currentBookIndex >= 0 && currentBookIndex < protestantBookOrder.books.length - 1) {
+                const nextBook = protestantBookOrder.books[currentBookIndex + 1];
+                scrollTarget = { book: nextBook, chapter: 1, version: scrollTarget.version + 1 };
+                internalBook = nextBook;
+                internalChapter = 1;
+                onStateChange(nextBook, 1);
+            }
+        }
+    }
+
+    // Navigate to previous chapter
+    function goToPreviousChapter() {
+        if (!Option.isSome(translationContent)) return;
+
+        // Check if there's a previous chapter in the current book
+        if (internalChapter > 1) {
+            // Go to previous chapter in same book
+            const prevChapter = internalChapter - 1;
+            scrollTarget = { book: internalBook, chapter: prevChapter, version: scrollTarget.version + 1 };
+            internalBook = internalBook;
+            internalChapter = prevChapter;
+            onStateChange(internalBook, prevChapter);
+        } else {
+            // Go to last chapter of previous book
+            const currentBookIndex = protestantBookOrder.books.indexOf(internalBook);
+            if (currentBookIndex > 0) {
+                const prevBook = protestantBookOrder.books[currentBookIndex - 1];
+                const prevBookData = translationContent.value.books.find(b => b.name === prevBook);
+                if (prevBookData) {
+                    const lastChapter = prevBookData.chapters.length;
+                    scrollTarget = { book: prevBook, chapter: lastChapter, version: scrollTarget.version + 1 };
+                    internalBook = prevBook;
+                    internalChapter = lastChapter;
+                    onStateChange(prevBook, lastChapter);
+                }
+            }
+        }
+    }
+
     function handleTranslationChange(event: Event) {
         const target = event.target as HTMLSelectElement;
         const selectedTranslation = availableTranslations.find(t => t.metadata.shortName === target.value);
@@ -130,6 +188,15 @@
                 shouldFocusSearch = false; // Don't auto-focus when using 'b'
             }
             onToggleCanonExplorer();
+        }
+        // Handle arrow keys for chapter navigation
+        else if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+            event.preventDefault();
+            goToNextChapter();
+        }
+        else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
+            event.preventDefault();
+            goToPreviousChapter();
         }
     }
 
