@@ -52,18 +52,26 @@
 		}
 	});
 
+	// Track the last version we scrolled to
+	let lastScrolledVersion = $state(0);
+
 	// Scroll to chapter ONLY when scrollTarget.version changes (explicit navigation)
 	$effect(() => {
-		// This effect only triggers when scrollTarget.version increments (canon explorer clicks)
-		// It does NOT trigger when state updates from scroll events
-		if (virtualListRef && items.length > 0 && scrollTarget.version > 0) {
+		// ONLY watch scrollTarget.version - ignore items, virtualListRef changes
+		const currentVersion = scrollTarget.version;
+
+		console.log(`🔍 Effect fired! version=${currentVersion}, lastScrolledVersion=${lastScrolledVersion}`);
+
+		// Only scroll if version actually incremented
+		if (currentVersion > lastScrolledVersion && virtualListRef && items.length > 0) {
 			const targetIndex = items.findIndex(
 				item => item.book === scrollTarget.book && item.chapterNumber === scrollTarget.chapter
 			);
 
 			if (targetIndex >= 0) {
-				console.log(`🎯 Navigating to ${scrollTarget.book} ${scrollTarget.chapter} at index ${targetIndex}`);
+				console.log(`🎯 Navigating to ${scrollTarget.book} ${scrollTarget.chapter} at index ${targetIndex} (version: ${currentVersion})`);
 				virtualListRef.scrollToIndex(targetIndex, { align: 'start' });
+				lastScrolledVersion = currentVersion;
 			}
 		}
 	});
@@ -86,12 +94,14 @@
 
 				// Only update if we've scrolled to a different chapter
 				if (lastReportedBook !== visibleItem.book || lastReportedChapter !== visibleItem.chapterNumber) {
-					console.log(`📜 Scrolled to: ${visibleItem.book} ${visibleItem.chapterNumber}`);
+					console.log(`📜 Scrolled to: ${visibleItem.book} ${visibleItem.chapterNumber} - calling onStateChange`);
 					lastReportedBook = visibleItem.book;
 					lastReportedChapter = visibleItem.chapterNumber;
 
 					// Update URL and canon explorer (but NOT scrollTarget, so no scroll triggered)
+					console.log(`   ⬆️ About to call onStateChange - scrollTarget.version is: ${scrollTarget.version}`);
 					onStateChange(visibleItem.book, visibleItem.chapterNumber);
+					console.log(`   ✅ Called onStateChange - scrollTarget.version is now: ${scrollTarget.version}`);
 				}
 			}
 		} catch (error) {

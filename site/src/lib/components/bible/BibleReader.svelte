@@ -89,9 +89,13 @@
 
     // Handle scroll state changes - update URL/canon explorer but NOT scroll target
     function handleScrollStateChange(book: BibleBook, chapter: number) {
+        console.log(`🔄 handleScrollStateChange called with ${book} ${chapter}`);
+        console.log(`   Before: internalBook=${internalBook}, internalChapter=${internalChapter}`);
+        console.log(`   Before: scrollTarget=`, scrollTarget);
         internalBook = book;
         internalChapter = chapter;
         onStateChange(book, chapter);
+        console.log(`   After: scrollTarget=`, scrollTarget);
         // Note: We DON'T update scrollTarget here, so no scroll is triggered
     }
 
