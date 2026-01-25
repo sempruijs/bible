@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Option } from "effect";
-	import VirtualList from "@sveltejs/svelte-virtual-list";
+	import { VList } from "virtua/svelte";
 	import type { TranslationContent, Chapter } from "$lib/translations/translation";
 	import { BibleBook } from "$lib/book";
 	import { protestantBookOrder } from "$lib/translations/bookOrder";
@@ -55,14 +55,16 @@
 </script>
 
 {#if items.length > 0}
-	<VirtualList {items} let:item height="100%">
-		<BibleChapterViewer
-			chapter={item.chapter}
-			book={item.book}
-			chapterNumber={item.chapterNumber}
-			showBookHeader={item.showBookHeader}
-		/>
-	</VirtualList>
+	<VList data={items} style="height: 100%;">
+		{#snippet children(item, index)}
+			<BibleChapterViewer
+				chapter={item.chapter}
+				book={item.book}
+				chapterNumber={item.chapterNumber}
+				showBookHeader={item.showBookHeader}
+			/>
+		{/snippet}
+	</VList>
 {:else}
 	<div class="flex items-center justify-center h-full">
 		<div class="text-center text-gray-400">
