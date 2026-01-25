@@ -28,9 +28,12 @@
         onTranslationChange?: (translation: Translation) => void;
     } = $props();
 
-    // Internal state that gets updated by user interactions
+    // Internal state that gets updated by user interactions (URL/canon explorer)
     let internalBook = $state<BibleBook>(currentBook);
     let internalChapter = $state<number>(currentChapter);
+
+    // Scroll target - only updated on explicit navigation (clicks), NOT on scroll events
+    let scrollTarget = $state({ book: currentBook, chapter: currentChapter, version: 0 });
 
     // Mobile responsiveness state
     let isMobile = $state<boolean>(false);
@@ -66,6 +69,10 @@
     function selectChapter(bookShort: string, chapter: number) {
         const bookOption = toBibleBook(bookShort);
         if (Option.isSome(bookOption)) {
+            // Update scroll target to trigger scrolling in VirtualBibleScroll
+            scrollTarget = { book: bookOption.value, chapter, version: scrollTarget.version + 1 };
+
+            // Update internal state for URL/canon explorer
             internalBook = bookOption.value;
             internalChapter = chapter;
             onStateChange(bookOption.value, chapter);
@@ -78,6 +85,14 @@
                 }, 0);
             }
         }
+    }
+
+    // Handle scroll state changes - update URL/canon explorer but NOT scroll target
+    function handleScrollStateChange(book: BibleBook, chapter: number) {
+        internalBook = book;
+        internalChapter = chapter;
+        onStateChange(book, chapter);
+        // Note: We DON'T update scrollTarget here, so no scroll is triggered
     }
 
     function handleTranslationChange(event: Event) {
@@ -210,9 +225,8 @@
         <div class="flex-1 {isMobile && showCanonExplorer ? 'hidden' : 'block'}">
             <VirtualBibleScroll
                 {translationContent}
-                initialBook={internalBook}
-                initialChapter={internalChapter}
-                onStateChange={onStateChange}
+                {scrollTarget}
+                onStateChange={handleScrollStateChange}
             />
         </div>
     </div>

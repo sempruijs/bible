@@ -8,13 +8,11 @@
 
 	let {
 		translationContent,
-		initialBook,
-		initialChapter,
+		scrollTarget,
 		onStateChange = () => {}
 	}: {
 		translationContent: Option.Option<TranslationContent>;
-		initialBook: BibleBook;
-		initialChapter: number;
+		scrollTarget: { book: BibleBook; chapter: number; version: number };
 		onStateChange?: (book: BibleBook, chapter: number) => void;
 	} = $props();
 
@@ -54,23 +52,56 @@
 		}
 	});
 
-	// Scroll to chapter when initialBook or initialChapter changes
+	// Scroll to chapter ONLY when scrollTarget.version changes (explicit navigation)
 	$effect(() => {
-		if (virtualListRef && items.length > 0 && initialBook && initialChapter) {
+		// This effect only triggers when scrollTarget.version increments (canon explorer clicks)
+		// It does NOT trigger when state updates from scroll events
+		if (virtualListRef && items.length > 0 && scrollTarget.version > 0) {
 			const targetIndex = items.findIndex(
-				item => item.book === initialBook && item.chapterNumber === initialChapter
+				item => item.book === scrollTarget.book && item.chapterNumber === scrollTarget.chapter
 			);
 
 			if (targetIndex >= 0) {
-				console.log(`Scrolling to ${initialBook} ${initialChapter} at index ${targetIndex}`);
+				console.log(`🎯 Navigating to ${scrollTarget.book} ${scrollTarget.chapter} at index ${targetIndex}`);
 				virtualListRef.scrollToIndex(targetIndex, { align: 'start' });
 			}
 		}
 	});
+
+	// Track scroll position and update URL/canon explorer (but don't trigger scroll)
+	let lastReportedBook = $state<BibleBook | null>(null);
+	let lastReportedChapter = $state<number | null>(null);
+
+	function handleScrollEnd() {
+		if (!virtualListRef || items.length === 0) {
+			return;
+		}
+
+		try {
+			const scrollOffset = virtualListRef.getScrollOffset();
+			const visibleIndex = virtualListRef.findItemIndex(scrollOffset + 10);
+
+			if (visibleIndex >= 0 && visibleIndex < items.length) {
+				const visibleItem = items[visibleIndex];
+
+				// Only update if we've scrolled to a different chapter
+				if (lastReportedBook !== visibleItem.book || lastReportedChapter !== visibleItem.chapterNumber) {
+					console.log(`📜 Scrolled to: ${visibleItem.book} ${visibleItem.chapterNumber}`);
+					lastReportedBook = visibleItem.book;
+					lastReportedChapter = visibleItem.chapterNumber;
+
+					// Update URL and canon explorer (but NOT scrollTarget, so no scroll triggered)
+					onStateChange(visibleItem.book, visibleItem.chapterNumber);
+				}
+			}
+		} catch (error) {
+			console.error('Error detecting scroll position:', error);
+		}
+	}
 </script>
 
 {#if items.length > 0}
-	<VList bind:this={virtualListRef} data={items} style="height: 100%;">
+	<VList bind:this={virtualListRef} data={items} style="height: 100%;" onscrollend={handleScrollEnd}>
 		{#snippet children(item, index)}
 			<BibleChapterViewer
 				chapter={item.chapter}
