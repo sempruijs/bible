@@ -51,13 +51,15 @@
 	<div class="space-y-4">
 		{#each orderedBooks as book}
 			<div class="border border-gray-600 rounded-lg overflow-hidden bg-gray-800">
-				<button 
+				<button
 					onclick={() => setSelected(book.name)}
 					class="w-full px-4 py-3 text-left font-medium text-gray-200 bg-gray-800 hover:bg-gray-700 transition-colors flex justify-between items-center"
+					aria-label="{getDisplayName(book.name)}, {Option.isSome(selectedBook) && selectedBook.value === book.name ? 'expanded' : 'collapsed'}"
+					aria-expanded={Option.isSome(selectedBook) && selectedBook.value === book.name}
 				>
 					<span>{getDisplayName(book.name)}</span>
-					<span class="text-sm text-gray-400">
-						{Option.isSome(selectedBook) && selectedBook.value === book.name ? '−' : '+'}
+					<span class="text-sm text-gray-400" aria-hidden="true">
+						{Option.isSome(selectedBook) && selectedBook.value === book.name ? '↓' : '→'}
 					</span>
 				</button>
 				
