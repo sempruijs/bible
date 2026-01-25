@@ -1,16 +1,3 @@
-// See https://svelte.dev/docs/kit/types#app.d.ts
-// for information about these interfaces
-declare global {
-  namespace App {
-    // interface Error {}
-    // interface Locals {}
-    // interface PageData {}
-    // interface PageState {}
-    // interface Platform {}
-  }
-}
-
-// Type declaration for svelte-virtual-list
 declare module '@sveltejs/svelte-virtual-list' {
   import { SvelteComponent } from 'svelte';
 
@@ -24,5 +11,3 @@ declare module '@sveltejs/svelte-virtual-list' {
 
   export default class VirtualList<T = any> extends SvelteComponent<VirtualListProps<T>> {}
 }
-
-export {};
