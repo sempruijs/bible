@@ -66,11 +66,13 @@
 
 	// Update tab state
 	function updateTabState(updatedTab: TabState) {
+		console.log('📝 updateTabState called with:', updatedTab);
 		tabsState = TabsStateNS.updateTab(tabsState, updatedTab);
 
 		// Update URL if this is the active tab
 		if (updatedTab.id === tabsState.activeTabId) {
 			const url = App.getUrl(updatedTab.app);
+			console.log('🔗 Navigating to URL:', url);
 			NavigationService.navigateToUrl(url);
 		}
 	}

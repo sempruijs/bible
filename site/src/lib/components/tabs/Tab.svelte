@@ -9,7 +9,7 @@
 		app,
 		isActive = false,
 		onStateChange,
-		onAppChoice
+		onAppChoice,
 	}: {
 		app: TabState;
 		isActive?: boolean;
@@ -19,14 +19,14 @@
 
 	function handleBibleStateChange(book: any, chapter: any) {
 		if (app.app._tag === "Bible" && onStateChange) {
-			const updatedBibleState = BibleState({ 
-				...app.app.bibleState, 
-				currentBook: book, 
-				currentChapter: chapter 
+			const updatedBibleState = BibleState({
+				...app.app.bibleState,
+				currentBook: book,
+				currentChapter: chapter,
 			});
 			onStateChange({
 				...app,
-				app: Bible({ bibleState: updatedBibleState })
+				app: Bible({ bibleState: updatedBibleState }),
 			});
 		}
 	}
@@ -35,11 +35,11 @@
 		if (app.app._tag === "Bible" && onStateChange) {
 			const updatedBibleState = BibleState({
 				...app.app.bibleState,
-				showCanonExplorer: !app.app.bibleState.showCanonExplorer
+				showCanonExplorer: !app.app.bibleState.showCanonExplorer,
 			});
 			onStateChange({
 				...app,
-				app: Bible({ bibleState: updatedBibleState })
+				app: Bible({ bibleState: updatedBibleState }),
 			});
 		}
 	}
@@ -48,11 +48,11 @@
 		if (app.app._tag === "Bible" && onStateChange) {
 			const updatedBibleState = BibleState({
 				...app.app.bibleState,
-				translation
+				translation,
 			});
 			onStateChange({
 				...app,
-				app: Bible({ bibleState: updatedBibleState })
+				app: Bible({ bibleState: updatedBibleState }),
 			});
 		}
 	}
@@ -61,7 +61,7 @@
 		if (app.app._tag === "Stopwatch" && onStateChange) {
 			onStateChange({
 				...app,
-				app: Stopwatch({ stopwatchState: newStopwatchState })
+				app: Stopwatch({ stopwatchState: newStopwatchState }),
 			});
 		}
 	}
@@ -83,7 +83,10 @@
 	<div class="flex items-center justify-center h-full">
 		<div class="text-center text-gray-300">
 			<h1 class="text-3xl font-bold mb-4">About Bible Computer</h1>
-			<p class="text-lg mb-6">A modern Bible reading application built with SvelteKit and Effect.</p>
+			<p class="text-lg mb-6">
+				A modern Bible reading application built with SvelteKit and
+				Effect.
+			</p>
 			<div class="flex justify-center gap-6 text-lg">
 				<a
 					href="https://github.com/biblecomputer/bible"
