@@ -32,6 +32,3 @@ export const getDefaultTranslation = (): Translation => {
     // Default to BSB for English and all other languages
     return bsbTranslation;
 };
-
-// Static default for backward compatibility
-export const defaultTranslation = bsbTranslation;

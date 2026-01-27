@@ -1,4 +1,4 @@
-import { Data, Effect, Schema, Option } from "effect";
+import { Data, Schema, Option } from "effect";
 import type { BibleBook } from "$lib/book";
 import { BibleBookSchema, getDisplayName as getBibleBookDisplayName, getShortName } from "$lib/book";
 import type { Translation } from "$lib/translations/translation";
@@ -111,91 +111,80 @@ export namespace App {
 }
 
 // TabsState namespace - operations on TabsState type
+// These are pure functions for state transformations
 export namespace TabsState {
-	export const addTab = (state: TabsState, app: App): Effect.Effect<TabsState> => {
-		return Effect.sync(() => {
-			const tabId = `tab${state.nextTabId}`;
-			const newTab: TabState = { id: tabId, app };
+	export const addTab = (state: TabsState, app: App): TabsState => {
+		const tabId = `tab${state.nextTabId}`;
+		const newTab: TabState = { id: tabId, app };
 
-			return {
-				tabs: [...state.tabs, newTab],
-				activeTabId: tabId,
-				nextTabId: state.nextTabId + 1
-			};
-		});
+		return {
+			tabs: [...state.tabs, newTab],
+			activeTabId: tabId,
+			nextTabId: state.nextTabId + 1
+		};
 	};
 
-	export const removeTab = (state: TabsState, tabId: string): Effect.Effect<TabsState> => {
-		return Effect.sync(() => {
-			// Don't allow removing last tab
-			if (state.tabs.length === 1) {
-				return state;
-			}
+	export const removeTab = (state: TabsState, tabId: string): TabsState => {
+		// Don't allow removing last tab
+		if (state.tabs.length === 1) {
+			return state;
+		}
 
-			const newTabs = state.tabs.filter(tab => tab.id !== tabId);
+		const newTabs = state.tabs.filter(tab => tab.id !== tabId);
 
-			// If removing active tab, switch to first tab
-			const newActiveTabId = state.activeTabId === tabId
-				? newTabs[0]?.id ?? state.activeTabId
-				: state.activeTabId;
+		// If removing active tab, switch to first tab
+		const newActiveTabId = state.activeTabId === tabId
+			? newTabs[0]?.id ?? state.activeTabId
+			: state.activeTabId;
 
-			return {
-				tabs: newTabs,
-				activeTabId: newActiveTabId,
-				nextTabId: state.nextTabId
-			};
-		});
+		return {
+			tabs: newTabs,
+			activeTabId: newActiveTabId,
+			nextTabId: state.nextTabId
+		};
 	};
 
-	export const setActiveTab = (state: TabsState, tabId: string): Effect.Effect<TabsState> => {
-		return Effect.sync(() => {
-			// Verify tab exists
-			const tabExists = state.tabs.some(tab => tab.id === tabId);
-			if (!tabExists) {
-				console.error(`Tab ${tabId} not found`);
-				return state;
-			}
+	export const setActiveTab = (state: TabsState, tabId: string): TabsState => {
+		// Verify tab exists
+		const tabExists = state.tabs.some(tab => tab.id === tabId);
+		if (!tabExists) {
+			console.error(`Tab ${tabId} not found`);
+			return state;
+		}
 
-			return {
-				...state,
-				activeTabId: tabId
-			};
-		});
+		return {
+			...state,
+			activeTabId: tabId
+		};
 	};
 
-	export const nextTab = (state: TabsState): Effect.Effect<TabsState> => {
-		return Effect.sync(() => {
-			const currentIndex = state.tabs.findIndex(tab => tab.id === state.activeTabId);
-			if (currentIndex === -1) return state;
+	export const nextTab = (state: TabsState): TabsState => {
+		const currentIndex = state.tabs.findIndex(tab => tab.id === state.activeTabId);
+		if (currentIndex === -1) return state;
 
-			const nextIndex = (currentIndex + 1) % state.tabs.length;
-			return {
-				...state,
-				activeTabId: state.tabs[nextIndex].id
-			};
-		});
+		const nextIndex = (currentIndex + 1) % state.tabs.length;
+		return {
+			...state,
+			activeTabId: state.tabs[nextIndex].id
+		};
 	};
 
-	export const previousTab = (state: TabsState): Effect.Effect<TabsState> => {
-		return Effect.sync(() => {
-			const currentIndex = state.tabs.findIndex(tab => tab.id === state.activeTabId);
-			if (currentIndex === -1) return state;
+	export const previousTab = (state: TabsState): TabsState => {
+		const currentIndex = state.tabs.findIndex(tab => tab.id === state.activeTabId);
+		if (currentIndex === -1) return state;
 
-			const prevIndex = currentIndex === 0 ? state.tabs.length - 1 : currentIndex - 1;
-			return {
-				...state,
-				activeTabId: state.tabs[prevIndex].id
-			};
-		});
+		const prevIndex = currentIndex === 0 ? state.tabs.length - 1 : currentIndex - 1;
+		return {
+			...state,
+			activeTabId: state.tabs[prevIndex].id
+		};
 	};
 
-	export const updateTab = (state: TabsState, updatedTab: TabState): Effect.Effect<TabsState> => {
-		return Effect.sync(() => {
-			return {
-				...state,
-				tabs: state.tabs.map(tab => tab.id === updatedTab.id ? updatedTab : tab)
-			};
-		});
+	export const updateTab = (state: TabsState, updatedTab: TabState): TabsState => {
+		return {
+			...state,
+			tabs: state.tabs.map(tab => tab.id === updatedTab.id ? updatedTab : tab)
+		};
 	};
 
 	export const getActiveTab = (state: TabsState): Option.Option<TabState> => {
@@ -212,11 +201,11 @@ export type CreateTabConfig =
 	| { app: "About", id: string }
 	| { app: "ChooseApp", id: string };
 
-// Unified tab creation function
-export const createTab = (config: CreateTabConfig): Effect.Effect<TabState> => {
+// Unified tab creation function - pure data construction
+export const createTab = (config: CreateTabConfig): TabState => {
 	switch (config.app) {
 		case "Bible":
-			return Effect.succeed({
+			return {
 				id: config.id,
 				app: Bible({
 					bibleState: BibleState({
@@ -226,9 +215,9 @@ export const createTab = (config: CreateTabConfig): Effect.Effect<TabState> => {
 						showCanonExplorer: config.showCanonExplorer
 					})
 				})
-			});
+			};
 		case "Stopwatch":
-			return Effect.succeed({
+			return {
 				id: config.id,
 				app: Stopwatch({
 					stopwatchState: StopwatchState({
@@ -236,17 +225,17 @@ export const createTab = (config: CreateTabConfig): Effect.Effect<TabState> => {
 						isRunning: false
 					})
 				})
-			});
+			};
 		case "About":
-			return Effect.succeed({
+			return {
 				id: config.id,
 				app: About()
-			});
+			};
 		case "ChooseApp":
-			return Effect.succeed({
+			return {
 				id: config.id,
 				app: ChooseApp()
-			});
+			};
 	}
 };
 

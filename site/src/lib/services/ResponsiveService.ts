@@ -1,30 +1,63 @@
-import { Effect, Context } from "effect";
+/**
+ * Responsive utility service for handling mobile/desktop detection and responsive behavior.
+ * Simplified from Effect Context pattern to simple utility functions.
+ */
 
-export interface ResponsiveService {
-  readonly isMobile: () => Effect.Effect<boolean>;
-  readonly getInitialCanonState: () => Effect.Effect<boolean>;
-}
+const MOBILE_BREAKPOINT = 768;
 
-export const ResponsiveService = Context.GenericTag<ResponsiveService>("ResponsiveService");
+/**
+ * Check if the current viewport is considered mobile (< 768px width).
+ * @returns true if mobile, false otherwise. Returns false on server-side.
+ */
+export const isMobile = (): boolean => {
+	if (typeof window === 'undefined') {
+		return false;
+	}
+	return window.innerWidth < MOBILE_BREAKPOINT;
+};
 
-export const ResponsiveServiceLive = ResponsiveService.of({
-  isMobile: () =>
-    Effect.sync(() => {
-      if (typeof window !== 'undefined') {
-        return window.innerWidth < 768;
-      }
-      return false;
-    }),
+/**
+ * Get the initial state for the canon explorer based on viewport size.
+ * On mobile: canon starts closed to show chapter content.
+ * On desktop: canon starts open for better usability.
+ * @returns true if canon should be open, false if closed
+ */
+export const getInitialCanonState = (): boolean => {
+	if (typeof window === 'undefined') {
+		// Default to open for SSR
+		return true;
+	}
+	// On mobile, start with canon closed; on desktop, start open
+	return !isMobile();
+};
 
-  getInitialCanonState: () =>
-    Effect.sync(() => {
-      if (typeof window !== 'undefined') {
-        const isMobile = window.innerWidth < 768;
-        // On mobile, start with canon closed to show the chapter content
-        // On desktop, start with canon open for better usability
-        return !isMobile;
-      }
-      // Default to open for SSR
-      return true;
-    })
-});
+/**
+ * Create a resize observer that calls the callback when the viewport size changes.
+ * Useful for components that need to react to responsive breakpoint changes.
+ *
+ * @param callback - Function to call with the mobile state when viewport resizes
+ * @returns Cleanup function to remove the event listener
+ *
+ * @example
+ * ```typescript
+ * const cleanup = createResizeObserver((mobile) => {
+ *   console.log('Is mobile:', mobile);
+ * });
+ * // Later: cleanup();
+ * ```
+ */
+export const createResizeObserver = (callback: (isMobile: boolean) => void): (() => void) => {
+	if (typeof window === 'undefined') {
+		return () => {};
+	}
+
+	const handler = () => callback(isMobile());
+	window.addEventListener('resize', handler);
+	return () => window.removeEventListener('resize', handler);
+};
+
+export const ResponsiveService = {
+	isMobile,
+	getInitialCanonState,
+	createResizeObserver
+};

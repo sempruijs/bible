@@ -80,65 +80,7 @@ const protestantBooks: BibleBook[] = [
     BibleBook.Revelation
 ];
 
-const jewishBooks: BibleBook[] = [
-    // Torah (Law)
-    BibleBook.Genesis,
-    BibleBook.Exodus,
-    BibleBook.Leviticus,
-    BibleBook.Numbers,
-    BibleBook.Deuteronomy,
-
-    // Nevi'im (Prophets)
-    // Former Prophets
-    BibleBook.Joshua,
-    BibleBook.Judges,
-    BibleBook.FirstSamuel,
-    BibleBook.SecondSamuel,
-    BibleBook.FirstKings,
-    BibleBook.SecondKings,
-
-    // Latter Prophets
-    BibleBook.Isaiah,
-    BibleBook.Jeremiah,
-    BibleBook.Ezekiel,
-    BibleBook.Hosea,
-    BibleBook.Joel,
-    BibleBook.Amos,
-    BibleBook.Obadiah,
-    BibleBook.Jonah,
-    BibleBook.Micah,
-    BibleBook.Nahum,
-    BibleBook.Habakkuk,
-    BibleBook.Zephaniah,
-    BibleBook.Haggai,
-    BibleBook.Zechariah,
-    BibleBook.Malachi,
-
-    // Ketuvim (Writings)
-    BibleBook.Psalms,
-    BibleBook.Proverbs,
-    BibleBook.Job,
-    BibleBook.SongOfSongs,
-    BibleBook.Ruth,
-    BibleBook.Lamentations,
-    BibleBook.Ecclesiastes,
-    BibleBook.Esther,
-    BibleBook.Daniel,
-    BibleBook.Ezra,
-    BibleBook.Nehemiah,
-    BibleBook.FirstChronicles,
-    BibleBook.SecondChronicles
-];
-
 export const protestantBookOrder = BookOrder({
     name: "Greek Order",
     books: protestantBooks
 });
-
-export const jewishBookOrder = BookOrder({
-    name: "Tenach Order",
-    books: jewishBooks
-});
-
-// first of list is default, protestant in this case.
-export const bookOrders: BookOrder[] = [protestantBookOrder, jewishBookOrder];

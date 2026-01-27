@@ -8,6 +8,8 @@
     import { availableTranslations } from "$lib/translations/availableTranslations";
     import { protestantBookOrder } from "$lib/translations/bookOrder";
     import { onMount } from "svelte";
+    import * as ResponsiveService from "$lib/services/ResponsiveService";
+    import { useKeyboardShortcuts } from "$lib/utils/keyboard";
 
     let {
         translation,
@@ -62,10 +64,8 @@
     // Load translation content when translation changes
     $effect(() => {
         if (translation) {
-            console.log('BibleReader: Loading translation content for', translation.metadata.shortName);
             Effect.runPromise(loadTranslationContent(translation))
                 .then((content) => {
-                    console.log('BibleReader: Translation content loaded successfully, books:', content.books.length);
                     translationContent = Option.some(content);
                 })
                 .catch((error) => {
@@ -98,13 +98,9 @@
 
     // Handle scroll state changes - update URL/canon explorer but NOT scroll target
     function handleScrollStateChange(book: BibleBook, chapter: number) {
-        console.log(`🔄 handleScrollStateChange called with ${book} ${chapter}`);
-        console.log(`   Before: internalBook=${internalBook}, internalChapter=${internalChapter}`);
-        console.log(`   Before: scrollTarget=`, scrollTarget);
         internalBook = book;
         internalChapter = chapter;
         onStateChange(book, chapter);
-        console.log(`   After: scrollTarget=`, scrollTarget);
         // Note: We DON'T update scrollTarget here, so no scroll is triggered
     }
 
@@ -173,41 +169,6 @@
         }
     }
 
-    function handleGlobalKeydown(event: KeyboardEvent) {
-        // Only handle if this tab is active
-        if (!isActive) return;
-
-        // Only handle if not typing in an input/textarea
-        const target = event.target as HTMLElement;
-        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true')) {
-            return;
-        }
-
-        // Handle 'o' key to open canon explorer and focus search
-        if (event.key === 'o' && !showCanonExplorer) {
-            event.preventDefault();
-            shouldFocusSearch = true;
-            onToggleCanonExplorer();
-        }
-        // Handle 'b' key to toggle canon explorer
-        else if (event.key === 'b') {
-            event.preventDefault();
-            if (!showCanonExplorer) {
-                shouldFocusSearch = false; // Don't auto-focus when using 'b'
-            }
-            onToggleCanonExplorer();
-        }
-        // Handle arrow keys for chapter navigation
-        else if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
-            event.preventDefault();
-            goToNextChapter();
-        }
-        else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
-            event.preventDefault();
-            goToPreviousChapter();
-        }
-    }
-
     // Reset focus flag when canon explorer is hidden
     $effect(() => {
         if (!showCanonExplorer) {
@@ -215,26 +176,55 @@
         }
     });
 
-    // Mobile detection and responsive behavior
-    function checkIsMobile() {
-        if (typeof window !== 'undefined') {
-            isMobile = window.innerWidth < 768; // md breakpoint
-        }
-    }
-
+    // Initialize mobile state and setup listeners
     onMount(() => {
-        checkIsMobile();
-        
-        // Listen for window resize and global keyboard events
-        const handleResize = () => checkIsMobile();
+        isMobile = ResponsiveService.isMobile();
+
+        // Listen for window resize to update mobile state
+        const cleanupResize = ResponsiveService.createResizeObserver((mobile) => {
+            isMobile = mobile;
+        });
+
+        // Setup keyboard shortcuts (with manual check for isActive since we need that state)
+        const handleKeydown = (event: KeyboardEvent) => {
+            // Only handle if this tab is active
+            if (!isActive) return;
+
+            // Only handle if not typing in an input/textarea
+            const target = event.target as HTMLElement;
+            if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true')) {
+                return;
+            }
+
+            if (event.key === 'b') {
+                event.preventDefault();
+                if (!showCanonExplorer) {
+                    shouldFocusSearch = false; // Don't auto-focus when using 'b'
+                }
+                onToggleCanonExplorer();
+            } else if (event.key === 'o' && !showCanonExplorer) {
+                event.preventDefault();
+                shouldFocusSearch = true;
+                onToggleCanonExplorer();
+            } else if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+                event.preventDefault();
+                goToNextChapter();
+            } else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
+                event.preventDefault();
+                goToPreviousChapter();
+            }
+        };
+
         if (typeof window !== 'undefined') {
-            window.addEventListener('resize', handleResize);
-            window.addEventListener('keydown', handleGlobalKeydown);
-            return () => {
-                window.removeEventListener('resize', handleResize);
-                window.removeEventListener('keydown', handleGlobalKeydown);
-            };
+            window.addEventListener('keydown', handleKeydown);
         }
+
+        return () => {
+            cleanupResize();
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('keydown', handleKeydown);
+            }
+        };
     });
 </script>
 

@@ -29,7 +29,6 @@
 
 	$effect(() => {
 		if (Option.isSome(translationContent)) {
-			console.log('Building chapter items...');
 			const chapterItems: ChapterItem[] = [];
 
 			protestantBookOrder.books.forEach((book) => {
@@ -47,7 +46,6 @@
 				}
 			});
 
-			console.log('Built', chapterItems.length, 'chapters');
 			items = chapterItems;
 		}
 	});
@@ -57,10 +55,7 @@
 
 	// Scroll to chapter ONLY when scrollTarget.version changes (explicit navigation)
 	$effect(() => {
-		// ONLY watch scrollTarget.version - ignore items, virtualListRef changes
 		const currentVersion = scrollTarget.version;
-
-		console.log(`🔍 Effect fired! version=${currentVersion}, lastScrolledVersion=${lastScrolledVersion}`);
 
 		// Only scroll if version actually incremented
 		if (currentVersion > lastScrolledVersion && virtualListRef && items.length > 0) {
@@ -69,7 +64,6 @@
 			);
 
 			if (targetIndex >= 0) {
-				console.log(`🎯 Navigating to ${scrollTarget.book} ${scrollTarget.chapter} at index ${targetIndex} (version: ${currentVersion})`);
 				virtualListRef.scrollToIndex(targetIndex, { align: 'start' });
 				lastScrolledVersion = currentVersion;
 			}
@@ -94,14 +88,11 @@
 
 				// Only update if we've scrolled to a different chapter
 				if (lastReportedBook !== visibleItem.book || lastReportedChapter !== visibleItem.chapterNumber) {
-					console.log(`📜 Scrolled to: ${visibleItem.book} ${visibleItem.chapterNumber} - calling onStateChange`);
 					lastReportedBook = visibleItem.book;
 					lastReportedChapter = visibleItem.chapterNumber;
 
 					// Update URL and canon explorer (but NOT scrollTarget, so no scroll triggered)
-					console.log(`   ⬆️ About to call onStateChange - scrollTarget.version is: ${scrollTarget.version}`);
 					onStateChange(visibleItem.book, visibleItem.chapterNumber);
-					console.log(`   ✅ Called onStateChange - scrollTarget.version is now: ${scrollTarget.version}`);
 				}
 			}
 		} catch (error) {
