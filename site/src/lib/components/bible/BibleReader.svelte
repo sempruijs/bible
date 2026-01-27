@@ -78,12 +78,17 @@
     function selectChapter(bookShort: string, chapter: number) {
         const bookOption = toBibleBook(bookShort);
         if (Option.isSome(bookOption)) {
+            console.log(`📖 selectChapter called: ${bookOption.value} ${chapter}`);
+            console.log(`   Before: scrollTarget.version=${scrollTarget.version}`);
+
             // Update scroll target to trigger scrolling in VirtualBibleScroll
             scrollTarget = { book: bookOption.value, chapter, version: scrollTarget.version + 1 };
+            console.log(`   After: scrollTarget.version=${scrollTarget.version}`);
 
             // Update internal state for URL/canon explorer
             internalBook = bookOption.value;
             internalChapter = chapter;
+            console.log(`   Calling onStateChange(${bookOption.value}, ${chapter})`);
             onStateChange(bookOption.value, chapter);
 
             // Auto-hide canon explorer on mobile after chapter selection
