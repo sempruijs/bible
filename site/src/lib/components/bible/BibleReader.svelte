@@ -51,6 +51,14 @@
         internalChapter = currentChapter;
     });
 
+    // Trigger initial scroll when translation content loads
+    $effect(() => {
+        if (Option.isSome(translationContent) && scrollTarget.version === 0) {
+            // Increment version to trigger initial scroll to currentBook/currentChapter
+            scrollTarget = { book: currentBook, chapter: currentChapter, version: 1 };
+        }
+    });
+
     // Load translation content when translation changes
     $effect(() => {
         if (translation) {
