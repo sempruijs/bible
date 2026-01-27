@@ -19,14 +19,35 @@
 	// Use Greek order as default (keeping the type system for potential future use)
 	const bookOrder = protestantBookOrder;
 	let selectedBook = $state<Option.Option<BibleBook>>(Option.none());
+	let chapterButtonRefs = $state<Map<number, HTMLButtonElement>>(new Map());
 
 	// Auto-expand the book that contains the current chapter
 	$effect(() => {
-		if (currentBook && Option.isNone(selectedBook)) {
+		if (currentBook) {
 			const book = orderedBooks.find(book => book.name === currentBook);
 			if (book) {
 				selectedBook = Option.some(book.name);
 			}
+		}
+	});
+
+	// Auto-scroll to current chapter when it changes
+	$effect(() => {
+		if (currentChapter &&
+			Option.isSome(selectedBook) &&
+			selectedBook.value === currentBook) {
+
+			// Small delay to ensure book expansion completes before scrolling
+			setTimeout(() => {
+				const buttonRef = chapterButtonRefs.get(currentChapter);
+				if (buttonRef) {
+					buttonRef.scrollIntoView({
+						behavior: 'smooth',
+						block: 'nearest',
+						inline: 'nearest'
+					});
+				}
+			}, 150);
 		}
 	});
 
@@ -36,6 +57,15 @@
 				? Option.none()
 				: Option.some(book);
 		selectedBook = result;
+	}
+
+	function trackChapterRef(node: HTMLButtonElement, chapterNum: number) {
+		chapterButtonRefs.set(chapterNum, node);
+		return {
+			destroy() {
+				chapterButtonRefs.delete(chapterNum);
+			}
+		};
 	}
 
 	let orderedBooks = $derived(
@@ -50,7 +80,7 @@
 <div class="p-4">
 	<div class="space-y-4">
 		{#each orderedBooks as book}
-			<div class="border border-gray-600 rounded-lg overflow-hidden bg-gray-800">
+			<div class="border border-gray-600 rounded-lg overflow-hidden bg-gray-800 transition-all duration-200">
 				<button
 					onclick={() => setSelected(book.name)}
 					class="w-full px-4 py-3 text-left font-medium text-gray-200 bg-gray-800 hover:bg-gray-700 transition-colors flex justify-between items-center"
@@ -73,7 +103,8 @@
 											book.name === currentBook && 
 											chapter.chapter === currentChapter}
 										<button
-											onclick={() => onChapterSelect(getShortName(book.name), chapter.chapter)}
+											use:trackChapterRef={chapter.chapter}
+										onclick={() => onChapterSelect(getShortName(book.name), chapter.chapter)}
 											class="flex items-center justify-center w-12 h-12 font-medium rounded border transition-colors {
 												isCurrentChapter 
 													? 'bg-blue-600 text-white border-blue-500 hover:bg-blue-700' 
