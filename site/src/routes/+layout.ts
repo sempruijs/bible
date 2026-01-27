@@ -7,12 +7,6 @@ export const ssr = false;
 export async function load() {
     const bibleDataOption = await Effect.runPromise(loadBibleData())
         .then(bibleData => {
-            // Check if content is loaded
-            if (bibleData.content._tag === "Local") {
-                console.log('Bible data loaded successfully:', bibleData.content.data.books?.length, 'books');
-            } else {
-                console.log('Bible data metadata loaded, content will be fetched from:', bibleData.content.url);
-            }
             return Option.some(bibleData);
         })
         .catch(error => {
