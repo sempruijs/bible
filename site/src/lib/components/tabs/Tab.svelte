@@ -18,16 +18,22 @@
 	} = $props();
 
 	function handleBibleStateChange(book: any, chapter: any) {
+		console.log("Tab: handleBibleStateChange called", book, chapter);
 		if (app.app._tag === "Bible" && onStateChange) {
 			const updatedBibleState = BibleState({
 				...app.app.bibleState,
 				currentBook: book,
 				currentChapter: chapter,
 			});
-			onStateChange({
+			const updatedTab = {
 				...app,
 				app: Bible({ bibleState: updatedBibleState }),
-			});
+			};
+			console.log(
+				"Tab: calling onStateChange with updatedTab",
+				updatedTab,
+			);
+			onStateChange(updatedTab);
 		}
 	}
 
