@@ -257,5 +257,6 @@
 		activeTabId={tabsState.activeTabId}
 		onStateChange={updateTabState}
 		onAppChoice={handleAppChoice}
+		onTabRemove={removeTab}
 	/>
 </div>

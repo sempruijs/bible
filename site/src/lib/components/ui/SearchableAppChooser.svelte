@@ -1,10 +1,12 @@
 <script lang="ts">
     import { onMount } from "svelte";
 
-    let { 
-        onChooseApp 
-    }: { 
+    let {
+        onChooseApp,
+        onClose
+    }: {
         onChooseApp: (appType: "bible" | "about" | "stopwatch") => void;
+        onClose?: () => void;
     } = $props();
 
     type AppOption = {
@@ -65,8 +67,14 @@
             }
         } else if (event.key === 'Escape') {
             event.preventDefault();
-            searchQuery = "";
-            searchInputRef?.blur();
+            if (searchQuery.trim()) {
+                // If there's a search query, clear it
+                searchQuery = "";
+                searchInputRef?.focus();
+            } else {
+                // If search is empty, close the app chooser tab
+                onClose?.();
+            }
         }
     }
 
