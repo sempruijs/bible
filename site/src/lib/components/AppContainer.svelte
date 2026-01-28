@@ -30,6 +30,9 @@
 	// Flag to prevent syncFromURL during programmatic navigation
 	let isProgrammaticNavigation = $state(false);
 
+	// Mobile responsiveness state
+	let isMobile = $state<boolean>(false);
+
 	// Initialize the first tab
 	function initializeTab() {
 		const initialState = NavigationService.getInitialState();
@@ -210,13 +213,26 @@
 		initializeTab();
 		syncFromURL();
 
+		// Initialize mobile state
+		isMobile = ResponsiveService.isMobile();
+
+		// Listen for window resize to update mobile state
+		const cleanupResize = ResponsiveService.createResizeObserver((mobile) => {
+			isMobile = mobile;
+		});
+
 		// Setup global keyboard shortcuts
-		return useKeyboardShortcuts({
+		const cleanupKeyboard = useKeyboardShortcuts({
 			't': () => addTab(),
 			'n': () => goToNextTab(),
 			'p': () => goToPreviousTab(),
 			'w': () => removeTab(tabsState.activeTabId)
 		}, { skipInInputs: true });
+
+		return () => {
+			cleanupResize();
+			cleanupKeyboard();
+		};
 	});
 
 	// Watch for URL changes
@@ -233,6 +249,7 @@
 		onTabSelect={setActiveTab}
 		onTabRemove={removeTab}
 		onAddTab={addTab}
+		{isMobile}
 	/>
 
 	<TabContent
