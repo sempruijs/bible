@@ -7,18 +7,20 @@
 		activeTabId,
 		onTabSelect,
 		onTabRemove,
-		onAddTab
+		onAddTab,
+		isMobile = false
 	}: {
 		tabs: TabState[];
 		activeTabId: string;
 		onTabSelect: (tabId: string) => void;
 		onTabRemove: (tabId: string) => void;
 		onAddTab: () => void;
+		isMobile?: boolean;
 	} = $props();
 </script>
 
 <div class="bg-gray-800 border-b border-gray-700 flex items-center px-4 py-2">
-	<div class="flex items-center gap-2 flex-1 overflow-x-auto" title="Navigate tabs: (n) next, (p) previous">
+	<div class="flex items-center gap-2 flex-1 overflow-x-auto" title={isMobile ? "Navigate tabs" : "Navigate tabs: (n) next, (p) previous"}>
 		{#each tabs as tab}
 			{@const tabId = tab.id}
 			{@const tabTitle = App.getTitle(tab.app)}
@@ -37,7 +39,7 @@
 					<button
 						onclick={() => onTabRemove(tabId)}
 						class="px-2 py-2 text-gray-400 hover:text-red-400 hover:bg-gray-600 transition-colors"
-						title="Close tab (w)"
+						title={isMobile ? "Close tab" : "Close tab (w)"}
 					>
 						×
 					</button>
@@ -45,12 +47,12 @@
 			</div>
 		{/each}
 	</div>
-	
+
 	<button
 		onclick={onAddTab}
 		class="ml-4 px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors"
-		title="Add new tab (t)"
+		title={isMobile ? "Add new tab" : "Add new tab (t)"}
 	>
-		+ New Tab (t)
+		{isMobile ? "+ New Tab" : "+ New Tab (t)"}
 	</button>
 </div>

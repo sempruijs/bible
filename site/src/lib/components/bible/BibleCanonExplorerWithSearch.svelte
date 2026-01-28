@@ -12,13 +12,15 @@
 		currentBook,
 		currentChapter,
 		onChapterSelect,
-		shouldFocusSearch = false
+		shouldFocusSearch = false,
+		isMobile = false
 	}: {
 		content: TranslationContent | null;
 		currentBook: BibleBook;
 		currentChapter: number;
 		onChapterSelect: (book: string, chapter: number) => void;
 		shouldFocusSearch?: boolean;
+		isMobile?: boolean;
 	} = $props();
 
 	let searchInputRef: HTMLInputElement;
@@ -99,7 +101,7 @@
 			<input
 				bind:this={searchInputRef}
 				type="text"
-				placeholder="Search chapters... (o)"
+				placeholder={isMobile ? "Search chapters..." : "Search chapters... (o)"}
 				value={searchQuery}
 				oninput={handleSearchInput}
 				onfocus={handleSearchFocus}

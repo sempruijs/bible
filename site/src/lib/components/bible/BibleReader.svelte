@@ -81,22 +81,25 @@
             console.log(`📖 selectChapter called: ${bookOption.value} ${chapter}`);
             console.log(`   Before: scrollTarget.version=${scrollTarget.version}`);
 
-            // Update scroll target to trigger scrolling in VirtualBibleScroll
-            scrollTarget = { book: bookOption.value, chapter, version: scrollTarget.version + 1 };
-            console.log(`   After: scrollTarget.version=${scrollTarget.version}`);
-
-            // Update internal state for URL/canon explorer
-            internalBook = bookOption.value;
-            internalChapter = chapter;
-            console.log(`   Calling onStateChange(${bookOption.value}, ${chapter})`);
-            onStateChange(bookOption.value, chapter);
-
-            // Auto-hide canon explorer on mobile after chapter selection
-            // Use setTimeout to ensure state update completes before toggling
+            // On mobile, close canon explorer first so VirtualBibleScroll is visible when we scroll
             if (isMobile) {
+                onToggleCanonExplorer();
+                // Delay scroll update to ensure canon explorer closes and VirtualBibleScroll renders
                 setTimeout(() => {
-                    onToggleCanonExplorer();
-                }, 0);
+                    scrollTarget = { book: bookOption.value, chapter, version: scrollTarget.version + 1 };
+                    internalBook = bookOption.value;
+                    internalChapter = chapter;
+                    onStateChange(bookOption.value, chapter);
+                }, 50);
+            } else {
+                // On desktop, update immediately
+                scrollTarget = { book: bookOption.value, chapter, version: scrollTarget.version + 1 };
+                console.log(`   After: scrollTarget.version=${scrollTarget.version}`);
+
+                internalBook = bookOption.value;
+                internalChapter = chapter;
+                console.log(`   Calling onStateChange(${bookOption.value}, ${chapter})`);
+                onStateChange(bookOption.value, chapter);
             }
         }
     }
@@ -242,13 +245,13 @@
                 class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors flex items-center gap-1"
                 title={showCanonExplorer
                     ? (isMobile ? "Show Chapter" : "Hide Canon Explorer (b)")
-                    : "Show Canon Explorer (b)"}
+                    : (isMobile ? "Show Canon Explorer" : "Show Canon Explorer (b)")}
             >
                 {#if isMobile}
                     {#if showCanonExplorer}
-                        📖 Chapter (b)
+                        📖 Chapter
                     {:else}
-                        📚 Books (b)
+                        📚 Books
                     {/if}
                 {:else}
                     {#if showCanonExplorer}
@@ -278,14 +281,14 @@
                 <button
                     onclick={goToPreviousChapter}
                     class="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors"
-                    title="Previous chapter (← or ↑)"
+                    title={isMobile ? "Previous chapter" : "Previous chapter (← or ↑)"}
                 >
                     ←
                 </button>
                 <button
                     onclick={goToNextChapter}
                     class="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors"
-                    title="Next chapter (→ or ↓)"
+                    title={isMobile ? "Next chapter" : "Next chapter (→ or ↓)"}
                 >
                     →
                 </button>
@@ -309,6 +312,7 @@
                     currentChapter={internalChapter}
                     onChapterSelect={selectChapter}
                     {shouldFocusSearch}
+                    {isMobile}
                 />
             </div>
         {/if}
