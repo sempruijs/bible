@@ -70,10 +70,10 @@
 
 	let orderedBooks = $derived(
 		content ? bookOrder.books
-			.map((bookName) =>
-				content.books.find((book) => book.name === bookName),
-			)
-			.filter((book) => book !== undefined) : []
+			.flatMap((bookName) => {
+				const book = content.books.find((book) => book.name === bookName);
+				return book ? [book] : [];
+			}) : []
 	);
 </script>
 
@@ -104,10 +104,10 @@
 											chapter.chapter === currentChapter}
 										<button
 											use:trackChapterRef={chapter.chapter}
-										onclick={() => onChapterSelect(getShortName(book.name), chapter.chapter)}
+											onclick={() => onChapterSelect(getShortName(book.name), chapter.chapter)}
 											class="flex items-center justify-center w-12 h-12 font-medium rounded border transition-colors {
-												isCurrentChapter 
-													? 'bg-blue-600 text-white border-blue-500 hover:bg-blue-700' 
+												isCurrentChapter
+													? 'bg-blue-600 text-white border-blue-500 hover:bg-blue-700'
 													: 'bg-gray-800 hover:bg-gray-700 text-gray-200 border-gray-600 hover:border-gray-500'
 											}"
 										>

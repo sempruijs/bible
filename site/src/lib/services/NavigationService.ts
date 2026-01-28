@@ -25,8 +25,11 @@ export const updateURL = (book: BibleBook, chapter: number): void => {
  *
  * @param url - The URL to navigate to
  */
-export const navigateToUrl = (url: string): void => {
-	goto(url, { replaceState: true });
+export const navigateToUrl = async (url: string): Promise<void> => {
+	console.log('NavigationService: navigateToUrl called with:', url);
+	console.log('NavigationService: current location:', typeof window !== 'undefined' ? window.location.pathname : 'SSR');
+	await goto(url, { replaceState: true });
+	console.log('NavigationService: goto completed, new location:', typeof window !== 'undefined' ? window.location.pathname : 'SSR');
 };
 
 /**

@@ -27,6 +27,9 @@
 		nextTabId: 2
 	});
 
+	// Flag to prevent syncFromURL during programmatic navigation
+	let isProgrammaticNavigation = $state(false);
+
 	// Initialize the first tab
 	function initializeTab() {
 		const initialState = NavigationService.getInitialState();
@@ -65,7 +68,7 @@
 	});
 
 	// Update tab state
-	function updateTabState(updatedTab: TabState) {
+	async function updateTabState(updatedTab: TabState) {
 		console.log('📝 updateTabState called with:', updatedTab);
 		tabsState = TabsStateNS.updateTab(tabsState, updatedTab);
 
@@ -73,7 +76,10 @@
 		if (updatedTab.id === tabsState.activeTabId) {
 			const url = App.getUrl(updatedTab.app);
 			console.log('🔗 Navigating to URL:', url);
-			NavigationService.navigateToUrl(url);
+			isProgrammaticNavigation = true;
+			await NavigationService.navigateToUrl(url);
+			// Reset flag after navigation completes
+			isProgrammaticNavigation = false;
 		}
 	}
 
@@ -88,38 +94,44 @@
 	}
 
 	// Set active tab
-	function setActiveTab(tabId: string) {
+	async function setActiveTab(tabId: string) {
 		tabsState = TabsStateNS.setActiveTab(tabsState, tabId);
 
 		// Update URL
 		const activeTabOption = TabsStateNS.getActiveTab(tabsState);
 		if (Option.isSome(activeTabOption)) {
 			const url = App.getUrl(activeTabOption.value.app);
-			NavigationService.navigateToUrl(url);
+			isProgrammaticNavigation = true;
+			await NavigationService.navigateToUrl(url);
+			isProgrammaticNavigation = false;
 		}
 	}
 
 	// Tab navigation functions
-	function goToNextTab() {
+	async function goToNextTab() {
 		tabsState = TabsStateNS.nextTab(tabsState);
 		const activeTabOption = TabsStateNS.getActiveTab(tabsState);
 		if (Option.isSome(activeTabOption)) {
 			const url = App.getUrl(activeTabOption.value.app);
-			NavigationService.navigateToUrl(url);
+			isProgrammaticNavigation = true;
+			await NavigationService.navigateToUrl(url);
+			isProgrammaticNavigation = false;
 		}
 	}
 
-	function goToPreviousTab() {
+	async function goToPreviousTab() {
 		tabsState = TabsStateNS.previousTab(tabsState);
 		const activeTabOption = TabsStateNS.getActiveTab(tabsState);
 		if (Option.isSome(activeTabOption)) {
 			const url = App.getUrl(activeTabOption.value.app);
-			NavigationService.navigateToUrl(url);
+			isProgrammaticNavigation = true;
+			await NavigationService.navigateToUrl(url);
+			isProgrammaticNavigation = false;
 		}
 	}
 
 	// Handle app choice in ChooseApp tabs
-	function handleAppChoice(appType: "bible" | "about" | "stopwatch") {
+	async function handleAppChoice(appType: "bible" | "about" | "stopwatch") {
 		const tabIndex = tabsState.tabs.findIndex(tab => tab.id === tabsState.activeTabId);
 		if (tabIndex === -1) return;
 
@@ -147,11 +159,19 @@
 
 		// Update URL using the mapping function
 		const url = App.getUrl(newTab.app);
-		NavigationService.navigateToUrl(url);
+		isProgrammaticNavigation = true;
+		await NavigationService.navigateToUrl(url);
+		isProgrammaticNavigation = false;
 	}
 
 	// Handle browser navigation
 	function syncFromURL() {
+		// Skip sync if we're in the middle of programmatic navigation
+		if (isProgrammaticNavigation) {
+			console.log('⏭️ Skipping syncFromURL - programmatic navigation in progress');
+			return;
+		}
+
 		const currentPage = $page;
 		const params = currentPage.params;
 
@@ -171,6 +191,7 @@
 
 		if (currentBook === urlState.book && currentChapter === urlState.chapter) return;
 
+		console.log('🔄 syncFromURL: URL changed via browser navigation');
 		const updatedTab = createTab({
 			app: "Bible",
 			id: activeTab.id,
