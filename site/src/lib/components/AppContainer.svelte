@@ -75,8 +75,9 @@
 		console.log('📝 updateTabState called with:', updatedTab);
 		tabsState = TabsStateNS.updateTab(tabsState, updatedTab);
 
-		// Update URL if this is the active tab
-		if (updatedTab.id === tabsState.activeTabId) {
+		// Update URL only for Bible tabs (they have routes)
+		// Other apps (About, Stopwatch, ChooseApp) are client-side only
+		if (updatedTab.id === tabsState.activeTabId && updatedTab.app._tag === "Bible") {
 			const url = App.getUrl(updatedTab.app);
 			console.log('🔗 Navigating to URL:', url);
 			isProgrammaticNavigation = true;
@@ -100,9 +101,9 @@
 	async function setActiveTab(tabId: string) {
 		tabsState = TabsStateNS.setActiveTab(tabsState, tabId);
 
-		// Update URL
+		// Update URL only for Bible tabs
 		const activeTabOption = TabsStateNS.getActiveTab(tabsState);
-		if (Option.isSome(activeTabOption)) {
+		if (Option.isSome(activeTabOption) && activeTabOption.value.app._tag === "Bible") {
 			const url = App.getUrl(activeTabOption.value.app);
 			isProgrammaticNavigation = true;
 			await NavigationService.navigateToUrl(url);
@@ -114,7 +115,7 @@
 	async function goToNextTab() {
 		tabsState = TabsStateNS.nextTab(tabsState);
 		const activeTabOption = TabsStateNS.getActiveTab(tabsState);
-		if (Option.isSome(activeTabOption)) {
+		if (Option.isSome(activeTabOption) && activeTabOption.value.app._tag === "Bible") {
 			const url = App.getUrl(activeTabOption.value.app);
 			isProgrammaticNavigation = true;
 			await NavigationService.navigateToUrl(url);
@@ -125,7 +126,7 @@
 	async function goToPreviousTab() {
 		tabsState = TabsStateNS.previousTab(tabsState);
 		const activeTabOption = TabsStateNS.getActiveTab(tabsState);
-		if (Option.isSome(activeTabOption)) {
+		if (Option.isSome(activeTabOption) && activeTabOption.value.app._tag === "Bible") {
 			const url = App.getUrl(activeTabOption.value.app);
 			isProgrammaticNavigation = true;
 			await NavigationService.navigateToUrl(url);
@@ -160,11 +161,13 @@
 
 		tabsState.tabs = tabsState.tabs.map((tab, index) => index === tabIndex ? newTab : tab);
 
-		// Update URL using the mapping function
-		const url = App.getUrl(newTab.app);
-		isProgrammaticNavigation = true;
-		await NavigationService.navigateToUrl(url);
-		isProgrammaticNavigation = false;
+		// Update URL only for Bible tabs
+		if (newTab.app._tag === "Bible") {
+			const url = App.getUrl(newTab.app);
+			isProgrammaticNavigation = true;
+			await NavigationService.navigateToUrl(url);
+			isProgrammaticNavigation = false;
+		}
 	}
 
 	// Handle browser navigation
