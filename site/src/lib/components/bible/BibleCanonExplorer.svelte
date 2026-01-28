@@ -42,7 +42,7 @@
 				const buttonRef = chapterButtonRefs.get(currentChapter);
 				if (buttonRef) {
 					buttonRef.scrollIntoView({
-						behavior: 'smooth',
+						behavior: 'auto',
 						block: 'nearest',
 						inline: 'nearest'
 					});
