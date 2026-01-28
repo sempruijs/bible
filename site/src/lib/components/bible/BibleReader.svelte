@@ -238,7 +238,7 @@
 
 <div class="h-full flex flex-col">
     <!-- Toolbar -->
-    <div class="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center gap-2 justify-between">
+    <div class="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center gap-2 justify-between flex-shrink-0">
         <div class="flex items-center gap-2">
             <button
                 onclick={onToggleCanonExplorer}
@@ -297,7 +297,7 @@
     </div>
 
     <!-- Main Content -->
-    <div class="h-full flex flex-1 relative">
+    <div class="flex flex-1 relative overflow-hidden">
         <!-- Canon Explorer Sidebar -->
         {#if showCanonExplorer}
             <div
