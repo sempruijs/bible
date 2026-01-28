@@ -323,6 +323,7 @@
                 {translationContent}
                 {scrollTarget}
                 onStateChange={handleScrollStateChange}
+                {isActive}
             />
         </div>
     </div>

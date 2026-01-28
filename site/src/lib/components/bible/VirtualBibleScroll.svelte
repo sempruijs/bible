@@ -9,11 +9,13 @@
 	let {
 		translationContent,
 		scrollTarget,
-		onStateChange = () => {}
+		onStateChange = () => {},
+		isActive = true
 	}: {
 		translationContent: Option.Option<TranslationContent>;
 		scrollTarget: { book: BibleBook; chapter: number; version: number };
 		onStateChange?: (book: BibleBook, chapter: number) => void;
+		isActive?: boolean;
 	} = $props();
 
 	interface ChapterItem {
@@ -67,6 +69,20 @@
 				virtualListRef.scrollToIndex(targetIndex, { align: 'start' });
 				lastScrolledVersion = currentVersion;
 			}
+		}
+	});
+
+	// Force virtual list to recalculate when tab becomes active
+	$effect(() => {
+		if (isActive && virtualListRef) {
+			// Small delay to ensure tab transition completes
+			setTimeout(() => {
+				if (virtualListRef && typeof virtualListRef.scrollTo === 'function') {
+					// Trigger a tiny scroll to force re-render without changing visible content
+					const currentOffset = virtualListRef.getScrollOffset();
+					virtualListRef.scrollTo(currentOffset);
+				}
+			}, 50);
 		}
 	});
 
