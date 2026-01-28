@@ -6,12 +6,14 @@
 		tabs,
 		activeTabId,
 		onStateChange,
-		onAppChoice
+		onAppChoice,
+		onTabRemove
 	}: {
 		tabs: TabState[];
 		activeTabId: string;
 		onStateChange?: (tab: TabState) => void;
 		onAppChoice?: (appType: "bible" | "about" | "stopwatch") => void;
+		onTabRemove?: (tabId: string) => void;
 	} = $props();
 </script>
 
@@ -27,6 +29,7 @@
 					isActive={tab.id === activeTabId}
 					{onStateChange}
 					{onAppChoice}
+					onTabClose={() => onTabRemove?.(tab.id)}
 				/>
 			{/key}
 		</div>

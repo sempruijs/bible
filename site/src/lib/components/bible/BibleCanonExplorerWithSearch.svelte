@@ -45,10 +45,21 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		// Global 'o' key to focus search
-		if (event.key === 'o' && !isSearchFocused && searchInputRef) {
+		// Don't handle shortcuts if typing in an input/textarea
+		const target = event.target as HTMLElement;
+		const isTyping = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true');
+
+		// Global 'o' key to focus search (only when not typing)
+		if (event.key === 'o' && !isSearchFocused && !isTyping && searchInputRef) {
 			event.preventDefault();
 			searchInputRef.focus();
+			return;
+		}
+
+		// Handle Escape to blur search field (even when empty)
+		if (isSearchFocused && event.key === 'Escape') {
+			event.preventDefault();
+			searchInputRef?.blur();
 			return;
 		}
 
@@ -60,9 +71,6 @@
 			} else if (event.key === 'ArrowUp') {
 				event.preventDefault();
 				// This will be handled by the search results component
-			} else if (event.key === 'Escape') {
-				event.preventDefault();
-				searchInputRef?.blur();
 			}
 		}
 	}

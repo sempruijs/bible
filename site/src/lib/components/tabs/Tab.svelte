@@ -10,11 +10,13 @@
 		isActive = false,
 		onStateChange,
 		onAppChoice,
+		onTabClose,
 	}: {
 		app: TabState;
 		isActive?: boolean;
 		onStateChange?: (app: TabState) => void;
 		onAppChoice?: (appType: "bible" | "about" | "stopwatch") => void;
+		onTabClose?: () => void;
 	} = $props();
 
 	function handleBibleStateChange(book: any, chapter: any) {
@@ -114,7 +116,7 @@
 		</div>
 	</div>
 {:else if app.app._tag === "ChooseApp"}
-	<ChooseAppComponent onChooseApp={(appType) => onAppChoice?.(appType)} />
+	<ChooseAppComponent onChooseApp={(appType) => onAppChoice?.(appType)} onClose={onTabClose} />
 {:else if app.app._tag === "Stopwatch"}
 	<StopwatchComponent
 		stopwatchState={app.app.stopwatchState}
