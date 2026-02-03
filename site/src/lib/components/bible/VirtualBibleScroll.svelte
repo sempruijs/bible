@@ -207,11 +207,13 @@
 {#if items.length > 0}
 	<VList bind:this={virtualListRef} data={items} style="height: 100%;" onscroll={handleScroll}>
 		{#snippet children(item)}
+			{@const isCurrentChapter = item.book === scrollTarget.book && item.chapterNumber === scrollTarget.chapter}
 			<BibleChapterViewer
 				chapter={item.chapter}
 				book={item.book}
 				chapterNumber={item.chapterNumber}
 				showBookHeader={item.showBookHeader}
+				selectedVerse={isCurrentChapter ? scrollTarget.verse : null}
 			/>
 		{/snippet}
 	</VList>
