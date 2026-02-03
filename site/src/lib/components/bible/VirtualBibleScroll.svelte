@@ -10,11 +10,13 @@
 		translationContent,
 		scrollTarget,
 		onStateChange = () => {},
+		onVerseSelect = (_book: BibleBook, _chapter: number, _verse: number) => {},
 		isActive = true
 	}: {
 		translationContent: Option.Option<TranslationContent>;
 		scrollTarget: { book: BibleBook; chapter: number; verse: number | null; version: number };
 		onStateChange?: (book: BibleBook, chapter: number, verse: number | null) => void;
+		onVerseSelect?: (book: BibleBook, chapter: number, verse: number) => void;
 		isActive?: boolean;
 	} = $props();
 
@@ -214,6 +216,7 @@
 				chapterNumber={item.chapterNumber}
 				showBookHeader={item.showBookHeader}
 				selectedVerse={isCurrentChapter ? scrollTarget.verse : null}
+				onVerseClick={(verse) => onVerseSelect(item.book, item.chapterNumber, verse)}
 			/>
 		{/snippet}
 	</VList>

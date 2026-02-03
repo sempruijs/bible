@@ -119,6 +119,16 @@
         // Note: We DON'T update scrollTarget here, so no scroll is triggered
     }
 
+    // Handle verse click - select the verse without scrolling
+    function handleVerseSelect(book: BibleBook, chapter: number, verse: number) {
+        internalBook = book;
+        internalChapter = chapter;
+        internalVerse = verse;
+        // Update scrollTarget to highlight the verse, but keep same version so no scroll happens
+        scrollTarget = { book, chapter, verse, version: scrollTarget.version };
+        onStateChange(book, chapter, verse);
+    }
+
     // Navigate to next chapter
     function goToNextChapter() {
         if (!Option.isSome(translationContent)) return;
@@ -412,6 +422,7 @@
                 {translationContent}
                 {scrollTarget}
                 onStateChange={handleScrollStateChange}
+                onVerseSelect={handleVerseSelect}
                 {isActive}
             />
         </div>
