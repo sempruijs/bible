@@ -68,6 +68,15 @@
 			if (targetIndex >= 0) {
 				virtualListRef.scrollToIndex(targetIndex, { align: 'start' });
 				lastScrolledVersion = currentVersion;
+
+				// Focus the chapter heading for screen reader users after scroll completes
+				setTimeout(() => {
+					const headingId = `chapter-${scrollTarget.book}-${scrollTarget.chapter}`;
+					const heading = document.getElementById(headingId);
+					if (heading) {
+						heading.focus();
+					}
+				}, 100);
 			}
 		}
 	});
