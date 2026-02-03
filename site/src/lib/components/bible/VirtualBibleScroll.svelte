@@ -110,14 +110,15 @@
 	let lastReportedBook = $state<BibleBook | null>(null);
 	let lastReportedChapter = $state<number | null>(null);
 	let lastReportedVerse = $state<number | null>(null);
+	let scrollThrottleTimer: ReturnType<typeof setTimeout> | null = null;
 
 	// Find the first visible verse in the viewport
 	function findVisibleVerse(): { book: BibleBook; chapter: number; verse: number } | null {
 		const verseElements = document.querySelectorAll('.verse-marker');
 		for (const element of verseElements) {
 			const rect = element.getBoundingClientRect();
-			// Check if the verse is visible in the viewport (top is in view)
-			if (rect.top >= 0 && rect.top < window.innerHeight / 2) {
+			// Check if the verse is visible in the viewport (use a buffer zone to avoid flickering)
+			if (rect.top >= -20 && rect.top < window.innerHeight / 3) {
 				const id = element.id; // verse-{book}-{chapter}-{verse}
 				const parts = id.replace('verse-', '').match(/^(.+)-(\d+)-(\d+)$/);
 				if (parts) {
@@ -132,7 +133,7 @@
 		return null;
 	}
 
-	function handleScrollEnd() {
+	function updateScrollState() {
 		if (!virtualListRef || items.length === 0) {
 			return;
 		}
@@ -162,10 +163,20 @@
 			console.error('Error detecting scroll position:', error);
 		}
 	}
+
+	function handleScroll() {
+		// Throttle scroll updates to avoid flickering
+		if (scrollThrottleTimer) return;
+
+		scrollThrottleTimer = setTimeout(() => {
+			scrollThrottleTimer = null;
+			updateScrollState();
+		}, 100);
+	}
 </script>
 
 {#if items.length > 0}
-	<VList bind:this={virtualListRef} data={items} style="height: 100%;" onscrollend={handleScrollEnd}>
+	<VList bind:this={virtualListRef} data={items} style="height: 100%;" onscroll={handleScroll}>
 		{#snippet children(item)}
 			<BibleChapterViewer
 				chapter={item.chapter}
