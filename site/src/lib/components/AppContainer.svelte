@@ -63,12 +63,6 @@
 	// Get active tab reference - derived from tabsState
 	let activeTabOption = $derived(TabsStateNS.getActiveTab(tabsState));
 
-	// Update browser title when active tab changes
-	$effect(() => {
-		if (Option.isSome(activeTabOption) && typeof document !== 'undefined') {
-			document.title = App.getTitle(activeTabOption.value.app);
-		}
-	});
 
 	// Update tab state
 	async function updateTabState(updatedTab: TabState) {

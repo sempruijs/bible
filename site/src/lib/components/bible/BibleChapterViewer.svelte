@@ -46,9 +46,7 @@
 			<div class="text-gray-200 leading-relaxed text-lg">
 				{#each chapter.verses as verse, i}
 					{#if i === 0}
-						<h2 id={headingId} class="float-left text-5xl font-bold text-gray-400 mr-2 leading-none mt-1">
-							<span class="sr-only">{getDisplayName(book)} Chapter </span>{chapterNumber}
-						</h2>
+						<h2 id={headingId} class="float-left text-5xl font-bold text-gray-400 mr-2 leading-none mt-1">{chapterNumber}</h2>
 					{:else}
 						<sup class="text-blue-400 font-medium text-xs mr-1">{verse.verse}</sup>
 					{/if}<span class="text-gray-200">{verse.text} </span>
