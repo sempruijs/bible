@@ -29,11 +29,7 @@
 			<!-- Verses as continuous paragraph with drop-cap chapter number -->
 			<div class="text-gray-200 leading-relaxed text-lg">
 				{#each chapter.verses as verse, i}
-					{#if i === 0}
-						<h2 id="chapter-{book}-{chapterNumber}" tabindex="-1" aria-label="{getDisplayName(book)} {chapterNumber}" class="float-left text-5xl font-bold text-gray-400 mr-2 leading-none mt-1 focus:outline-none">{chapterNumber}</h2>
-					{:else}
-						<sup class="text-blue-400 font-medium text-xs mr-1">{verse.verse}</sup>
-					{/if}<span class="text-gray-200">{verse.text} </span>
+					<span id="verse-{book}-{chapterNumber}-{verse.verse}" class="verse-marker focus:outline-none" tabindex="-1">{#if i === 0}<h2 id="chapter-{book}-{chapterNumber}" tabindex="-1" aria-label="{getDisplayName(book)} {chapterNumber}" class="float-left text-5xl font-bold text-gray-400 mr-2 leading-none mt-1 focus:outline-none">{chapterNumber}</h2>{:else}<sup class="text-blue-400 font-medium text-xs mr-1">{verse.verse}</sup>{/if}<span class="text-gray-200">{verse.text} </span></span>
 				{/each}
 			</div>
 		</div>

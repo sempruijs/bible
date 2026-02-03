@@ -19,13 +19,14 @@
 		onTabClose?: () => void;
 	} = $props();
 
-	function handleBibleStateChange(book: any, chapter: any) {
-		console.log("Tab: handleBibleStateChange called", book, chapter);
+	function handleBibleStateChange(book: any, chapter: any, verse: any) {
+		console.log("Tab: handleBibleStateChange called", book, chapter, verse);
 		if (app.app._tag === "Bible" && onStateChange) {
 			const updatedBibleState = BibleState({
 				...app.app.bibleState,
 				currentBook: book,
 				currentChapter: chapter,
+				currentVerse: verse,
 			});
 			const updatedTab = {
 				...app,
@@ -81,6 +82,7 @@
 		translation={app.app.bibleState.translation}
 		currentBook={app.app.bibleState.currentBook}
 		currentChapter={app.app.bibleState.currentChapter}
+		currentVerse={app.app.bibleState.currentVerse}
 		showCanonExplorer={app.app.bibleState.showCanonExplorer}
 		{isActive}
 		onStateChange={handleBibleStateChange}

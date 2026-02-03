@@ -8,6 +8,7 @@ import { TranslationSchema } from "$lib/translations/translation";
 export const BibleStateSchema = Schema.Struct({
 	currentBook: BibleBookSchema,
 	currentChapter: Schema.Number,
+	currentVerse: Schema.NullOr(Schema.Number),
 	translation: TranslationSchema,
 	showCanonExplorer: Schema.Boolean
 });
@@ -87,7 +88,10 @@ export namespace App {
 		return $match(app, {
 			Bible: ({ bibleState }) => {
 				const bookShort = getShortName(bibleState.currentBook);
-				return `/${bookShort}/${bibleState.currentChapter}`;
+				const chapterPart = bibleState.currentVerse
+					? `${bibleState.currentChapter}v${bibleState.currentVerse}`
+					: `${bibleState.currentChapter}`;
+				return `/${bookShort}/${chapterPart}`;
 			},
 			About: () => "/about",
 			ChooseApp: () => "/",
@@ -97,7 +101,12 @@ export namespace App {
 
 	export const getTitle = (app: App): string => {
 		return $match(app, {
-			Bible: ({ bibleState }) => `${getBibleBookDisplayName(bibleState.currentBook)} ${bibleState.currentChapter} (${bibleState.translation.metadata.shortName})`,
+			Bible: ({ bibleState }) => {
+				const reference = bibleState.currentVerse
+					? `${getBibleBookDisplayName(bibleState.currentBook)} ${bibleState.currentChapter}:${bibleState.currentVerse}`
+					: `${getBibleBookDisplayName(bibleState.currentBook)} ${bibleState.currentChapter}`;
+				return `${reference} (${bibleState.translation.metadata.shortName})`;
+			},
 			About: () => "About",
 			ChooseApp: () => "Choose App",
 			Stopwatch: ({ stopwatchState }) => {
@@ -196,7 +205,7 @@ export namespace TabsState {
 
 // Create tab configuration types
 export type CreateTabConfig =
-	| { app: "Bible", id: string, book: BibleBook, chapter: number, translation: Translation, showCanonExplorer: boolean }
+	| { app: "Bible", id: string, book: BibleBook, chapter: number, verse?: number | null, translation: Translation, showCanonExplorer: boolean }
 	| { app: "Stopwatch", id: string }
 	| { app: "About", id: string }
 	| { app: "ChooseApp", id: string };
@@ -211,6 +220,7 @@ export const createTab = (config: CreateTabConfig): TabState => {
 					bibleState: BibleState({
 						currentBook: config.book,
 						currentChapter: config.chapter,
+						currentVerse: config.verse ?? null,
 						translation: config.translation as any, // Translation types are readonly but compatible
 						showCanonExplorer: config.showCanonExplorer
 					})

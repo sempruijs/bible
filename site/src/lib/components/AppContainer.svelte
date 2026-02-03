@@ -45,13 +45,14 @@
 			// Create Stopwatch tab if URL is /stopwatch
 			initialTab = createTab({ app: "Stopwatch", id: "tab1" });
 		} else {
-			// Create Bible tab with parsed book/chapter
+			// Create Bible tab with parsed book/chapter/verse
 			const canonState = ResponsiveService.getInitialCanonState();
 			initialTab = createTab({
 				app: "Bible",
 				id: "tab1",
 				book: initialState.book,
 				chapter: initialState.chapter,
+				verse: initialState.verse,
 				translation,
 				showCanonExplorer: canonState
 			});
@@ -141,6 +142,7 @@
 				id: tabsState.activeTabId,
 				book: BibleBook.John,
 				chapter: 1,
+				verse: null,
 				translation,
 				showCanonExplorer: canonState
 			});
@@ -188,8 +190,9 @@
 		const urlState = urlStateOption.value;
 		const currentBook = activeTab.app.bibleState.currentBook;
 		const currentChapter = activeTab.app.bibleState.currentChapter;
+		const currentVerse = activeTab.app.bibleState.currentVerse;
 
-		if (currentBook === urlState.book && currentChapter === urlState.chapter) return;
+		if (currentBook === urlState.book && currentChapter === urlState.chapter && currentVerse === urlState.verse) return;
 
 		console.log('🔄 syncFromURL: URL changed via browser navigation');
 		const updatedTab = createTab({
@@ -197,6 +200,7 @@
 			id: activeTab.id,
 			book: urlState.book,
 			chapter: urlState.chapter,
+			verse: urlState.verse,
 			translation: activeTab.app.bibleState.translation,
 			showCanonExplorer: activeTab.app.bibleState.showCanonExplorer
 		});

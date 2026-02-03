@@ -13,8 +13,8 @@
 		isActive = true
 	}: {
 		translationContent: Option.Option<TranslationContent>;
-		scrollTarget: { book: BibleBook; chapter: number; version: number };
-		onStateChange?: (book: BibleBook, chapter: number) => void;
+		scrollTarget: { book: BibleBook; chapter: number; verse: number | null; version: number };
+		onStateChange?: (book: BibleBook, chapter: number, verse: number | null) => void;
 		isActive?: boolean;
 	} = $props();
 
@@ -69,8 +69,19 @@
 				virtualListRef.scrollToIndex(targetIndex, { align: 'start' });
 				lastScrolledVersion = currentVersion;
 
-				// Focus the chapter heading for screen reader users after scroll completes
+				// After scrolling to chapter, scroll to specific verse if specified
 				setTimeout(() => {
+					if (scrollTarget.verse) {
+						const verseId = `verse-${scrollTarget.book}-${scrollTarget.chapter}-${scrollTarget.verse}`;
+						const verseElement = document.getElementById(verseId);
+						if (verseElement) {
+							verseElement.scrollIntoView({ block: 'start' });
+							// Focus the verse for screen reader users
+							verseElement.focus();
+							return;
+						}
+					}
+					// If no verse specified, focus the chapter heading
 					const headingId = `chapter-${scrollTarget.book}-${scrollTarget.chapter}`;
 					const heading = document.getElementById(headingId);
 					if (heading) {
@@ -98,6 +109,28 @@
 	// Track scroll position and update URL/canon explorer (but don't trigger scroll)
 	let lastReportedBook = $state<BibleBook | null>(null);
 	let lastReportedChapter = $state<number | null>(null);
+	let lastReportedVerse = $state<number | null>(null);
+
+	// Find the first visible verse in the viewport
+	function findVisibleVerse(): { book: BibleBook; chapter: number; verse: number } | null {
+		const verseElements = document.querySelectorAll('.verse-marker');
+		for (const element of verseElements) {
+			const rect = element.getBoundingClientRect();
+			// Check if the verse is visible in the viewport (top is in view)
+			if (rect.top >= 0 && rect.top < window.innerHeight / 2) {
+				const id = element.id; // verse-{book}-{chapter}-{verse}
+				const parts = id.replace('verse-', '').match(/^(.+)-(\d+)-(\d+)$/);
+				if (parts) {
+					return {
+						book: parts[1] as BibleBook,
+						chapter: parseInt(parts[2]),
+						verse: parseInt(parts[3])
+					};
+				}
+			}
+		}
+		return null;
+	}
 
 	function handleScrollEnd() {
 		if (!virtualListRef || items.length === 0) {
@@ -111,13 +144,18 @@
 			if (visibleIndex >= 0 && visibleIndex < items.length) {
 				const visibleItem = items[visibleIndex];
 
-				// Only update if we've scrolled to a different chapter
-				if (lastReportedBook !== visibleItem.book || lastReportedChapter !== visibleItem.chapterNumber) {
+				// Try to find the specific verse that's visible
+				const visibleVerse = findVisibleVerse();
+				const verse = visibleVerse?.verse ?? null;
+
+				// Only update if something changed
+				if (lastReportedBook !== visibleItem.book || lastReportedChapter !== visibleItem.chapterNumber || lastReportedVerse !== verse) {
 					lastReportedBook = visibleItem.book;
 					lastReportedChapter = visibleItem.chapterNumber;
+					lastReportedVerse = verse;
 
 					// Update URL and canon explorer (but NOT scrollTarget, so no scroll triggered)
-					onStateChange(visibleItem.book, visibleItem.chapterNumber);
+					onStateChange(visibleItem.book, visibleItem.chapterNumber, verse);
 				}
 			}
 		} catch (error) {

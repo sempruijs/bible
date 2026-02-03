@@ -33,26 +33,42 @@ export const navigateToUrl = async (url: string): Promise<void> => {
 };
 
 /**
- * Parse a URL pathname to extract book and chapter information.
+ * Parse a chapter/verse string like "3" or "3v16" into chapter and optional verse.
+ */
+const parseChapterVerse = (str: string): { chapter: number; verse: number | null } | null => {
+	const match = str.match(/^(\d+)(?:v(\d+))?$/);
+	if (!match) return null;
+
+	const chapter = parseInt(match[1]);
+	const verse = match[2] ? parseInt(match[2]) : null;
+
+	if (isNaN(chapter) || chapter < 1) return null;
+	if (verse !== null && (isNaN(verse) || verse < 1)) return null;
+
+	return { chapter, verse };
+};
+
+/**
+ * Parse a URL pathname to extract book, chapter, and optional verse information.
  *
- * @param pathname - The URL pathname to parse (e.g., "/john/3")
- * @returns Option containing book and chapter if valid, Option.none() otherwise
+ * @param pathname - The URL pathname to parse (e.g., "/john/3" or "/john/3v16")
+ * @returns Option containing book, chapter, and verse if valid, Option.none() otherwise
  *
  * @example
  * ```typescript
- * const result = parseURL("/john/3");
+ * const result = parseURL("/john/3v16");
  * if (Option.isSome(result)) {
- *   console.log(result.value.book, result.value.chapter); // BibleBook.John, 3
+ *   console.log(result.value.book, result.value.chapter, result.value.verse); // BibleBook.John, 3, 16
  * }
  * ```
  */
-export const parseURL = (pathname: string): Option.Option<{ book: BibleBook; chapter: number }> => {
+export const parseURL = (pathname: string): Option.Option<{ book: BibleBook; chapter: number; verse: number | null }> => {
 	const urlParts = pathname.split('/');
 	if (urlParts.length >= 3) {
 		const bookOption = toBibleBook(urlParts[1]);
-		const chapter = parseInt(urlParts[2]);
-		if (Option.isSome(bookOption) && !isNaN(chapter) && chapter > 0) {
-			return Option.some({ book: bookOption.value, chapter });
+		const chapterVerse = parseChapterVerse(urlParts[2]);
+		if (Option.isSome(bookOption) && chapterVerse) {
+			return Option.some({ book: bookOption.value, chapter: chapterVerse.chapter, verse: chapterVerse.verse });
 		}
 	}
 	return Option.none();
@@ -60,44 +76,45 @@ export const parseURL = (pathname: string): Option.Option<{ book: BibleBook; cha
 
 /**
  * Get the initial application state based on the current URL.
- * Determines which app type to show (Bible, About, Stopwatch) and the initial book/chapter.
+ * Determines which app type to show (Bible, About, Stopwatch) and the initial book/chapter/verse.
  *
- * @returns Object containing the initial book, chapter, and app type flags
+ * @returns Object containing the initial book, chapter, verse, and app type flags
  */
 export const getInitialState = (): {
 	book: BibleBook;
 	chapter: number;
+	verse: number | null;
 	isAbout: boolean;
 	isStopwatch: boolean;
 } => {
 	if (typeof window === 'undefined') {
-		return { book: BibleBook.John, chapter: 1, isAbout: false, isStopwatch: false };
+		return { book: BibleBook.John, chapter: 1, verse: null, isAbout: false, isStopwatch: false };
 	}
 
 	const pathname = window.location.pathname;
 
 	// Check if it's the about page
 	if (pathname === '/about') {
-		return { book: BibleBook.John, chapter: 1, isAbout: true, isStopwatch: false };
+		return { book: BibleBook.John, chapter: 1, verse: null, isAbout: true, isStopwatch: false };
 	}
 
 	// Check if it's the stopwatch page
 	if (pathname === '/stopwatch') {
-		return { book: BibleBook.John, chapter: 1, isAbout: false, isStopwatch: true };
+		return { book: BibleBook.John, chapter: 1, verse: null, isAbout: false, isStopwatch: true };
 	}
 
 	// Parse as Bible route
 	const urlParts = pathname.split('/');
 	if (urlParts.length >= 3) {
 		const bookOption = toBibleBook(urlParts[1]);
-		const chapter = parseInt(urlParts[2]);
-		if (Option.isSome(bookOption) && !isNaN(chapter) && chapter > 0) {
-			return { book: bookOption.value, chapter, isAbout: false, isStopwatch: false };
+		const chapterVerse = parseChapterVerse(urlParts[2]);
+		if (Option.isSome(bookOption) && chapterVerse) {
+			return { book: bookOption.value, chapter: chapterVerse.chapter, verse: chapterVerse.verse, isAbout: false, isStopwatch: false };
 		}
 	}
 
 	// Default to John 1
-	return { book: BibleBook.John, chapter: 1, isAbout: false, isStopwatch: false };
+	return { book: BibleBook.John, chapter: 1, verse: null, isAbout: false, isStopwatch: false };
 };
 
 export const NavigationService = {
