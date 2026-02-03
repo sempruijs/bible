@@ -6,16 +6,32 @@
 		chapter,
 		book,
 		chapterNumber,
-		showBookHeader = false
+		showBookHeader = false,
+		articleIndex = 1,
+		totalArticles = -1
 	}: {
 		chapter: Chapter;
 		book: BibleBook;
 		chapterNumber: number;
 		showBookHeader: boolean;
+		articleIndex?: number;
+		totalArticles?: number;
 	} = $props();
+
+	const articleId = `chapter-${book}-${chapterNumber}`;
+	const headingId = `heading-${book}-${chapterNumber}`;
+	const articleLabel = `${getDisplayName(book)} ${chapterNumber}`;
 </script>
 
-<div class="w-full">
+<article
+	class="w-full"
+	role="article"
+	tabindex="0"
+	id={articleId}
+	aria-posinset={articleIndex}
+	aria-setsize={totalArticles}
+	aria-label={articleLabel}
+>
 	<div class="px-8 py-2">
 		<div class="max-w-2xl mx-auto">
 			<!-- Book header (when crossing book boundaries) -->
@@ -30,7 +46,9 @@
 			<div class="text-gray-200 leading-relaxed text-lg">
 				{#each chapter.verses as verse, i}
 					{#if i === 0}
-						<h2 class="float-left text-5xl font-bold text-gray-400 mr-2 leading-none mt-1">{chapterNumber}</h2>
+						<h2 id={headingId} class="float-left text-5xl font-bold text-gray-400 mr-2 leading-none mt-1">
+							<span class="sr-only">{getDisplayName(book)} Chapter </span>{chapterNumber}
+						</h2>
 					{:else}
 						<sup class="text-blue-400 font-medium text-xs mr-1">{verse.verse}</sup>
 					{/if}<span class="text-gray-200">{verse.text} </span>
@@ -38,4 +56,4 @@
 			</div>
 		</div>
 	</div>
-</div>
+</article>
