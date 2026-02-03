@@ -15,6 +15,7 @@
         translation,
         currentBook = BibleBook.John,
         currentChapter = 1,
+        currentVerse = null as number | null,
         showCanonExplorer = true,
         isActive = true,
         onStateChange = () => {},
@@ -24,9 +25,10 @@
         translation: Translation;
         currentBook?: BibleBook;
         currentChapter?: number;
+        currentVerse?: number | null;
         showCanonExplorer?: boolean;
         isActive?: boolean;
-        onStateChange?: (book: BibleBook, chapter: number) => void;
+        onStateChange?: (book: BibleBook, chapter: number, verse: number | null) => void;
         onToggleCanonExplorer?: () => void;
         onTranslationChange?: (translation: Translation) => void;
     } = $props();
@@ -34,9 +36,10 @@
     // Internal state that gets updated by user interactions (URL/canon explorer)
     let internalBook = $state<BibleBook>(currentBook);
     let internalChapter = $state<number>(currentChapter);
+    let internalVerse = $state<number | null>(currentVerse);
 
     // Scroll target - only updated on explicit navigation (clicks), NOT on scroll events
-    let scrollTarget = $state({ book: currentBook, chapter: currentChapter, version: 0 });
+    let scrollTarget = $state({ book: currentBook, chapter: currentChapter, verse: currentVerse, version: 0 });
 
     // Mobile responsiveness state
     let isMobile = $state<boolean>(false);
@@ -51,13 +54,14 @@
     $effect(() => {
         internalBook = currentBook;
         internalChapter = currentChapter;
+        internalVerse = currentVerse;
     });
 
     // Trigger initial scroll when translation content loads
     $effect(() => {
         if (Option.isSome(translationContent) && scrollTarget.version === 0) {
-            // Increment version to trigger initial scroll to currentBook/currentChapter
-            scrollTarget = { book: currentBook, chapter: currentChapter, version: 1 };
+            // Increment version to trigger initial scroll to currentBook/currentChapter/currentVerse
+            scrollTarget = { book: currentBook, chapter: currentChapter, verse: currentVerse, version: 1 };
         }
     });
 
@@ -86,29 +90,32 @@
                 onToggleCanonExplorer();
                 // Delay scroll update to ensure canon explorer closes and VirtualBibleScroll renders
                 setTimeout(() => {
-                    scrollTarget = { book: bookOption.value, chapter, version: scrollTarget.version + 1 };
+                    scrollTarget = { book: bookOption.value, chapter, verse: null, version: scrollTarget.version + 1 };
                     internalBook = bookOption.value;
                     internalChapter = chapter;
-                    onStateChange(bookOption.value, chapter);
+                    internalVerse = null;
+                    onStateChange(bookOption.value, chapter, null);
                 }, 50);
             } else {
                 // On desktop, update immediately
-                scrollTarget = { book: bookOption.value, chapter, version: scrollTarget.version + 1 };
+                scrollTarget = { book: bookOption.value, chapter, verse: null, version: scrollTarget.version + 1 };
                 console.log(`   After: scrollTarget.version=${scrollTarget.version}`);
 
                 internalBook = bookOption.value;
                 internalChapter = chapter;
-                console.log(`   Calling onStateChange(${bookOption.value}, ${chapter})`);
-                onStateChange(bookOption.value, chapter);
+                internalVerse = null;
+                console.log(`   Calling onStateChange(${bookOption.value}, ${chapter}, null)`);
+                onStateChange(bookOption.value, chapter, null);
             }
         }
     }
 
     // Handle scroll state changes - update URL/canon explorer but NOT scroll target
-    function handleScrollStateChange(book: BibleBook, chapter: number) {
+    function handleScrollStateChange(book: BibleBook, chapter: number, verse: number | null) {
         internalBook = book;
         internalChapter = chapter;
-        onStateChange(book, chapter);
+        internalVerse = verse;
+        onStateChange(book, chapter, verse);
         // Note: We DON'T update scrollTarget here, so no scroll is triggered
     }
 
@@ -123,19 +130,21 @@
         if (internalChapter < currentBookData.chapters.length) {
             // Go to next chapter in same book
             const nextChapter = internalChapter + 1;
-            scrollTarget = { book: internalBook, chapter: nextChapter, version: scrollTarget.version + 1 };
+            scrollTarget = { book: internalBook, chapter: nextChapter, verse: null, version: scrollTarget.version + 1 };
             internalBook = internalBook;
             internalChapter = nextChapter;
-            onStateChange(internalBook, nextChapter);
+            internalVerse = null;
+            onStateChange(internalBook, nextChapter, null);
         } else {
             // Go to first chapter of next book
             const currentBookIndex = protestantBookOrder.books.indexOf(internalBook);
             if (currentBookIndex >= 0 && currentBookIndex < protestantBookOrder.books.length - 1) {
                 const nextBook = protestantBookOrder.books[currentBookIndex + 1];
-                scrollTarget = { book: nextBook, chapter: 1, version: scrollTarget.version + 1 };
+                scrollTarget = { book: nextBook, chapter: 1, verse: null, version: scrollTarget.version + 1 };
                 internalBook = nextBook;
                 internalChapter = 1;
-                onStateChange(nextBook, 1);
+                internalVerse = null;
+                onStateChange(nextBook, 1, null);
             }
         }
     }
@@ -148,10 +157,11 @@
         if (internalChapter > 1) {
             // Go to previous chapter in same book
             const prevChapter = internalChapter - 1;
-            scrollTarget = { book: internalBook, chapter: prevChapter, version: scrollTarget.version + 1 };
+            scrollTarget = { book: internalBook, chapter: prevChapter, verse: null, version: scrollTarget.version + 1 };
             internalBook = internalBook;
             internalChapter = prevChapter;
-            onStateChange(internalBook, prevChapter);
+            internalVerse = null;
+            onStateChange(internalBook, prevChapter, null);
         } else {
             // Go to last chapter of previous book
             const currentBookIndex = protestantBookOrder.books.indexOf(internalBook);
@@ -160,10 +170,11 @@
                 const prevBookData = translationContent.value.books.find(b => b.name === prevBook);
                 if (prevBookData) {
                     const lastChapter = prevBookData.chapters.length;
-                    scrollTarget = { book: prevBook, chapter: lastChapter, version: scrollTarget.version + 1 };
+                    scrollTarget = { book: prevBook, chapter: lastChapter, verse: null, version: scrollTarget.version + 1 };
                     internalBook = prevBook;
                     internalChapter = lastChapter;
-                    onStateChange(prevBook, lastChapter);
+                    internalVerse = null;
+                    onStateChange(prevBook, lastChapter, null);
                 }
             }
         }
