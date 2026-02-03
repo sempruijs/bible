@@ -52,22 +52,36 @@
 		}
 	});
 
-	// Track the last version we scrolled to
+	// Track the last version and position we scrolled to
 	let lastScrolledVersion = $state(0);
+	let lastScrolledBook = $state<BibleBook | null>(null);
+	let lastScrolledChapter = $state<number | null>(null);
+	// Flag to pause scroll tracking during navigation
+	let isNavigating = $state(false);
 
-	// Scroll to chapter ONLY when scrollTarget.version changes (explicit navigation)
+	// Scroll to chapter/verse when scrollTarget.version changes (explicit navigation)
 	$effect(() => {
 		const currentVersion = scrollTarget.version;
 
 		// Only scroll if version actually incremented
 		if (currentVersion > lastScrolledVersion && virtualListRef && items.length > 0) {
-			const targetIndex = items.findIndex(
-				item => item.book === scrollTarget.book && item.chapterNumber === scrollTarget.chapter
-			);
+			// Pause scroll tracking during navigation
+			isNavigating = true;
+			lastScrolledVersion = currentVersion;
 
-			if (targetIndex >= 0) {
-				virtualListRef.scrollToIndex(targetIndex, { align: 'start' });
-				lastScrolledVersion = currentVersion;
+			// Check if we need to scroll to a different chapter
+			const chapterChanged = lastScrolledBook !== scrollTarget.book || lastScrolledChapter !== scrollTarget.chapter;
+
+			if (chapterChanged) {
+				const targetIndex = items.findIndex(
+					item => item.book === scrollTarget.book && item.chapterNumber === scrollTarget.chapter
+				);
+
+				if (targetIndex >= 0) {
+					virtualListRef.scrollToIndex(targetIndex, { align: 'start' });
+					lastScrolledBook = scrollTarget.book;
+					lastScrolledChapter = scrollTarget.chapter;
+				}
 
 				// After scrolling to chapter, scroll to specific verse if specified
 				setTimeout(() => {
@@ -76,18 +90,28 @@
 						const verseElement = document.getElementById(verseId);
 						if (verseElement) {
 							verseElement.scrollIntoView({ block: 'start' });
-							// Focus the verse for screen reader users
 							verseElement.focus();
-							return;
+						}
+					} else {
+						const headingId = `chapter-${scrollTarget.book}-${scrollTarget.chapter}`;
+						const heading = document.getElementById(headingId);
+						if (heading) {
+							heading.focus();
 						}
 					}
-					// If no verse specified, focus the chapter heading
-					const headingId = `chapter-${scrollTarget.book}-${scrollTarget.chapter}`;
-					const heading = document.getElementById(headingId);
-					if (heading) {
-						heading.focus();
-					}
+					setTimeout(() => { isNavigating = false; }, 100);
 				}, 100);
+			} else {
+				// Same chapter - just scroll to the verse directly
+				if (scrollTarget.verse) {
+					const verseId = `verse-${scrollTarget.book}-${scrollTarget.chapter}-${scrollTarget.verse}`;
+					const verseElement = document.getElementById(verseId);
+					if (verseElement) {
+						verseElement.scrollIntoView({ block: 'start', behavior: 'smooth' });
+						verseElement.focus();
+					}
+				}
+				setTimeout(() => { isNavigating = false; }, 100);
 			}
 		}
 	});
@@ -165,12 +189,17 @@
 	}
 
 	function handleScroll() {
+		// Skip scroll tracking during navigation to avoid state conflicts
+		if (isNavigating) return;
+
 		// Throttle scroll updates to avoid flickering
 		if (scrollThrottleTimer) return;
 
 		scrollThrottleTimer = setTimeout(() => {
 			scrollThrottleTimer = null;
-			updateScrollState();
+			if (!isNavigating) {
+				updateScrollState();
+			}
 		}, 100);
 	}
 </script>

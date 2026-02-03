@@ -180,6 +180,78 @@
         }
     }
 
+    // Navigate to next verse
+    function goToNextVerse() {
+        if (!Option.isSome(translationContent)) return;
+
+        const currentBookData = translationContent.value.books.find(b => b.name === internalBook);
+        if (!currentBookData) return;
+
+        const currentChapterData = currentBookData.chapters.find(c => c.chapter === internalChapter);
+        if (!currentChapterData) return;
+
+        const currentVerseNum = internalVerse ?? 1;
+        const maxVerse = currentChapterData.verses.length;
+
+        if (currentVerseNum < maxVerse) {
+            // Go to next verse in same chapter
+            const nextVerse = currentVerseNum + 1;
+            scrollTarget = { book: internalBook, chapter: internalChapter, verse: nextVerse, version: scrollTarget.version + 1 };
+            internalVerse = nextVerse;
+            onStateChange(internalBook, internalChapter, nextVerse);
+        } else {
+            // Go to first verse of next chapter
+            goToNextChapter();
+        }
+    }
+
+    // Navigate to previous verse
+    function goToPreviousVerse() {
+        if (!Option.isSome(translationContent)) return;
+
+        const currentVerseNum = internalVerse ?? 1;
+
+        if (currentVerseNum > 1) {
+            // Go to previous verse in same chapter
+            const prevVerse = currentVerseNum - 1;
+            scrollTarget = { book: internalBook, chapter: internalChapter, verse: prevVerse, version: scrollTarget.version + 1 };
+            internalVerse = prevVerse;
+            onStateChange(internalBook, internalChapter, prevVerse);
+        } else {
+            // Go to last verse of previous chapter
+            const currentBookData = translationContent.value.books.find(b => b.name === internalBook);
+
+            if (internalChapter > 1 && currentBookData) {
+                // Previous chapter in same book
+                const prevChapterData = currentBookData.chapters.find(c => c.chapter === internalChapter - 1);
+                if (prevChapterData) {
+                    const lastVerse = prevChapterData.verses.length;
+                    scrollTarget = { book: internalBook, chapter: internalChapter - 1, verse: lastVerse, version: scrollTarget.version + 1 };
+                    internalChapter = internalChapter - 1;
+                    internalVerse = lastVerse;
+                    onStateChange(internalBook, internalChapter, lastVerse);
+                }
+            } else {
+                // Last verse of previous book's last chapter
+                const currentBookIndex = protestantBookOrder.books.indexOf(internalBook);
+                if (currentBookIndex > 0) {
+                    const prevBook = protestantBookOrder.books[currentBookIndex - 1];
+                    const prevBookData = translationContent.value.books.find(b => b.name === prevBook);
+                    if (prevBookData) {
+                        const lastChapter = prevBookData.chapters.length;
+                        const lastChapterData = prevBookData.chapters[lastChapter - 1];
+                        const lastVerse = lastChapterData.verses.length;
+                        scrollTarget = { book: prevBook, chapter: lastChapter, verse: lastVerse, version: scrollTarget.version + 1 };
+                        internalBook = prevBook;
+                        internalChapter = lastChapter;
+                        internalVerse = lastVerse;
+                        onStateChange(prevBook, lastChapter, lastVerse);
+                    }
+                }
+            }
+        }
+    }
+
     function handleTranslationChange(event: Event) {
         const target = event.target as HTMLSelectElement;
         const selectedTranslation = availableTranslations.find(t => t.metadata.shortName === target.value);
@@ -225,10 +297,16 @@
                 event.preventDefault();
                 shouldFocusSearch = true;
                 onToggleCanonExplorer();
-            } else if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+            } else if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                goToNextVerse();
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                goToPreviousVerse();
+            } else if (event.key === 'ArrowRight') {
                 event.preventDefault();
                 goToNextChapter();
-            } else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
+            } else if (event.key === 'ArrowLeft') {
                 event.preventDefault();
                 goToPreviousChapter();
             }
@@ -292,14 +370,14 @@
                 <button
                     onclick={goToPreviousChapter}
                     class="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors"
-                    title={isMobile ? "Previous chapter" : "Previous chapter (← or ↑)"}
+                    title={isMobile ? "Previous chapter" : "Previous chapter (←)"}
                 >
                     ←
                 </button>
                 <button
                     onclick={goToNextChapter}
                     class="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors"
-                    title={isMobile ? "Next chapter" : "Next chapter (→ or ↓)"}
+                    title={isMobile ? "Next chapter" : "Next chapter (→)"}
                 >
                     →
                 </button>
