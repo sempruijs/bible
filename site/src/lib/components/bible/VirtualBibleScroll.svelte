@@ -118,15 +118,13 @@
 </script>
 
 {#if items.length > 0}
-	<VList bind:this={virtualListRef} data={items} style="height: 100%;" onscrollend={handleScrollEnd} role="feed" aria-busy="false">
-		{#snippet children(item, index)}
+	<VList bind:this={virtualListRef} data={items} style="height: 100%;" onscrollend={handleScrollEnd}>
+		{#snippet children(item)}
 			<BibleChapterViewer
 				chapter={item.chapter}
 				book={item.book}
 				chapterNumber={item.chapterNumber}
 				showBookHeader={item.showBookHeader}
-				articleIndex={index + 1}
-				totalArticles={items.length}
 			/>
 		{/snippet}
 	</VList>
