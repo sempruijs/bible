@@ -16,25 +16,24 @@
 </script>
 
 <div class="w-full">
-	<div class="p-8">
+	<div class="px-8 py-2">
 		<div class="max-w-2xl mx-auto">
 			<!-- Book header (when crossing book boundaries) -->
 			{#if showBookHeader}
-				<header class="mb-6 text-center">
-					<h1 class="text-4xl font-bold text-gray-100 uppercase tracking-wide">{getDisplayName(book)}</h1>
+				<header class="mt-16 mb-24 text-center">
+					<h1 class="text-5xl md:text-7xl font-bold text-gray-100 uppercase tracking-wide">{getDisplayName(book)}</h1>
 					<div class="h-1 w-32 bg-blue-500 rounded mx-auto mt-3"></div>
 				</header>
 			{/if}
 
-			<!-- Chapter number header -->
-			<div class="text-center mb-8">
-				<h2 class="text-xl text-gray-400 font-light">— {chapterNumber} —</h2>
-			</div>
-
-			<!-- Verses as continuous paragraph -->
+			<!-- Verses as continuous paragraph with drop-cap chapter number -->
 			<div class="text-gray-200 leading-relaxed text-lg">
-				{#each chapter.verses as verse}
-					<sup class="text-blue-400 font-medium text-xs mr-1">{verse.verse}</sup><span class="text-gray-200">{verse.text} </span>
+				{#each chapter.verses as verse, i}
+					{#if i === 0}
+						<h2 class="float-left text-5xl font-bold text-gray-400 mr-2 leading-none mt-1">{chapterNumber}</h2>
+					{:else}
+						<sup class="text-blue-400 font-medium text-xs mr-1">{verse.verse}</sup>
+					{/if}<span class="text-gray-200">{verse.text} </span>
 				{/each}
 			</div>
 		</div>
