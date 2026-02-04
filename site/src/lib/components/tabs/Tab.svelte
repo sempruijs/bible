@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { TabState } from "$lib/app";
-	import { Bible, BibleState, Stopwatch, StopwatchState } from "$lib/app";
+	import type { TabState, BibleSelection } from "$lib/app";
+	import { Bible, BibleState, Stopwatch } from "$lib/app";
 	import BibleComponent from "$lib/components/bible/BibleReader.svelte";
 	import ChooseAppComponent from "$lib/components/ui/ChooseApp.svelte";
 	import StopwatchComponent from "$lib/components/ui/Stopwatch.svelte";
@@ -19,6 +19,7 @@
 		onTabClose?: () => void;
 	} = $props();
 
+	// Handle scroll state change (doesn't affect selection)
 	function handleBibleStateChange(book: any, chapter: any, verse: any) {
 		console.log("Tab: handleBibleStateChange called", book, chapter, verse);
 		if (app.app._tag === "Bible" && onStateChange) {
@@ -36,6 +37,26 @@
 				"Tab: calling onStateChange with updatedTab",
 				updatedTab,
 			);
+			onStateChange(updatedTab);
+		}
+	}
+
+	// Handle selection change (updates URL)
+	function handleSelectionChange(selection: BibleSelection | null) {
+		console.log("Tab: handleSelectionChange called", selection);
+		if (app.app._tag === "Bible" && onStateChange) {
+			const updatedBibleState = BibleState({
+				...app.app.bibleState,
+				selection,
+				// Update current position to start of selection for scroll sync
+				currentBook: selection?.start.book ?? app.app.bibleState.currentBook,
+				currentChapter: selection?.start.chapter ?? app.app.bibleState.currentChapter,
+				currentVerse: selection?.start.verse ?? null,
+			});
+			const updatedTab = {
+				...app,
+				app: Bible({ bibleState: updatedBibleState }),
+			};
 			onStateChange(updatedTab);
 		}
 	}
@@ -83,9 +104,11 @@
 		currentBook={app.app.bibleState.currentBook}
 		currentChapter={app.app.bibleState.currentChapter}
 		currentVerse={app.app.bibleState.currentVerse}
+		selection={app.app.bibleState.selection}
 		showCanonExplorer={app.app.bibleState.showCanonExplorer}
 		{isActive}
 		onStateChange={handleBibleStateChange}
+		onSelectionChange={handleSelectionChange}
 		onToggleCanonExplorer={handleToggleCanonExplorer}
 		onTranslationChange={handleTranslationChange}
 	/>
