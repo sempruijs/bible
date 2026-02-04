@@ -42,6 +42,8 @@
 	// Handle selection change (updates URL only, NOT scroll position)
 	function handleBibleSelectionChange(selection: BibleSelection | null) {
 		console.log("Tab: handleBibleSelectionChange called", selection);
+		console.log("Tab: onSelectionChange prop is:", onSelectionChange ? "defined" : "undefined");
+		console.log("Tab: app._tag is:", app.app._tag);
 		if (app.app._tag === "Bible" && onSelectionChange) {
 			const updatedBibleState = BibleState({
 				...app.app.bibleState,
@@ -52,7 +54,10 @@
 				...app,
 				app: Bible({ bibleState: updatedBibleState }),
 			};
+			console.log("Tab: calling onSelectionChange with updatedTab");
 			onSelectionChange(updatedTab);
+		} else {
+			console.log("Tab: NOT calling onSelectionChange - condition failed");
 		}
 	}
 
