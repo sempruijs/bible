@@ -3,22 +3,86 @@
 	import { VList } from "virtua/svelte";
 	import type { TranslationContent, Chapter } from "$lib/translations/translation";
 	import { BibleBook } from "$lib/book";
+	import type { BibleSelection, BibleReference } from "$lib/app";
 	import { protestantBookOrder } from "$lib/translations/bookOrder";
 	import BibleChapterViewer from "$lib/components/bible/BibleChapterViewer.svelte";
 
 	let {
 		translationContent,
 		scrollTarget,
+		selection = null as BibleSelection | null,
 		onStateChange = () => {},
 		onVerseSelect = (_book: BibleBook, _chapter: number, _verse: number) => {},
 		isActive = true
 	}: {
 		translationContent: Option.Option<TranslationContent>;
 		scrollTarget: { book: BibleBook; chapter: number; verse: number | null; version: number };
+		selection?: BibleSelection | null;
 		onStateChange?: (book: BibleBook, chapter: number, verse: number | null) => void;
 		onVerseSelect?: (book: BibleBook, chapter: number, verse: number) => void;
 		isActive?: boolean;
 	} = $props();
+
+	// Get the book order index for comparison
+	const getBookIndex = (book: BibleBook): number => protestantBookOrder.books.indexOf(book);
+
+	// Compare two references: returns -1 if a < b, 0 if a == b, 1 if a > b
+	const compareRefs = (a: BibleReference, b: BibleReference): number => {
+		const bookIndexA = getBookIndex(a.book);
+		const bookIndexB = getBookIndex(b.book);
+		if (bookIndexA !== bookIndexB) return bookIndexA < bookIndexB ? -1 : 1;
+		if (a.chapter !== b.chapter) return a.chapter < b.chapter ? -1 : 1;
+		const verseA = a.verse ?? 1;
+		const verseB = b.verse ?? 1;
+		if (verseA !== verseB) return verseA < verseB ? -1 : 1;
+		return 0;
+	};
+
+	// Check if a verse is within the selection range
+	const isVerseSelected = (book: BibleBook, chapter: number, verse: number): boolean => {
+		if (!selection) return false;
+
+		const ref: BibleReference = { book, chapter, verse };
+		const start = selection.start;
+		const end = selection.end ?? selection.start;
+
+		// Handle single chapter selection (no verse specified)
+		const effectiveStart = { ...start, verse: start.verse ?? 1 };
+		const effectiveEnd = { ...end, verse: end.verse ?? 9999 }; // Large number to include all verses
+
+		return compareRefs(ref, effectiveStart) >= 0 && compareRefs(ref, effectiveEnd) <= 0;
+	};
+
+	// Get selected verse range for a chapter (returns null if chapter not in selection)
+	const getChapterSelection = (book: BibleBook, chapter: number): { start: number; end: number } | null => {
+		if (!selection) return null;
+
+		const start = selection.start;
+		const end = selection.end ?? selection.start;
+
+		const bookIndex = getBookIndex(book);
+		const startBookIndex = getBookIndex(start.book);
+		const endBookIndex = getBookIndex(end.book);
+
+		// Check if this chapter is in the selection range
+		if (bookIndex < startBookIndex || bookIndex > endBookIndex) return null;
+		if (bookIndex === startBookIndex && chapter < start.chapter) return null;
+		if (bookIndex === endBookIndex && chapter > end.chapter) return null;
+
+		// Determine start verse for this chapter
+		let startVerse = 1;
+		if (bookIndex === startBookIndex && chapter === start.chapter) {
+			startVerse = start.verse ?? 1;
+		}
+
+		// Determine end verse for this chapter (9999 means to end of chapter)
+		let endVerse = 9999;
+		if (bookIndex === endBookIndex && chapter === end.chapter) {
+			endVerse = end.verse ?? 9999;
+		}
+
+		return { start: startVerse, end: endVerse };
+	};
 
 	interface ChapterItem {
 		book: BibleBook;
@@ -210,12 +274,14 @@
 	<VList bind:this={virtualListRef} data={items} style="height: 100%;" onscroll={handleScroll}>
 		{#snippet children(item)}
 			{@const isCurrentChapter = item.book === scrollTarget.book && item.chapterNumber === scrollTarget.chapter}
+			{@const chapterSelection = getChapterSelection(item.book, item.chapterNumber)}
 			<BibleChapterViewer
 				chapter={item.chapter}
 				book={item.book}
 				chapterNumber={item.chapterNumber}
 				showBookHeader={item.showBookHeader}
 				selectedVerse={isCurrentChapter ? scrollTarget.verse : null}
+				selectionRange={chapterSelection}
 				onVerseClick={(verse) => onVerseSelect(item.book, item.chapterNumber, verse)}
 			/>
 		{/snippet}

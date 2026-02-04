@@ -1,7 +1,8 @@
 <script lang="ts">
     import type { Translation, TranslationContent } from "$lib/translations/translation";
     import { loadTranslationContent } from "$lib/translations/loadTranslationContent";
-    import { BibleBook, getShortName, toBibleBook } from "$lib/book";
+    import { BibleBook, toBibleBook } from "$lib/book";
+    import type { BibleSelection } from "$lib/app";
     import { Option, Effect } from "effect";
     import BibleCanonExplorerWithSearch from "$lib/components/bible/BibleCanonExplorerWithSearch.svelte";
     import VirtualBibleScroll from "$lib/components/bible/VirtualBibleScroll.svelte";
@@ -16,9 +17,11 @@
         currentBook = BibleBook.John,
         currentChapter = 1,
         currentVerse = null as number | null,
+        selection = null as BibleSelection | null,
         showCanonExplorer = true,
         isActive = true,
         onStateChange = () => {},
+        onSelectionChange = () => {},
         onToggleCanonExplorer = () => {},
         onTranslationChange = () => {},
     }: {
@@ -26,9 +29,11 @@
         currentBook?: BibleBook;
         currentChapter?: number;
         currentVerse?: number | null;
+        selection?: BibleSelection | null;
         showCanonExplorer?: boolean;
         isActive?: boolean;
         onStateChange?: (book: BibleBook, chapter: number, verse: number | null) => void;
+        onSelectionChange?: (selection: BibleSelection | null) => void;
         onToggleCanonExplorer?: () => void;
         onTranslationChange?: (translation: Translation) => void;
     } = $props();
@@ -37,6 +42,9 @@
     let internalBook = $state<BibleBook>(currentBook);
     let internalChapter = $state<number>(currentChapter);
     let internalVerse = $state<number | null>(currentVerse);
+
+    // Internal selection state (separate from scroll state)
+    let internalSelection = $state<BibleSelection | null>(selection);
 
     // Scroll target - only updated on explicit navigation (clicks), NOT on scroll events
     let scrollTarget = $state({ book: currentBook, chapter: currentChapter, verse: currentVerse, version: 0 });
@@ -55,6 +63,7 @@
         internalBook = currentBook;
         internalChapter = currentChapter;
         internalVerse = currentVerse;
+        internalSelection = selection;
     });
 
     // Trigger initial scroll when translation content loads
@@ -85,6 +94,12 @@
             console.log(`📖 selectChapter called: ${bookOption.value} ${chapter}`);
             console.log(`   Before: scrollTarget.version=${scrollTarget.version}`);
 
+            // Create selection for the whole chapter
+            const newSelection: BibleSelection = {
+                start: { book: bookOption.value, chapter, verse: null },
+                end: null
+            };
+
             // On mobile, close canon explorer first so VirtualBibleScroll is visible when we scroll
             if (isMobile) {
                 onToggleCanonExplorer();
@@ -94,7 +109,8 @@
                     internalBook = bookOption.value;
                     internalChapter = chapter;
                     internalVerse = null;
-                    onStateChange(bookOption.value, chapter, null);
+                    internalSelection = newSelection;
+                    onSelectionChange(newSelection);
                 }, 50);
             } else {
                 // On desktop, update immediately
@@ -104,8 +120,9 @@
                 internalBook = bookOption.value;
                 internalChapter = chapter;
                 internalVerse = null;
-                console.log(`   Calling onStateChange(${bookOption.value}, ${chapter}, null)`);
-                onStateChange(bookOption.value, chapter, null);
+                internalSelection = newSelection;
+                console.log(`   Calling onSelectionChange with new selection`);
+                onSelectionChange(newSelection);
             }
         }
     }
@@ -119,14 +136,21 @@
         // Note: We DON'T update scrollTarget here, so no scroll is triggered
     }
 
-    // Handle verse click - select the verse without scrolling
+    // Handle verse click - select the verse and update URL
     function handleVerseSelect(book: BibleBook, chapter: number, verse: number) {
         internalBook = book;
         internalChapter = chapter;
         internalVerse = verse;
         // Update scrollTarget to highlight the verse, but keep same version so no scroll happens
         scrollTarget = { book, chapter, verse, version: scrollTarget.version };
-        onStateChange(book, chapter, verse);
+
+        // Create selection for the clicked verse
+        const newSelection: BibleSelection = {
+            start: { book, chapter, verse },
+            end: null
+        };
+        internalSelection = newSelection;
+        onSelectionChange(newSelection);
     }
 
     // Navigate to next chapter
@@ -421,6 +445,7 @@
             <VirtualBibleScroll
                 {translationContent}
                 {scrollTarget}
+                selection={internalSelection}
                 onStateChange={handleScrollStateChange}
                 onVerseSelect={handleVerseSelect}
                 {isActive}

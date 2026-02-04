@@ -4,11 +4,26 @@ import { BibleBookSchema, getDisplayName as getBibleBookDisplayName, getShortNam
 import type { Translation } from "$lib/translations/translation";
 import { TranslationSchema } from "$lib/translations/translation";
 
+// Bible reference - a point in the Bible (book, chapter, optional verse)
+export const BibleReferenceSchema = Schema.Struct({
+	book: BibleBookSchema,
+	chapter: Schema.Number,
+	verse: Schema.NullOr(Schema.Number)
+});
+
+// Bible selection - a range from start to optional end
+export const BibleSelectionSchema = Schema.Struct({
+	start: BibleReferenceSchema,
+	end: Schema.NullOr(BibleReferenceSchema)
+});
+
 // Effect Schema definitions - App-specific state
 export const BibleStateSchema = Schema.Struct({
 	currentBook: BibleBookSchema,
 	currentChapter: Schema.Number,
 	currentVerse: Schema.NullOr(Schema.Number),
+	// Selection state (separate from scroll state)
+	selection: Schema.NullOr(BibleSelectionSchema),
 	translation: TranslationSchema,
 	showCanonExplorer: Schema.Boolean
 });
@@ -55,12 +70,16 @@ type DeepWritable<T> = T extends object
 	: T;
 
 // Type exports - Schema.Type generates readonly types, make them writable for $state
+type BibleReferenceReadonly = Schema.Schema.Type<typeof BibleReferenceSchema>;
+type BibleSelectionReadonly = Schema.Schema.Type<typeof BibleSelectionSchema>;
 type BibleStateReadonly = Schema.Schema.Type<typeof BibleStateSchema>;
 type StopwatchStateReadonly = Schema.Schema.Type<typeof StopwatchStateSchema>;
 type AppReadonly = Schema.Schema.Type<typeof AppSchema>;
 type TabStateReadonly = Schema.Schema.Type<typeof TabStateSchema>;
 type TabsStateReadonly = Schema.Schema.Type<typeof TabsStateSchema>;
 
+export type BibleReference = DeepWritable<BibleReferenceReadonly>;
+export type BibleSelection = DeepWritable<BibleSelectionReadonly>;
 export type BibleState = DeepWritable<BibleStateReadonly>;
 export type StopwatchState = DeepWritable<StopwatchStateReadonly>;
 export type App = DeepWritable<AppReadonly>;
@@ -82,16 +101,74 @@ const formatTimeForTitle = (milliseconds: number): string => {
 	return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
+// Helper to format a single reference point as URL segment (e.g., "matt.5v3" or "matt.5")
+const formatReferencePoint = (ref: BibleReference): string => {
+	const bookShort = getShortName(ref.book);
+	return ref.verse !== null
+		? `${bookShort}.${ref.chapter}v${ref.verse}`
+		: `${bookShort}.${ref.chapter}`;
+};
+
+// Generate URL from selection state
+// URL formats:
+// - matt.5 (single chapter)
+// - matt.5v3 (single verse)
+// - matt.5v1-12 (verse range in same chapter)
+// - matt.5-7 (chapter range in same book)
+// - matt.5-7v30 (chapter range ending at verse)
+// - matt.28v10-mark.1v5 (cross-book range)
+// - matt.28-mark.2 (cross-book chapter range)
+const selectionToUrl = (selection: BibleSelection): string => {
+	const { start, end } = selection;
+
+	if (!end) {
+		// Single point
+		return `/${formatReferencePoint(start)}`;
+	}
+
+	const sameBook = start.book === end.book;
+	const sameChapter = sameBook && start.chapter === end.chapter;
+
+	if (sameChapter) {
+		// Same chapter: matt.5v1-12
+		const bookShort = getShortName(start.book);
+		if (start.verse !== null && end.verse !== null) {
+			return `/${bookShort}.${start.chapter}v${start.verse}-${end.verse}`;
+		}
+		// Just chapter (no verse range)
+		return `/${bookShort}.${start.chapter}`;
+	}
+
+	if (sameBook) {
+		// Same book, different chapters: matt.5-7 or matt.5-7v30
+		const bookShort = getShortName(start.book);
+		const startPart = start.verse !== null
+			? `${start.chapter}v${start.verse}`
+			: `${start.chapter}`;
+		const endPart = end.verse !== null
+			? `${end.chapter}v${end.verse}`
+			: `${end.chapter}`;
+		return `/${bookShort}.${startPart}-${endPart}`;
+	}
+
+	// Different books: matt.28v10-mark.1v5
+	return `/${formatReferencePoint(start)}-${formatReferencePoint(end)}`;
+};
+
 // App namespace - operations on App type
 export namespace App {
 	export const getUrl = (app: App): string => {
 		return $match(app, {
 			Bible: ({ bibleState }) => {
+				// If we have a selection, generate URL from selection
+				if (bibleState.selection) {
+					return selectionToUrl(bibleState.selection);
+				}
+				// Fallback: generate from current position (for scroll state only)
 				const bookShort = getShortName(bibleState.currentBook);
-				const chapterPart = bibleState.currentVerse
-					? `${bibleState.currentChapter}v${bibleState.currentVerse}`
-					: `${bibleState.currentChapter}`;
-				return `/${bookShort}/${chapterPart}`;
+				return bibleState.currentVerse !== null
+					? `/${bookShort}.${bibleState.currentChapter}v${bibleState.currentVerse}`
+					: `/${bookShort}.${bibleState.currentChapter}`;
 			},
 			About: () => "/about",
 			ChooseApp: () => "/",
@@ -205,7 +282,7 @@ export namespace TabsState {
 
 // Create tab configuration types
 export type CreateTabConfig =
-	| { app: "Bible", id: string, book: BibleBook, chapter: number, verse?: number | null, translation: Translation, showCanonExplorer: boolean }
+	| { app: "Bible", id: string, book: BibleBook, chapter: number, verse?: number | null, selection?: BibleSelection | null, translation: Translation, showCanonExplorer: boolean }
 	| { app: "Stopwatch", id: string }
 	| { app: "About", id: string }
 	| { app: "ChooseApp", id: string };
@@ -221,6 +298,7 @@ export const createTab = (config: CreateTabConfig): TabState => {
 						currentBook: config.book,
 						currentChapter: config.chapter,
 						currentVerse: config.verse ?? null,
+						selection: config.selection ?? null,
 						translation: config.translation as any, // Translation types are readonly but compatible
 						showCanonExplorer: config.showCanonExplorer
 					})

@@ -8,6 +8,7 @@
 		chapterNumber,
 		showBookHeader = false,
 		selectedVerse = null as number | null,
+		selectionRange = null as { start: number; end: number } | null,
 		onVerseClick = (_verse: number) => {}
 	}: {
 		chapter: Chapter;
@@ -15,8 +16,15 @@
 		chapterNumber: number;
 		showBookHeader: boolean;
 		selectedVerse?: number | null;
+		selectionRange?: { start: number; end: number } | null;
 		onVerseClick?: (verse: number) => void;
 	} = $props();
+
+	// Check if a verse is in the selection range
+	const isVerseInSelection = (verseNum: number): boolean => {
+		if (!selectionRange) return false;
+		return verseNum >= selectionRange.start && verseNum <= selectionRange.end;
+	};
 </script>
 
 <div class="w-full">
@@ -33,9 +41,10 @@
 			<!-- Verses as continuous paragraph with drop-cap chapter number -->
 			<div class="text-gray-200 leading-relaxed text-lg">
 				{#each chapter.verses as verse, i}
+					{@const isSelected = isVerseInSelection(verse.verse)}
 					<span
 						id="verse-{book}-{chapterNumber}-{verse.verse}"
-						class="verse-marker focus:outline-none cursor-pointer hover:bg-gray-700/50 rounded-sm {selectedVerse === verse.verse ? 'font-bold bg-gray-700/30' : ''}"
+						class="verse-marker focus:outline-none cursor-pointer hover:bg-gray-700/50 rounded-sm {selectedVerse === verse.verse ? 'font-bold bg-gray-700/30' : ''} {isSelected ? 'font-bold' : ''}"
 						tabindex="-1"
 						onclick={() => onVerseClick(verse.verse)}
 						role="button"

@@ -45,7 +45,7 @@
 			// Create Stopwatch tab if URL is /stopwatch
 			initialTab = createTab({ app: "Stopwatch", id: "tab1" });
 		} else {
-			// Create Bible tab with parsed book/chapter/verse
+			// Create Bible tab with parsed book/chapter/verse and selection
 			const canonState = ResponsiveService.getInitialCanonState();
 			initialTab = createTab({
 				app: "Bible",
@@ -53,6 +53,7 @@
 				book: initialState.book,
 				chapter: initialState.chapter,
 				verse: initialState.verse,
+				selection: initialState.selection,
 				translation,
 				showCanonExplorer: canonState
 			});
@@ -175,10 +176,6 @@
 		}
 
 		const currentPage = $page;
-		const params = currentPage.params;
-
-		if (!params.book || !params.chapter) return;
-
 		const urlStateOption = NavigationService.parseURL(currentPage.url.pathname);
 
 		if (Option.isNone(urlStateOption)) return;
@@ -187,20 +184,28 @@
 		const activeTab = activeTabOption.value;
 		if (activeTab.app._tag !== "Bible") return;
 
-		const urlState = urlStateOption.value;
+		const selection = urlStateOption.value;
+		const currentSelection = activeTab.app.bibleState.selection;
 		const currentBook = activeTab.app.bibleState.currentBook;
 		const currentChapter = activeTab.app.bibleState.currentChapter;
 		const currentVerse = activeTab.app.bibleState.currentVerse;
 
-		if (currentBook === urlState.book && currentChapter === urlState.chapter && currentVerse === urlState.verse) return;
+		// Check if the selection has changed
+		const selectionChanged = JSON.stringify(selection) !== JSON.stringify(currentSelection);
+		const positionChanged = currentBook !== selection.start.book ||
+			currentChapter !== selection.start.chapter ||
+			currentVerse !== selection.start.verse;
+
+		if (!selectionChanged && !positionChanged) return;
 
 		console.log('🔄 syncFromURL: URL changed via browser navigation');
 		const updatedTab = createTab({
 			app: "Bible",
 			id: activeTab.id,
-			book: urlState.book,
-			chapter: urlState.chapter,
-			verse: urlState.verse,
+			book: selection.start.book,
+			chapter: selection.start.chapter,
+			verse: selection.start.verse,
+			selection: selection,
 			translation: activeTab.app.bibleState.translation,
 			showCanonExplorer: activeTab.app.bibleState.showCanonExplorer
 		});
