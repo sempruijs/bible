@@ -131,12 +131,14 @@
 
     // Handle verse click - select the verse and update URL (does NOT affect scroll)
     function handleVerseSelect(book: BibleBook, chapter: number, verse: number) {
+        console.log('📖 handleVerseSelect called:', book, chapter, verse);
         // Create selection for the clicked verse - this updates the URL
         const newSelection: BibleSelection = {
             start: { book, chapter, verse },
             end: null
         };
         internalSelection = newSelection;
+        console.log('📖 Calling onSelectionChange with:', newSelection);
         onSelectionChange(newSelection);
         // Note: scroll position (internalBook/Chapter/Verse, scrollTarget) is NOT changed
     }
@@ -333,6 +335,7 @@
                 goToPreviousChapter();
             } else if (event.key === 'Escape') {
                 event.preventDefault();
+                console.log('📖 Escape pressed - clearing selection');
                 // Clear selection
                 internalSelection = null;
                 onSelectionChange(null);

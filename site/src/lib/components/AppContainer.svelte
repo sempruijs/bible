@@ -67,31 +67,27 @@
 
 
 	// Update tab state (for scroll/view position - updates hash in URL)
-	async function updateTabState(updatedTab: TabState) {
+	function updateTabState(updatedTab: TabState) {
 		console.log('📝 updateTabState called with:', updatedTab);
 		tabsState = TabsStateNS.updateTab(tabsState, updatedTab);
 
 		// Update URL hash for scroll position
 		if (updatedTab.id === tabsState.activeTabId && updatedTab.app._tag === "Bible") {
 			const url = App.getUrl(updatedTab.app);
-			isProgrammaticNavigation = true;
-			await NavigationService.navigateToUrl(url);
-			isProgrammaticNavigation = false;
+			NavigationService.navigateToUrl(url);
 		}
 	}
 
 	// Update tab state with selection change (updates full URL)
-	async function updateTabStateWithSelection(updatedTab: TabState) {
+	function updateTabStateWithSelection(updatedTab: TabState) {
 		console.log('📝 updateTabStateWithSelection called with:', updatedTab);
 		tabsState = TabsStateNS.updateTab(tabsState, updatedTab);
 
 		// Update full URL for selection change
 		if (updatedTab.id === tabsState.activeTabId && updatedTab.app._tag === "Bible") {
 			const url = App.getUrl(updatedTab.app);
-			console.log('🔗 Navigating to URL:', url);
-			isProgrammaticNavigation = true;
-			await NavigationService.navigateToUrl(url);
-			isProgrammaticNavigation = false;
+			console.log('🔗 Updating URL to:', url);
+			NavigationService.navigateToUrl(url);
 		}
 	}
 

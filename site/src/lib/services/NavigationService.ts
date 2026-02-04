@@ -10,7 +10,6 @@
  * - matt.28-mark.2 (cross-book chapter range)
  */
 
-import { goto } from "$app/navigation";
 import { BibleBook, toBibleBook } from "$lib/book";
 import type { BibleReference, BibleSelection } from "$lib/app";
 import { Option } from "effect";
@@ -102,16 +101,17 @@ export const parseReferenceUrl = (path: string): BibleSelection | null => {
 };
 
 /**
- * Navigate to a specific URL.
- * Uses replaceState to avoid adding to browser history.
+ * Update the URL without triggering a page navigation/reload.
+ * Uses history.replaceState for smooth updates.
  *
- * @param url - The URL to navigate to
+ * @param url - The URL to set
  */
-export const navigateToUrl = async (url: string): Promise<void> => {
-	console.log('NavigationService: navigateToUrl called with:', url);
-	console.log('NavigationService: current location:', typeof window !== 'undefined' ? window.location.pathname : 'SSR');
-	await goto(url, { replaceState: true });
-	console.log('NavigationService: goto completed, new location:', typeof window !== 'undefined' ? window.location.pathname : 'SSR');
+export const navigateToUrl = (url: string): void => {
+	if (typeof window === 'undefined') return;
+
+	console.log('NavigationService: updating URL to:', url);
+	// Use history.replaceState to update URL without navigation
+	window.history.replaceState(window.history.state, '', url);
 };
 
 /**
