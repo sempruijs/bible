@@ -129,17 +129,31 @@
         // Note: We DON'T update scrollTarget here, so no scroll is triggered
     }
 
-    // Handle verse click - select the verse and update URL (does NOT affect scroll)
+    // Handle verse click - toggle selection (does NOT affect scroll)
     function handleVerseSelect(book: BibleBook, chapter: number, verse: number) {
         console.log('📖 handleVerseSelect called:', book, chapter, verse);
-        // Create selection for the clicked verse - this updates the URL
-        const newSelection: BibleSelection = {
-            start: { book, chapter, verse },
-            end: null
-        };
-        internalSelection = newSelection;
-        console.log('📖 Calling onSelectionChange with:', newSelection);
-        onSelectionChange(newSelection);
+
+        // Check if this verse is already selected - if so, deselect
+        const isAlreadySelected = internalSelection &&
+            internalSelection.start.book === book &&
+            internalSelection.start.chapter === chapter &&
+            internalSelection.start.verse === verse &&
+            internalSelection.end === null;
+
+        if (isAlreadySelected) {
+            console.log('📖 Verse already selected - deselecting');
+            internalSelection = null;
+            onSelectionChange(null);
+        } else {
+            // Create selection for the clicked verse
+            const newSelection: BibleSelection = {
+                start: { book, chapter, verse },
+                end: null
+            };
+            internalSelection = newSelection;
+            console.log('📖 Calling onSelectionChange with:', newSelection);
+            onSelectionChange(newSelection);
+        }
         // Note: scroll position (internalBook/Chapter/Verse, scrollTarget) is NOT changed
     }
 
