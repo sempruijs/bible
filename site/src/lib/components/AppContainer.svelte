@@ -66,19 +66,26 @@
 	let activeTabOption = $derived(TabsStateNS.getActiveTab(tabsState));
 
 
-	// Update tab state (for scroll/view position - does NOT update URL)
-	function updateTabState(updatedTab: TabState) {
+	// Update tab state (for scroll/view position - updates hash in URL)
+	async function updateTabState(updatedTab: TabState) {
 		console.log('📝 updateTabState called with:', updatedTab);
 		tabsState = TabsStateNS.updateTab(tabsState, updatedTab);
-		// Note: URL is NOT updated here - scroll position is internal state only
+
+		// Update URL hash for scroll position
+		if (updatedTab.id === tabsState.activeTabId && updatedTab.app._tag === "Bible") {
+			const url = App.getUrl(updatedTab.app);
+			isProgrammaticNavigation = true;
+			await NavigationService.navigateToUrl(url);
+			isProgrammaticNavigation = false;
+		}
 	}
 
-	// Update tab state with selection change (DOES update URL)
+	// Update tab state with selection change (updates full URL)
 	async function updateTabStateWithSelection(updatedTab: TabState) {
 		console.log('📝 updateTabStateWithSelection called with:', updatedTab);
 		tabsState = TabsStateNS.updateTab(tabsState, updatedTab);
 
-		// Update URL only for Bible tabs with selection
+		// Update full URL for selection change
 		if (updatedTab.id === tabsState.activeTabId && updatedTab.app._tag === "Bible") {
 			const url = App.getUrl(updatedTab.app);
 			console.log('🔗 Navigating to URL:', url);
