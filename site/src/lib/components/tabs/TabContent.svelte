@@ -5,13 +5,15 @@
 	let {
 		tabs,
 		activeTabId,
-		onStateChange,
+		onScrollStateChange,
+		onSelectionChange,
 		onAppChoice,
 		onTabRemove
 	}: {
 		tabs: TabState[];
 		activeTabId: string;
-		onStateChange?: (tab: TabState) => void;
+		onScrollStateChange?: (tab: TabState) => void;
+		onSelectionChange?: (tab: TabState) => void;
 		onAppChoice?: (appType: "bible" | "about" | "stopwatch") => void;
 		onTabRemove?: (tabId: string) => void;
 	} = $props();
@@ -27,7 +29,8 @@
 				<TabComponent
 					app={tab}
 					isActive={tab.id === activeTabId}
-					{onStateChange}
+					{onScrollStateChange}
+					{onSelectionChange}
 					{onAppChoice}
 					onTabClose={() => onTabRemove?.(tab.id)}
 				/>

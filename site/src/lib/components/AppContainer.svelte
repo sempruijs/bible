@@ -66,19 +66,24 @@
 	let activeTabOption = $derived(TabsStateNS.getActiveTab(tabsState));
 
 
-	// Update tab state
-	async function updateTabState(updatedTab: TabState) {
+	// Update tab state (for scroll/view position - does NOT update URL)
+	function updateTabState(updatedTab: TabState) {
 		console.log('📝 updateTabState called with:', updatedTab);
 		tabsState = TabsStateNS.updateTab(tabsState, updatedTab);
+		// Note: URL is NOT updated here - scroll position is internal state only
+	}
 
-		// Update URL only for Bible tabs (they have routes)
-		// Other apps (About, Stopwatch, ChooseApp) are client-side only
+	// Update tab state with selection change (DOES update URL)
+	async function updateTabStateWithSelection(updatedTab: TabState) {
+		console.log('📝 updateTabStateWithSelection called with:', updatedTab);
+		tabsState = TabsStateNS.updateTab(tabsState, updatedTab);
+
+		// Update URL only for Bible tabs with selection
 		if (updatedTab.id === tabsState.activeTabId && updatedTab.app._tag === "Bible") {
 			const url = App.getUrl(updatedTab.app);
 			console.log('🔗 Navigating to URL:', url);
 			isProgrammaticNavigation = true;
 			await NavigationService.navigateToUrl(url);
-			// Reset flag after navigation completes
 			isProgrammaticNavigation = false;
 		}
 	}
@@ -167,7 +172,7 @@
 		}
 	}
 
-	// Handle browser navigation
+	// Handle browser navigation - ONLY updates selection, NOT scroll position
 	function syncFromURL() {
 		// Skip sync if we're in the middle of programmatic navigation
 		if (isProgrammaticNavigation) {
@@ -186,25 +191,19 @@
 
 		const selection = urlStateOption.value;
 		const currentSelection = activeTab.app.bibleState.selection;
-		const currentBook = activeTab.app.bibleState.currentBook;
-		const currentChapter = activeTab.app.bibleState.currentChapter;
-		const currentVerse = activeTab.app.bibleState.currentVerse;
 
-		// Check if the selection has changed
+		// Only check if selection changed - scroll position is independent
 		const selectionChanged = JSON.stringify(selection) !== JSON.stringify(currentSelection);
-		const positionChanged = currentBook !== selection.start.book ||
-			currentChapter !== selection.start.chapter ||
-			currentVerse !== selection.start.verse;
+		if (!selectionChanged) return;
 
-		if (!selectionChanged && !positionChanged) return;
-
-		console.log('🔄 syncFromURL: URL changed via browser navigation');
+		console.log('🔄 syncFromURL: Selection changed via browser navigation');
+		// Only update selection, keep current scroll position
 		const updatedTab = createTab({
 			app: "Bible",
 			id: activeTab.id,
-			book: selection.start.book,
-			chapter: selection.start.chapter,
-			verse: selection.start.verse,
+			book: activeTab.app.bibleState.currentBook,
+			chapter: activeTab.app.bibleState.currentChapter,
+			verse: activeTab.app.bibleState.currentVerse,
 			selection: selection,
 			translation: activeTab.app.bibleState.translation,
 			showCanonExplorer: activeTab.app.bibleState.showCanonExplorer
@@ -261,7 +260,8 @@
 	<TabContent
 		tabs={tabsState.tabs}
 		activeTabId={tabsState.activeTabId}
-		onStateChange={updateTabState}
+		onScrollStateChange={updateTabState}
+		onSelectionChange={updateTabStateWithSelection}
 		onAppChoice={handleAppChoice}
 		onTabRemove={removeTab}
 	/>
