@@ -160,15 +160,12 @@ export namespace App {
 	export const getUrl = (app: App): string => {
 		return $match(app, {
 			Bible: ({ bibleState }) => {
-				// If we have a selection, generate URL from selection
+				// URL only reflects selection, not scroll position
 				if (bibleState.selection) {
 					return selectionToUrl(bibleState.selection);
 				}
-				// Fallback: generate from current position (for scroll state only)
-				const bookShort = getShortName(bibleState.currentBook);
-				return bibleState.currentVerse !== null
-					? `/${bookShort}.${bibleState.currentChapter}v${bibleState.currentVerse}`
-					: `/${bookShort}.${bibleState.currentChapter}`;
+				// No selection = root URL
+				return "/";
 			},
 			About: () => "/about",
 			ChooseApp: () => "/",
