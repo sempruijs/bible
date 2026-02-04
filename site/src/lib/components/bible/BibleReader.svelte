@@ -331,6 +331,11 @@
             } else if (event.key === 'ArrowLeft') {
                 event.preventDefault();
                 goToPreviousChapter();
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                // Clear selection
+                internalSelection = null;
+                onSelectionChange(null);
             }
         };
 
