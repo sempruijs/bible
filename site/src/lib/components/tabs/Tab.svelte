@@ -8,21 +8,23 @@
 	let {
 		app,
 		isActive = false,
-		onStateChange,
+		onScrollStateChange,
+		onSelectionChange,
 		onAppChoice,
 		onTabClose,
 	}: {
 		app: TabState;
 		isActive?: boolean;
-		onStateChange?: (app: TabState) => void;
+		onScrollStateChange?: (app: TabState) => void;
+		onSelectionChange?: (app: TabState) => void;
 		onAppChoice?: (appType: "bible" | "about" | "stopwatch") => void;
 		onTabClose?: () => void;
 	} = $props();
 
-	// Handle scroll state change (doesn't affect selection)
-	function handleBibleStateChange(book: any, chapter: any, verse: any) {
-		console.log("Tab: handleBibleStateChange called", book, chapter, verse);
-		if (app.app._tag === "Bible" && onStateChange) {
+	// Handle scroll state change (doesn't update URL - just internal view position)
+	function handleBibleScrollStateChange(book: any, chapter: any, verse: any) {
+		console.log("Tab: handleBibleScrollStateChange called", book, chapter, verse);
+		if (app.app._tag === "Bible" && onScrollStateChange) {
 			const updatedBibleState = BibleState({
 				...app.app.bibleState,
 				currentBook: book,
@@ -33,41 +35,34 @@
 				...app,
 				app: Bible({ bibleState: updatedBibleState }),
 			};
-			console.log(
-				"Tab: calling onStateChange with updatedTab",
-				updatedTab,
-			);
-			onStateChange(updatedTab);
+			onScrollStateChange(updatedTab);
 		}
 	}
 
-	// Handle selection change (updates URL)
-	function handleSelectionChange(selection: BibleSelection | null) {
-		console.log("Tab: handleSelectionChange called", selection);
-		if (app.app._tag === "Bible" && onStateChange) {
+	// Handle selection change (updates URL only, NOT scroll position)
+	function handleBibleSelectionChange(selection: BibleSelection | null) {
+		console.log("Tab: handleBibleSelectionChange called", selection);
+		if (app.app._tag === "Bible" && onSelectionChange) {
 			const updatedBibleState = BibleState({
 				...app.app.bibleState,
 				selection,
-				// Update current position to start of selection for scroll sync
-				currentBook: selection?.start.book ?? app.app.bibleState.currentBook,
-				currentChapter: selection?.start.chapter ?? app.app.bibleState.currentChapter,
-				currentVerse: selection?.start.verse ?? null,
+				// Keep current scroll position - selection is independent
 			});
 			const updatedTab = {
 				...app,
 				app: Bible({ bibleState: updatedBibleState }),
 			};
-			onStateChange(updatedTab);
+			onSelectionChange(updatedTab);
 		}
 	}
 
 	function handleToggleCanonExplorer() {
-		if (app.app._tag === "Bible" && onStateChange) {
+		if (app.app._tag === "Bible" && onScrollStateChange) {
 			const updatedBibleState = BibleState({
 				...app.app.bibleState,
 				showCanonExplorer: !app.app.bibleState.showCanonExplorer,
 			});
-			onStateChange({
+			onScrollStateChange({
 				...app,
 				app: Bible({ bibleState: updatedBibleState }),
 			});
@@ -75,12 +70,12 @@
 	}
 
 	function handleTranslationChange(translation: any) {
-		if (app.app._tag === "Bible" && onStateChange) {
+		if (app.app._tag === "Bible" && onScrollStateChange) {
 			const updatedBibleState = BibleState({
 				...app.app.bibleState,
 				translation,
 			});
-			onStateChange({
+			onScrollStateChange({
 				...app,
 				app: Bible({ bibleState: updatedBibleState }),
 			});
@@ -88,8 +83,8 @@
 	}
 
 	function handleStopwatchStateChange(newStopwatchState: any) {
-		if (app.app._tag === "Stopwatch" && onStateChange) {
-			onStateChange({
+		if (app.app._tag === "Stopwatch" && onScrollStateChange) {
+			onScrollStateChange({
 				...app,
 				app: Stopwatch({ stopwatchState: newStopwatchState }),
 			});
@@ -107,8 +102,8 @@
 		selection={app.app.bibleState.selection}
 		showCanonExplorer={app.app.bibleState.showCanonExplorer}
 		{isActive}
-		onStateChange={handleBibleStateChange}
-		onSelectionChange={handleSelectionChange}
+		onScrollStateChange={handleBibleScrollStateChange}
+		onSelectionChange={handleBibleSelectionChange}
 		onToggleCanonExplorer={handleToggleCanonExplorer}
 		onTranslationChange={handleTranslationChange}
 	/>

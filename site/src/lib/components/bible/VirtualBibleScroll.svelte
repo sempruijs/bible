@@ -11,14 +11,14 @@
 		translationContent,
 		scrollTarget,
 		selection = null as BibleSelection | null,
-		onStateChange = () => {},
+		onScrollStateChange = () => {},
 		onVerseSelect = (_book: BibleBook, _chapter: number, _verse: number) => {},
 		isActive = true
 	}: {
 		translationContent: Option.Option<TranslationContent>;
 		scrollTarget: { book: BibleBook; chapter: number; verse: number | null; version: number };
 		selection?: BibleSelection | null;
-		onStateChange?: (book: BibleBook, chapter: number, verse: number | null) => void;
+		onScrollStateChange?: (book: BibleBook, chapter: number, verse: number | null) => void;
 		onVerseSelect?: (book: BibleBook, chapter: number, verse: number) => void;
 		isActive?: boolean;
 	} = $props();
@@ -246,7 +246,7 @@
 					lastReportedVerse = verse;
 
 					// Update URL and canon explorer (but NOT scrollTarget, so no scroll triggered)
-					onStateChange(visibleItem.book, visibleItem.chapterNumber, verse);
+					onScrollStateChange(visibleItem.book, visibleItem.chapterNumber, verse);
 				}
 			}
 		} catch (error) {
