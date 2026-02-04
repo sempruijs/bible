@@ -147,8 +147,18 @@ export const parseURL = (pathname: string): Option.Option<BibleSelection> => {
 };
 
 /**
+ * Parse the URL hash to extract scroll position (e.g., "#john.1v1")
+ */
+export const parseScrollHash = (hash: string): BibleReference | null => {
+	if (!hash || hash === '#') return null;
+	// Remove the # prefix
+	const cleanHash = hash.startsWith('#') ? hash.slice(1) : hash;
+	return parseReferencePoint(cleanHash);
+};
+
+/**
  * Get the initial application state based on the current URL.
- * Determines which app type to show (Bible, About, Stopwatch) and the initial selection.
+ * Path = selection, Hash = scroll position
  *
  * @returns Object containing the initial book, chapter, verse, selection, and app type flags
  */
@@ -172,6 +182,7 @@ export const getInitialState = (): {
 	}
 
 	const pathname = window.location.pathname;
+	const hash = window.location.hash;
 
 	// Check if it's the about page
 	if (pathname === '/about') {
@@ -197,10 +208,27 @@ export const getInitialState = (): {
 		};
 	}
 
-	// Parse as Bible route
+	// Parse selection from path
 	const selectionOption = parseURL(pathname);
-	if (Option.isSome(selectionOption)) {
-		const selection = selectionOption.value;
+	const selection = Option.isSome(selectionOption) ? selectionOption.value : null;
+
+	// Parse scroll position from hash
+	const scrollPosition = parseScrollHash(hash);
+
+	// If we have a scroll position in hash, use it
+	if (scrollPosition) {
+		return {
+			book: scrollPosition.book,
+			chapter: scrollPosition.chapter,
+			verse: scrollPosition.verse,
+			selection,
+			isAbout: false,
+			isStopwatch: false
+		};
+	}
+
+	// If we have a selection but no scroll hash, scroll to selection start
+	if (selection) {
 		return {
 			book: selection.start.book,
 			chapter: selection.start.chapter,
@@ -226,5 +254,6 @@ export const NavigationService = {
 	navigateToUrl,
 	parseURL,
 	parseReferenceUrl,
+	parseScrollHash,
 	getInitialState
 };

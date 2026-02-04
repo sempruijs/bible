@@ -155,17 +155,31 @@ const selectionToUrl = (selection: BibleSelection): string => {
 	return `/${formatReferencePoint(start)}-${formatReferencePoint(end)}`;
 };
 
+// Helper to format scroll position as hash (e.g., "#john.1v1")
+const formatScrollHash = (book: BibleBook, chapter: number, verse: number | null): string => {
+	const bookShort = getShortName(book);
+	return verse !== null
+		? `#${bookShort}.${chapter}v${verse}`
+		: `#${bookShort}.${chapter}`;
+};
+
 // App namespace - operations on App type
 export namespace App {
 	export const getUrl = (app: App): string => {
 		return $match(app, {
 			Bible: ({ bibleState }) => {
-				// URL only reflects selection, not scroll position
+				// Build URL: path is selection, hash is scroll position
+				const scrollHash = formatScrollHash(
+					bibleState.currentBook,
+					bibleState.currentChapter,
+					bibleState.currentVerse
+				);
+
 				if (bibleState.selection) {
-					return selectionToUrl(bibleState.selection);
+					return selectionToUrl(bibleState.selection) + scrollHash;
 				}
-				// No selection = root URL
-				return "/";
+				// No selection = just hash for scroll position
+				return "/" + scrollHash;
 			},
 			About: () => "/about",
 			ChooseApp: () => "/",
