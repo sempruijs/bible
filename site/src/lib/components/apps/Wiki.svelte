@@ -4,14 +4,21 @@
 
 	let {
 		wikiState,
+		isActive = false,
 		onNavigate,
+		onToggleSidebar,
 	}: {
 		wikiState: WikiState;
+		isActive?: boolean;
 		onNavigate?: (page: string) => void;
+		onToggleSidebar?: () => void;
 	} = $props();
 </script>
 
 <WikiReader
 	page={wikiState.page}
+	showSidebar={wikiState.showSidebar}
+	{isActive}
 	{onNavigate}
+	{onToggleSidebar}
 />

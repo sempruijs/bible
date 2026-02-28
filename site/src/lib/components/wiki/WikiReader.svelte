@@ -1,21 +1,53 @@
 <script lang="ts">
 	import { onMount } from "svelte";
+	import WikiSidebar from "$lib/components/wiki/WikiSidebar.svelte";
+	import * as ResponsiveService from "$lib/services/ResponsiveService";
 
 	let {
 		page,
+		showSidebar = true,
+		isActive = true,
 		onNavigate,
+		onToggleSidebar,
 	}: {
 		page: string;
+		showSidebar?: boolean;
+		isActive?: boolean;
 		onNavigate?: (page: string) => void;
+		onToggleSidebar?: () => void;
 	} = $props();
 
 	let content = $state<string>("");
 	let loading = $state<boolean>(true);
 	let error = $state<string | null>(null);
+	let entries = $state<string[]>([]);
+	let entriesLoading = $state<boolean>(true);
+	let isMobile = $state<boolean>(false);
+	let shouldFocusSearch = $state(false);
 
 	// Convert page name to proper case for fetching (e.g., "abraham" -> "Abraham")
 	function toProperCase(str: string): string {
 		return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+	}
+
+	// Fetch wiki entries list from GitHub
+	async function fetchWikiEntries() {
+		entriesLoading = true;
+		try {
+			const response = await fetch('https://api.github.com/repos/biblecomputer/wiki/contents');
+			if (response.ok) {
+				const data = await response.json();
+				entries = data
+					.filter((item: any) => item.name.endsWith('.md') && item.name !== 'README.md')
+					.map((item: any) => item.name.replace('.md', ''))
+					.sort((a: string, b: string) => a.localeCompare(b));
+			}
+		} catch (err) {
+			console.error('Failed to fetch wiki entries:', err);
+			entries = [];
+		} finally {
+			entriesLoading = false;
+		}
 	}
 
 	// Fetch wiki content from GitHub
@@ -97,42 +129,158 @@
 		}
 	}
 
+	function handleEntrySelect(entryPage: string) {
+		if (onNavigate) {
+			onNavigate(entryPage);
+		}
+	}
+
 	// Fetch content when page changes
 	$effect(() => {
 		fetchWikiContent(page);
 	});
+
+	// Reset focus flag when sidebar is hidden
+	$effect(() => {
+		if (!showSidebar) {
+			shouldFocusSearch = false;
+		}
+	});
+
+	onMount(() => {
+		// Fetch entries list
+		fetchWikiEntries();
+
+		// Initialize mobile state
+		isMobile = ResponsiveService.isMobile();
+
+		// Listen for window resize
+		const cleanupResize = ResponsiveService.createResizeObserver((mobile) => {
+			isMobile = mobile;
+		});
+
+		// Setup keyboard shortcuts
+		const handleKeydown = (event: KeyboardEvent) => {
+			if (!isActive) return;
+
+			const target = event.target as HTMLElement;
+			if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true')) {
+				return;
+			}
+
+			if (event.key === 'b') {
+				event.preventDefault();
+				if (!showSidebar) {
+					shouldFocusSearch = false;
+				}
+				onToggleSidebar?.();
+			} else if (event.key === 'o' && !showSidebar) {
+				event.preventDefault();
+				shouldFocusSearch = true;
+				onToggleSidebar?.();
+			}
+		};
+
+		if (typeof window !== 'undefined') {
+			window.addEventListener('keydown', handleKeydown);
+		}
+
+		return () => {
+			cleanupResize();
+			if (typeof window !== 'undefined') {
+				window.removeEventListener('keydown', handleKeydown);
+			}
+		};
+	});
 </script>
 
-<div class="h-full overflow-y-auto bg-gray-900">
-	<div class="max-w-3xl mx-auto px-8 py-8">
-		<!-- Page Title -->
-		<header class="mb-8 border-b border-gray-700 pb-4">
-			<h1 class="text-4xl font-bold text-gray-100">{toProperCase(page)}</h1>
-			<p class="text-sm text-gray-500 mt-2">Wiki</p>
-		</header>
+<div class="h-full flex flex-col">
+	<!-- Toolbar -->
+	<div class="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center gap-2 justify-between flex-shrink-0">
+		<div class="flex items-center gap-2">
+			<button
+				onclick={() => onToggleSidebar?.()}
+				class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors flex items-center gap-1"
+				title={showSidebar
+					? (isMobile ? "Show Content" : "Hide Sidebar (b)")
+					: (isMobile ? "Show Entries" : "Show Sidebar (b)")}
+			>
+				{#if isMobile}
+					{#if showSidebar}
+						📖 Content
+					{:else}
+						📚 Entries
+					{/if}
+				{:else}
+					{#if showSidebar}
+						← Hide Sidebar (b)
+					{:else}
+						→ Show Sidebar (b)
+					{/if}
+				{/if}
+			</button>
+		</div>
+	</div>
 
-		<!-- Content -->
-		{#if loading}
-			<div class="flex items-center justify-center py-12">
-				<div class="text-gray-400">Loading...</div>
-			</div>
-		{:else if error}
-			<div class="bg-red-900/20 border border-red-700 rounded-lg p-6 text-center">
-				<p class="text-red-400">{error}</p>
-				<p class="text-gray-500 text-sm mt-2">
-					Check that the page exists in the <a href="https://github.com/biblecomputer/wiki" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline">wiki repository</a>.
-				</p>
-			</div>
-		{:else if content}
-			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-			<div class="wiki-content" onclick={handleContentClick}>
-				{@html renderMarkdown(content)}
-			</div>
-		{:else}
-			<div class="text-gray-500 text-center py-12">
-				<p>This page is empty.</p>
+	<!-- Main Content -->
+	<div class="flex flex-1 relative overflow-hidden">
+		<!-- Sidebar -->
+		{#if showSidebar}
+			<div
+				class="bg-gray-800 border-gray-700 h-full overflow-y-auto flex-shrink-0
+					   {isMobile
+						 ? 'absolute inset-0 z-10 w-full'
+						 : 'w-80 border-r relative'}"
+			>
+				{#if entriesLoading}
+					<div class="flex items-center justify-center h-full text-gray-400">
+						<span>Loading entries...</span>
+					</div>
+				{:else}
+					<WikiSidebar
+						{entries}
+						currentPage={page}
+						onEntrySelect={handleEntrySelect}
+						{shouldFocusSearch}
+						{isMobile}
+					/>
+				{/if}
 			</div>
 		{/if}
+
+		<!-- Content Viewer -->
+		<div class="flex-1 {isMobile && showSidebar ? 'hidden' : 'block'} overflow-y-auto bg-gray-900">
+			<div class="max-w-3xl mx-auto px-8 py-8">
+				<!-- Page Title -->
+				<header class="mb-8 border-b border-gray-700 pb-4">
+					<h1 class="text-4xl font-bold text-gray-100">{toProperCase(page)}</h1>
+					<p class="text-sm text-gray-500 mt-2">Wiki</p>
+				</header>
+
+				<!-- Content -->
+				{#if loading}
+					<div class="flex items-center justify-center py-12">
+						<div class="text-gray-400">Loading...</div>
+					</div>
+				{:else if error}
+					<div class="bg-red-900/20 border border-red-700 rounded-lg p-6 text-center">
+						<p class="text-red-400">{error}</p>
+						<p class="text-gray-500 text-sm mt-2">
+							Check that the page exists in the <a href="https://github.com/biblecomputer/wiki" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline">wiki repository</a>.
+						</p>
+					</div>
+				{:else if content}
+					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+					<div class="wiki-content" onclick={handleContentClick}>
+						{@html renderMarkdown(content)}
+					</div>
+				{:else}
+					<div class="text-gray-500 text-center py-12">
+						<p>This page is empty.</p>
+					</div>
+				{/if}
+			</div>
+		</div>
 	</div>
 </div>
 
