@@ -102,17 +102,29 @@
 	}
 
 	// Remove tab
-	function removeTab(tabId: string) {
+	async function removeTab(tabId: string) {
+		const wasActiveTab = tabId === tabsState.activeTabId;
 		tabsState = TabsStateNS.removeTab(tabsState, tabId);
+
+		// Update URL if we removed the active tab (we switched to a different one)
+		if (wasActiveTab) {
+			const activeTabOption = TabsStateNS.getActiveTab(tabsState);
+			if (Option.isSome(activeTabOption)) {
+				const url = App.getUrl(activeTabOption.value.app);
+				isProgrammaticNavigation = true;
+				await NavigationService.navigateToUrl(url);
+				isProgrammaticNavigation = false;
+			}
+		}
 	}
 
 	// Set active tab
 	async function setActiveTab(tabId: string) {
 		tabsState = TabsStateNS.setActiveTab(tabsState, tabId);
 
-		// Update URL only for Bible tabs
+		// Update URL for the active tab
 		const activeTabOption = TabsStateNS.getActiveTab(tabsState);
-		if (Option.isSome(activeTabOption) && activeTabOption.value.app._tag === "Bible") {
+		if (Option.isSome(activeTabOption)) {
 			const url = App.getUrl(activeTabOption.value.app);
 			isProgrammaticNavigation = true;
 			await NavigationService.navigateToUrl(url);
@@ -124,7 +136,7 @@
 	async function goToNextTab() {
 		tabsState = TabsStateNS.nextTab(tabsState);
 		const activeTabOption = TabsStateNS.getActiveTab(tabsState);
-		if (Option.isSome(activeTabOption) && activeTabOption.value.app._tag === "Bible") {
+		if (Option.isSome(activeTabOption)) {
 			const url = App.getUrl(activeTabOption.value.app);
 			isProgrammaticNavigation = true;
 			await NavigationService.navigateToUrl(url);
@@ -135,7 +147,7 @@
 	async function goToPreviousTab() {
 		tabsState = TabsStateNS.previousTab(tabsState);
 		const activeTabOption = TabsStateNS.getActiveTab(tabsState);
-		if (Option.isSome(activeTabOption) && activeTabOption.value.app._tag === "Bible") {
+		if (Option.isSome(activeTabOption)) {
 			const url = App.getUrl(activeTabOption.value.app);
 			isProgrammaticNavigation = true;
 			await NavigationService.navigateToUrl(url);
@@ -173,13 +185,11 @@
 
 		tabsState.tabs = tabsState.tabs.map((tab, index) => index === tabIndex ? newTab : tab);
 
-		// Update URL for Bible and Wiki tabs
-		if (newTab.app._tag === "Bible" || newTab.app._tag === "Wiki") {
-			const url = App.getUrl(newTab.app);
-			isProgrammaticNavigation = true;
-			await NavigationService.navigateToUrl(url);
-			isProgrammaticNavigation = false;
-		}
+		// Update URL for the new app
+		const url = App.getUrl(newTab.app);
+		isProgrammaticNavigation = true;
+		await NavigationService.navigateToUrl(url);
+		isProgrammaticNavigation = false;
 	}
 
 	// Handle wiki link click from Bible - create new wiki tab
