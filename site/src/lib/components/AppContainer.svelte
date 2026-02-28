@@ -182,6 +182,27 @@
 		}
 	}
 
+	// Handle wiki link click from Bible - create new wiki tab
+	async function handleWikiLinkClick(page: string) {
+		const newTab = createTab({
+			app: "Wiki",
+			id: `tab${tabsState.nextTabId}`,
+			page
+		});
+
+		tabsState = {
+			tabs: [...tabsState.tabs, newTab],
+			activeTabId: newTab.id,
+			nextTabId: tabsState.nextTabId + 1
+		};
+
+		// Update URL to wiki page
+		const url = App.getUrl(newTab.app);
+		isProgrammaticNavigation = true;
+		await NavigationService.navigateToUrl(url);
+		isProgrammaticNavigation = false;
+	}
+
 	// Handle browser navigation - ONLY updates selection, NOT scroll position
 	function syncFromURL() {
 		// Skip sync if we're in the middle of programmatic navigation
@@ -274,5 +295,6 @@
 		onSelectionChange={updateTabStateWithSelection}
 		onAppChoice={handleAppChoice}
 		onTabRemove={removeTab}
+		onWikiLinkClick={handleWikiLinkClick}
 	/>
 </div>

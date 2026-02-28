@@ -8,7 +8,8 @@
 		onScrollStateChange,
 		onSelectionChange,
 		onAppChoice,
-		onTabRemove
+		onTabRemove,
+		onWikiLinkClick
 	}: {
 		tabs: TabState[];
 		activeTabId: string;
@@ -16,6 +17,7 @@
 		onSelectionChange?: (tab: TabState) => void;
 		onAppChoice?: (appType: "bible" | "about" | "stopwatch" | "wiki") => void;
 		onTabRemove?: (tabId: string) => void;
+		onWikiLinkClick?: (page: string) => void;
 	} = $props();
 </script>
 
@@ -33,6 +35,7 @@
 					{onSelectionChange}
 					{onAppChoice}
 					onTabClose={() => onTabRemove?.(tab.id)}
+					{onWikiLinkClick}
 				/>
 			{/key}
 		</div>

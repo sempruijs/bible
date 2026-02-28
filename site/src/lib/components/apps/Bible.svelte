@@ -11,6 +11,7 @@
 		onSelectionChange,
 		onToggleCanonExplorer,
 		onTranslationChange,
+		onWikiLinkClick,
 	}: {
 		bibleState: BibleState;
 		isActive?: boolean;
@@ -18,6 +19,7 @@
 		onSelectionChange?: (selection: BibleSelection | null) => void;
 		onToggleCanonExplorer?: () => void;
 		onTranslationChange?: (translation: Translation) => void;
+		onWikiLinkClick?: (page: string) => void;
 	} = $props();
 </script>
 
@@ -33,4 +35,5 @@
 	{onSelectionChange}
 	{onToggleCanonExplorer}
 	{onTranslationChange}
+	{onWikiLinkClick}
 />

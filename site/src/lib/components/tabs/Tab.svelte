@@ -9,6 +9,7 @@
 		onSelectionChange,
 		onAppChoice,
 		onTabClose,
+		onWikiLinkClick,
 	}: {
 		app: TabState;
 		isActive?: boolean;
@@ -16,6 +17,7 @@
 		onSelectionChange?: (app: TabState) => void;
 		onAppChoice?: (appType: "bible" | "about" | "stopwatch" | "wiki") => void;
 		onTabClose?: () => void;
+		onWikiLinkClick?: (page: string) => void;
 	} = $props();
 </script>
 
@@ -26,4 +28,5 @@
 	{onSelectionChange}
 	{onAppChoice}
 	{onTabClose}
+	{onWikiLinkClick}
 />

@@ -13,6 +13,7 @@
 		selection = null as BibleSelection | null,
 		onScrollStateChange = () => {},
 		onVerseSelect = (_book: BibleBook, _chapter: number, _verse: number) => {},
+		onWikiLinkClick = (_page: string) => {},
 		isActive = true
 	}: {
 		translationContent: Option.Option<TranslationContent>;
@@ -20,6 +21,7 @@
 		selection?: BibleSelection | null;
 		onScrollStateChange?: (book: BibleBook, chapter: number, verse: number | null) => void;
 		onVerseSelect?: (book: BibleBook, chapter: number, verse: number) => void;
+		onWikiLinkClick?: (page: string) => void;
 		isActive?: boolean;
 	} = $props();
 
@@ -283,6 +285,7 @@
 				selectedVerse={isCurrentChapter ? scrollTarget.verse : null}
 				selectionRange={chapterSelection}
 				onVerseClick={(verse) => onVerseSelect(item.book, item.chapterNumber, verse)}
+				{onWikiLinkClick}
 			/>
 		{/snippet}
 	</VList>
