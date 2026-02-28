@@ -196,7 +196,7 @@ export namespace App {
 			About: () => "/about",
 			ChooseApp: () => "/",
 			Stopwatch: () => "/stopwatch",
-			Wiki: ({ wikiState }) => `/wiki/${wikiState.page.toLowerCase()}`
+			Wiki: ({ wikiState }) => `/wiki/${wikiState.page.replace(/ /g, '_')}`
 		});
 	};
 
@@ -216,7 +216,7 @@ export namespace App {
 				}
 				return "Stopwatch";
 			},
-			Wiki: ({ wikiState }) => `Wiki: ${wikiState.page}`
+			Wiki: ({ wikiState }) => `Wiki: ${wikiState.page.replace(/_/g, ' ')}`
 		});
 	};
 }

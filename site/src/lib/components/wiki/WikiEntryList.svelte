@@ -39,7 +39,9 @@
 				<h3 class="text-sm font-bold text-gray-400 mb-2 px-2">{letter}</h3>
 				<div class="space-y-1">
 					{#each groupedEntries[letter] as entry}
-						{@const isActive = entry.toLowerCase() === currentPage.toLowerCase()}
+						{@const normalizedEntry = entry.toLowerCase().replace(/_/g, ' ')}
+						{@const normalizedCurrent = currentPage.toLowerCase().replace(/_/g, ' ')}
+						{@const isActive = normalizedEntry === normalizedCurrent}
 						<button
 							onclick={() => onEntrySelect(entry)}
 							class="w-full text-left px-3 py-2 rounded text-sm transition-colors {

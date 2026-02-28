@@ -25,9 +25,20 @@
 	let isMobile = $state<boolean>(false);
 	let shouldFocusSearch = $state(false);
 
-	// Convert page name to proper case for fetching (e.g., "abraham" -> "Abraham")
-	function toProperCase(str: string): string {
-		return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+	// Normalize page name for comparison (lowercase, underscores to spaces)
+	function normalizePageName(str: string): string {
+		return str.toLowerCase().replace(/_/g, ' ');
+	}
+
+	// Convert URL format to display format (underscores to spaces)
+	function toDisplayName(str: string): string {
+		return str.replace(/_/g, ' ');
+	}
+
+	// Find the correct case-sensitive entry name from the entries list
+	function findCorrectCase(pageName: string): string | null {
+		const normalized = normalizePageName(pageName);
+		return entries.find(entry => normalizePageName(entry) === normalized) || null;
 	}
 
 	// Fetch wiki entries list from GitHub
@@ -55,20 +66,30 @@
 		loading = true;
 		error = null;
 
-		const properName = toProperCase(pageName);
-		const url = `https://raw.githubusercontent.com/biblecomputer/wiki/main/${properName}.md`;
+		// Try to find the correct case from entries list
+		const correctName = findCorrectCase(pageName);
+		const displayName = toDisplayName(pageName);
+
+		// Use the correct case if found, otherwise use the page name as-is
+		const fileName = correctName || pageName.replace(/_/g, ' ');
+		const url = `https://raw.githubusercontent.com/biblecomputer/wiki/main/${encodeURIComponent(fileName)}.md`;
 
 		try {
 			const response = await fetch(url);
 			if (!response.ok) {
 				if (response.status === 404) {
-					error = `Page "${properName}" not found`;
+					error = `Page "${displayName}" not found`;
 				} else {
 					error = `Failed to fetch page: ${response.statusText}`;
 				}
 				content = "";
 			} else {
 				content = await response.text();
+				// If we found the correct case, update the URL to reflect it
+				if (correctName && correctName !== pageName && onNavigate) {
+					// Navigate to the correct case version (this updates the URL)
+					onNavigate(correctName);
+				}
 			}
 		} catch (err) {
 			error = `Failed to load wiki page: ${err}`;
@@ -81,7 +102,9 @@
 	// Parse Obsidian-style links [[PageName]] and convert to clickable links
 	function parseWikiLinks(text: string): string {
 		return text.replace(/\[\[([^\]]+)\]\]/g, (_, pageName) => {
-			return `<a href="/wiki/${pageName.toLowerCase()}" class="wiki-link text-blue-400 hover:text-blue-300 underline cursor-pointer" data-wiki-page="${pageName}">${pageName}</a>`;
+			// Convert spaces to underscores for URL, preserve original case
+			const urlName = pageName.replace(/ /g, '_');
+			return `<a href="/wiki/${urlName}" class="wiki-link text-blue-400 hover:text-blue-300 underline cursor-pointer" data-wiki-page="${pageName}">${pageName}</a>`;
 		});
 	}
 
@@ -253,7 +276,7 @@
 			<div class="max-w-3xl mx-auto px-8 py-8">
 				<!-- Page Title -->
 				<header class="mb-8 border-b border-gray-700 pb-4">
-					<h1 class="text-4xl font-bold text-gray-100">{toProperCase(page)}</h1>
+					<h1 class="text-4xl font-bold text-gray-100">{findCorrectCase(page) || toDisplayName(page)}</h1>
 					<p class="text-sm text-gray-500 mt-2">Wiki</p>
 				</header>
 
