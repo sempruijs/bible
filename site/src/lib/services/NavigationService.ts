@@ -216,7 +216,20 @@ export const getInitialState = (): {
 		};
 	}
 
-	// Check if it's a wiki page
+	// Check if it's a wiki page (with or without specific page)
+	if (pathname === '/wiki' || pathname === '/wiki/') {
+		return {
+			book: BibleBook.John,
+			chapter: 1,
+			verse: null,
+			selection: null,
+			isAbout: false,
+			isStopwatch: false,
+			isWiki: true,
+			wikiPage: ''
+		};
+	}
+
 	const wikiMatch = pathname.match(/^\/wiki\/([^/]+)$/);
 	if (wikiMatch) {
 		return {

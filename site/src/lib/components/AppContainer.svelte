@@ -44,9 +44,9 @@
 		} else if (initialState.isStopwatch) {
 			// Create Stopwatch tab if URL is /stopwatch
 			initialTab = createTab({ app: "Stopwatch", id: "tab1" });
-		} else if (initialState.isWiki && initialState.wikiPage) {
-			// Create Wiki tab if URL is /wiki/*
-			initialTab = createTab({ app: "Wiki", id: "tab1", page: initialState.wikiPage });
+		} else if (initialState.isWiki) {
+			// Create Wiki tab if URL is /wiki or /wiki/*
+			initialTab = createTab({ app: "Wiki", id: "tab1", page: initialState.wikiPage || '' });
 		} else {
 			// Create Bible tab with parsed book/chapter/verse and selection
 			const canonState = ResponsiveService.getInitialCanonState();
