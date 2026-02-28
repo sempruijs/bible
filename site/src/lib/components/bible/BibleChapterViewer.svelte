@@ -44,7 +44,7 @@
 					{@const isSelected = isVerseInSelection(verse.verse)}
 					<span
 						id="verse-{book}-{chapterNumber}-{verse.verse}"
-						class="verse-marker focus:outline-none cursor-pointer hover:bg-gray-700/50 rounded-sm {selectedVerse === verse.verse ? 'font-bold bg-gray-700/30' : ''} {isSelected ? 'font-bold' : ''}"
+						class="verse-marker focus:outline-none cursor-pointer rounded-sm {selectedVerse === verse.verse || isSelected ? 'bg-amber-400/30' : 'hover:bg-blue-400/20'}"
 						tabindex="-1"
 						onclick={() => onVerseClick(verse.verse)}
 						role="button"
