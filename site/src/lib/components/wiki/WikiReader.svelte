@@ -45,7 +45,7 @@
 	async function fetchWikiEntries() {
 		entriesLoading = true;
 		try {
-			const response = await fetch('https://api.github.com/repos/biblecomputer/wiki/contents');
+			const response = await fetch('https://api.github.com/repos/biblecomputer/wiki/contents/source/en');
 			if (response.ok) {
 				const data = await response.json();
 				entries = data
@@ -72,7 +72,7 @@
 
 		// Use the correct case if found, otherwise use the page name as-is
 		const fileName = correctName || pageName.replace(/_/g, ' ');
-		const url = `https://raw.githubusercontent.com/biblecomputer/wiki/main/${encodeURIComponent(fileName)}.md`;
+		const url = `https://raw.githubusercontent.com/biblecomputer/wiki/main/source/en/${encodeURIComponent(fileName)}.md`;
 
 		try {
 			const response = await fetch(url);
