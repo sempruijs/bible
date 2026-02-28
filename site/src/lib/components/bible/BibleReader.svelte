@@ -24,6 +24,7 @@
         onSelectionChange = () => {},
         onToggleCanonExplorer = () => {},
         onTranslationChange = () => {},
+        onWikiLinkClick = (_page: string) => {},
     }: {
         translation: Translation;
         currentBook?: BibleBook;
@@ -36,6 +37,7 @@
         onSelectionChange?: (selection: BibleSelection | null) => void;
         onToggleCanonExplorer?: () => void;
         onTranslationChange?: (translation: Translation) => void;
+        onWikiLinkClick?: (page: string) => void;
     } = $props();
 
     // Internal state that gets updated by user interactions (URL/canon explorer)
@@ -458,6 +460,7 @@
                 selection={internalSelection}
                 onScrollStateChange={handleScrollStateChange}
                 onVerseSelect={handleVerseSelect}
+                {onWikiLinkClick}
                 {isActive}
             />
         </div>

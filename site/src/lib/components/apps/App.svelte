@@ -14,6 +14,7 @@
 		onSelectionChange,
 		onAppChoice,
 		onTabClose,
+		onWikiLinkClick,
 	}: {
 		tabState: TabState;
 		isActive?: boolean;
@@ -21,6 +22,7 @@
 		onSelectionChange?: (tab: TabState) => void;
 		onAppChoice?: (appType: "bible" | "about" | "stopwatch" | "wiki") => void;
 		onTabClose?: () => void;
+		onWikiLinkClick?: (page: string) => void;
 	} = $props();
 
 	// Handle scroll state change (doesn't update URL - just internal view position)
@@ -136,6 +138,7 @@
 		onSelectionChange={handleBibleSelectionChange}
 		onToggleCanonExplorer={handleToggleCanonExplorer}
 		onTranslationChange={handleTranslationChange}
+		{onWikiLinkClick}
 	/>
 {:else if tabState.app._tag === "About"}
 	<AboutApp />
