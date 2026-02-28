@@ -1,9 +1,10 @@
 <script lang="ts">
 	import type { TabState, BibleSelection } from "$lib/app";
-	import { Bible, BibleState, Stopwatch } from "$lib/app";
+	import { Bible, BibleState, Stopwatch, Wiki, WikiState } from "$lib/app";
 	import AboutApp from "$lib/components/apps/About.svelte";
 	import BibleApp from "$lib/components/apps/Bible.svelte";
 	import StopwatchApp from "$lib/components/apps/Stopwatch.svelte";
+	import WikiApp from "$lib/components/apps/Wiki.svelte";
 	import ChooseAppComponent from "$lib/components/apps/ChooseApp.svelte";
 
 	let {
@@ -18,7 +19,7 @@
 		isActive?: boolean;
 		onStateChange?: (tab: TabState) => void;
 		onSelectionChange?: (tab: TabState) => void;
-		onAppChoice?: (appType: "bible" | "about" | "stopwatch") => void;
+		onAppChoice?: (appType: "bible" | "about" | "stopwatch" | "wiki") => void;
 		onTabClose?: () => void;
 	} = $props();
 
@@ -96,6 +97,15 @@
 			});
 		}
 	}
+
+	function handleWikiNavigate(page: string) {
+		if (tabState.app._tag === "Wiki" && onStateChange) {
+			onStateChange({
+				...tabState,
+				app: Wiki({ wikiState: WikiState({ page }) }),
+			});
+		}
+	}
 </script>
 
 <!-- Content rendering based on app type -->
@@ -117,5 +127,10 @@
 		stopwatchState={tabState.app.stopwatchState}
 		{isActive}
 		onStateChange={handleStopwatchStateChange}
+	/>
+{:else if tabState.app._tag === "Wiki"}
+	<WikiApp
+		wikiState={tabState.app.wikiState}
+		onNavigate={handleWikiNavigate}
 	/>
 {/if}

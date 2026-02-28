@@ -46,13 +46,12 @@
 				{/if}
 			</div>
 		{/each}
+		<button
+			onclick={onAddTab}
+			class="w-8 h-8 flex items-center justify-center bg-gray-700 hover:bg-gray-600 text-gray-300 text-lg rounded-lg transition-colors flex-shrink-0"
+			title={isMobile ? "Add new tab" : "Add new tab (t)"}
+		>
+			+
+		</button>
 	</div>
-
-	<button
-		onclick={onAddTab}
-		class="ml-4 px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors"
-		title={isMobile ? "Add new tab" : "Add new tab (t)"}
-	>
-		{isMobile ? "+ New Tab" : "+ New Tab (t)"}
-	</button>
 </div>

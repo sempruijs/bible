@@ -33,6 +33,10 @@ export const StopwatchStateSchema = Schema.Struct({
 	isRunning: Schema.Boolean
 });
 
+export const WikiStateSchema = Schema.Struct({
+	page: Schema.String // The wiki page name (e.g., "Abraham")
+});
+
 // App schema - represents the application running in a tab
 export const AppSchema = Schema.Union(
 	Schema.Struct({
@@ -48,6 +52,10 @@ export const AppSchema = Schema.Union(
 	Schema.Struct({
 		_tag: Schema.Literal("Stopwatch"),
 		stopwatchState: StopwatchStateSchema
+	}),
+	Schema.Struct({
+		_tag: Schema.Literal("Wiki"),
+		wikiState: WikiStateSchema
 	})
 );
 
@@ -74,6 +82,7 @@ type BibleReferenceReadonly = Schema.Schema.Type<typeof BibleReferenceSchema>;
 type BibleSelectionReadonly = Schema.Schema.Type<typeof BibleSelectionSchema>;
 type BibleStateReadonly = Schema.Schema.Type<typeof BibleStateSchema>;
 type StopwatchStateReadonly = Schema.Schema.Type<typeof StopwatchStateSchema>;
+type WikiStateReadonly = Schema.Schema.Type<typeof WikiStateSchema>;
 type AppReadonly = Schema.Schema.Type<typeof AppSchema>;
 type TabStateReadonly = Schema.Schema.Type<typeof TabStateSchema>;
 type TabsStateReadonly = Schema.Schema.Type<typeof TabsStateSchema>;
@@ -82,6 +91,7 @@ export type BibleReference = DeepWritable<BibleReferenceReadonly>;
 export type BibleSelection = DeepWritable<BibleSelectionReadonly>;
 export type BibleState = DeepWritable<BibleStateReadonly>;
 export type StopwatchState = DeepWritable<StopwatchStateReadonly>;
+export type WikiState = DeepWritable<WikiStateReadonly>;
 export type App = DeepWritable<AppReadonly>;
 export type TabState = DeepWritable<TabStateReadonly>;
 export type TabsState = DeepWritable<TabsStateReadonly>;
@@ -89,9 +99,10 @@ export type TabsState = DeepWritable<TabsStateReadonly>;
 // Maintain backward compatibility with Data constructors
 export const BibleState = Data.case<BibleState>();
 export const StopwatchState = Data.case<StopwatchState>();
+export const WikiState = Data.case<WikiState>();
 
 // App constructors
-export const { Bible, About, ChooseApp, Stopwatch, $match } = Data.taggedEnum<App>()
+export const { Bible, About, ChooseApp, Stopwatch, Wiki, $match } = Data.taggedEnum<App>()
 
 // Format time as MM:SS for tab title
 const formatTimeForTitle = (milliseconds: number): string => {
@@ -183,7 +194,8 @@ export namespace App {
 			},
 			About: () => "/about",
 			ChooseApp: () => "/",
-			Stopwatch: () => "/stopwatch"
+			Stopwatch: () => "/stopwatch",
+			Wiki: ({ wikiState }) => `/wiki/${wikiState.page.toLowerCase()}`
 		});
 	};
 
@@ -202,7 +214,8 @@ export namespace App {
 					return formatTimeForTitle(stopwatchState.elapsedTime);
 				}
 				return "Stopwatch";
-			}
+			},
+			Wiki: ({ wikiState }) => `Wiki: ${wikiState.page}`
 		});
 	};
 }
@@ -296,7 +309,8 @@ export type CreateTabConfig =
 	| { app: "Bible", id: string, book: BibleBook, chapter: number, verse?: number | null, selection?: BibleSelection | null, translation: Translation, showCanonExplorer: boolean }
 	| { app: "Stopwatch", id: string }
 	| { app: "About", id: string }
-	| { app: "ChooseApp", id: string };
+	| { app: "ChooseApp", id: string }
+	| { app: "Wiki", id: string, page: string };
 
 // Unified tab creation function - pure data construction
 export const createTab = (config: CreateTabConfig): TabState => {
@@ -334,6 +348,15 @@ export const createTab = (config: CreateTabConfig): TabState => {
 			return {
 				id: config.id,
 				app: ChooseApp()
+			};
+		case "Wiki":
+			return {
+				id: config.id,
+				app: Wiki({
+					wikiState: WikiState({
+						page: config.page
+					})
+				})
 			};
 	}
 };

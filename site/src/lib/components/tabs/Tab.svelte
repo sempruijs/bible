@@ -14,7 +14,7 @@
 		isActive?: boolean;
 		onScrollStateChange?: (app: TabState) => void;
 		onSelectionChange?: (app: TabState) => void;
-		onAppChoice?: (appType: "bible" | "about" | "stopwatch") => void;
+		onAppChoice?: (appType: "bible" | "about" | "stopwatch" | "wiki") => void;
 		onTabClose?: () => void;
 	} = $props();
 </script>

@@ -44,6 +44,9 @@
 		} else if (initialState.isStopwatch) {
 			// Create Stopwatch tab if URL is /stopwatch
 			initialTab = createTab({ app: "Stopwatch", id: "tab1" });
+		} else if (initialState.isWiki && initialState.wikiPage) {
+			// Create Wiki tab if URL is /wiki/*
+			initialTab = createTab({ app: "Wiki", id: "tab1", page: initialState.wikiPage });
 		} else {
 			// Create Bible tab with parsed book/chapter/verse and selection
 			const canonState = ResponsiveService.getInitialCanonState();
@@ -71,10 +74,12 @@
 		console.log('📝 updateTabState called with:', updatedTab);
 		tabsState = TabsStateNS.updateTab(tabsState, updatedTab);
 
-		// Update URL hash for scroll position
-		if (updatedTab.id === tabsState.activeTabId && updatedTab.app._tag === "Bible") {
-			const url = App.getUrl(updatedTab.app);
-			NavigationService.navigateToUrl(url);
+		// Update URL hash for scroll position (Bible) or full URL (Wiki)
+		if (updatedTab.id === tabsState.activeTabId) {
+			if (updatedTab.app._tag === "Bible" || updatedTab.app._tag === "Wiki") {
+				const url = App.getUrl(updatedTab.app);
+				NavigationService.navigateToUrl(url);
+			}
 		}
 	}
 
@@ -139,7 +144,7 @@
 	}
 
 	// Handle app choice in ChooseApp tabs
-	async function handleAppChoice(appType: "bible" | "about" | "stopwatch") {
+	async function handleAppChoice(appType: "bible" | "about" | "stopwatch" | "wiki") {
 		const tabIndex = tabsState.tabs.findIndex(tab => tab.id === tabsState.activeTabId);
 		if (tabIndex === -1) return;
 
@@ -159,6 +164,8 @@
 			newTab = createTab({ app: "About", id: tabsState.activeTabId });
 		} else if (appType === "stopwatch") {
 			newTab = createTab({ app: "Stopwatch", id: tabsState.activeTabId });
+		} else if (appType === "wiki") {
+			newTab = createTab({ app: "Wiki", id: tabsState.activeTabId, page: "Abraham" });
 		} else {
 			console.error(`Unknown app type: ${appType}`);
 			return;
@@ -166,8 +173,8 @@
 
 		tabsState.tabs = tabsState.tabs.map((tab, index) => index === tabIndex ? newTab : tab);
 
-		// Update URL only for Bible tabs
-		if (newTab.app._tag === "Bible") {
+		// Update URL for Bible and Wiki tabs
+		if (newTab.app._tag === "Bible" || newTab.app._tag === "Wiki") {
 			const url = App.getUrl(newTab.app);
 			isProgrammaticNavigation = true;
 			await NavigationService.navigateToUrl(url);

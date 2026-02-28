@@ -169,6 +169,8 @@ export const getInitialState = (): {
 	selection: BibleSelection | null;
 	isAbout: boolean;
 	isStopwatch: boolean;
+	isWiki: boolean;
+	wikiPage: string | null;
 } => {
 	if (typeof window === 'undefined') {
 		return {
@@ -177,7 +179,9 @@ export const getInitialState = (): {
 			verse: null,
 			selection: null,
 			isAbout: false,
-			isStopwatch: false
+			isStopwatch: false,
+			isWiki: false,
+			wikiPage: null
 		};
 	}
 
@@ -192,7 +196,9 @@ export const getInitialState = (): {
 			verse: null,
 			selection: null,
 			isAbout: true,
-			isStopwatch: false
+			isStopwatch: false,
+			isWiki: false,
+			wikiPage: null
 		};
 	}
 
@@ -204,7 +210,24 @@ export const getInitialState = (): {
 			verse: null,
 			selection: null,
 			isAbout: false,
-			isStopwatch: true
+			isStopwatch: true,
+			isWiki: false,
+			wikiPage: null
+		};
+	}
+
+	// Check if it's a wiki page
+	const wikiMatch = pathname.match(/^\/wiki\/([^/]+)$/);
+	if (wikiMatch) {
+		return {
+			book: BibleBook.John,
+			chapter: 1,
+			verse: null,
+			selection: null,
+			isAbout: false,
+			isStopwatch: false,
+			isWiki: true,
+			wikiPage: wikiMatch[1]
 		};
 	}
 
@@ -223,7 +246,9 @@ export const getInitialState = (): {
 			verse: scrollPosition.verse,
 			selection,
 			isAbout: false,
-			isStopwatch: false
+			isStopwatch: false,
+			isWiki: false,
+			wikiPage: null
 		};
 	}
 
@@ -235,7 +260,9 @@ export const getInitialState = (): {
 			verse: selection.start.verse,
 			selection,
 			isAbout: false,
-			isStopwatch: false
+			isStopwatch: false,
+			isWiki: false,
+			wikiPage: null
 		};
 	}
 
@@ -246,7 +273,9 @@ export const getInitialState = (): {
 		verse: null,
 		selection: null,
 		isAbout: false,
-		isStopwatch: false
+		isStopwatch: false,
+		isWiki: false,
+		wikiPage: null
 	};
 };
 
