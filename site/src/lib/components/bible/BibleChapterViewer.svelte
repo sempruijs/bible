@@ -31,7 +31,7 @@
 	// Parse markdown-style wiki links [text](/wiki/page) to HTML
 	function parseWikiLinks(text: string): string {
 		return text.replace(/\[([^\]]+)\]\(\/wiki\/([^)]+)\)/g, (_, linkText, wikiPage) => {
-			return `<a href="/wiki/${wikiPage}" class="wiki-link text-blue-400 hover:text-blue-300 underline cursor-pointer" data-wiki-page="${wikiPage}">${linkText}</a>`;
+			return `<a href="/wiki/${wikiPage}" class="wiki-link underline decoration-blue-400 hover:decoration-blue-300 cursor-pointer" data-wiki-page="${wikiPage}">${linkText}</a>`;
 		});
 	}
 
@@ -66,7 +66,7 @@
 					{@const isSelected = isVerseInSelection(verse.verse)}
 					<span
 						id="verse-{book}-{chapterNumber}-{verse.verse}"
-						class="verse-marker focus:outline-none cursor-pointer rounded-sm {selectedVerse === verse.verse || isSelected ? 'bg-amber-400/30' : 'hover:bg-blue-400/20'}"
+						class="verse-marker focus:outline-none cursor-pointer rounded-sm {selectedVerse === verse.verse || isSelected ? 'bg-amber-400/30' : ''}"
 						tabindex="-1"
 						onclick={(e) => {
 							// Only trigger verse click if not clicking a wiki link
