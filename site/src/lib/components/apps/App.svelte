@@ -102,7 +102,26 @@
 		if (tabState.app._tag === "Wiki" && onStateChange) {
 			onStateChange({
 				...tabState,
-				app: Wiki({ wikiState: WikiState({ page }) }),
+				app: Wiki({
+					wikiState: WikiState({
+						page,
+						showSidebar: tabState.app.wikiState.showSidebar,
+					}),
+				}),
+			});
+		}
+	}
+
+	function handleWikiToggleSidebar() {
+		if (tabState.app._tag === "Wiki" && onStateChange) {
+			onStateChange({
+				...tabState,
+				app: Wiki({
+					wikiState: WikiState({
+						...tabState.app.wikiState,
+						showSidebar: !tabState.app.wikiState.showSidebar,
+					}),
+				}),
 			});
 		}
 	}
@@ -131,6 +150,8 @@
 {:else if tabState.app._tag === "Wiki"}
 	<WikiApp
 		wikiState={tabState.app.wikiState}
+		{isActive}
 		onNavigate={handleWikiNavigate}
+		onToggleSidebar={handleWikiToggleSidebar}
 	/>
 {/if}

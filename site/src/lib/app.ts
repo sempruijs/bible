@@ -34,7 +34,8 @@ export const StopwatchStateSchema = Schema.Struct({
 });
 
 export const WikiStateSchema = Schema.Struct({
-	page: Schema.String // The wiki page name (e.g., "Abraham")
+	page: Schema.String, // The wiki page name (e.g., "Abraham")
+	showSidebar: Schema.Boolean
 });
 
 // App schema - represents the application running in a tab
@@ -310,7 +311,7 @@ export type CreateTabConfig =
 	| { app: "Stopwatch", id: string }
 	| { app: "About", id: string }
 	| { app: "ChooseApp", id: string }
-	| { app: "Wiki", id: string, page: string };
+	| { app: "Wiki", id: string, page: string, showSidebar?: boolean };
 
 // Unified tab creation function - pure data construction
 export const createTab = (config: CreateTabConfig): TabState => {
@@ -354,7 +355,8 @@ export const createTab = (config: CreateTabConfig): TabState => {
 				id: config.id,
 				app: Wiki({
 					wikiState: WikiState({
-						page: config.page
+						page: config.page,
+						showSidebar: config.showSidebar ?? true
 					})
 				})
 			};
