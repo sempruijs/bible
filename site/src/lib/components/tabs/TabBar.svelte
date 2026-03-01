@@ -19,15 +19,15 @@
 	} = $props();
 </script>
 
-<div class="bg-gray-800 border-b border-gray-700 flex items-center py-2 pt-[max(0.5rem,env(safe-area-inset-top))] px-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]">
-	<div class="flex items-center gap-2 flex-1 overflow-x-auto" title={isMobile ? "Navigate tabs" : "Navigate tabs: (n) next, (p) previous"}>
+<div class="bg-gray-800 border-b border-gray-700 flex-shrink-0" style="padding-top: env(safe-area-inset-top); padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);">
+	<div class="h-11 flex items-center gap-2 px-4 overflow-x-auto" title={isMobile ? "Navigate tabs" : "Navigate tabs: (n) next, (p) previous"}>
 		{#each tabs as tab}
 			{@const tabId = tab.id}
 			{@const tabTitle = App.getTitle(tab.app)}
-			<div class="flex items-center bg-gray-700 rounded-lg overflow-hidden min-w-0">
+			<div class="flex items-center bg-gray-700 rounded-lg overflow-hidden w-40 flex-shrink-0">
 				<button
 					onclick={() => onTabSelect(tabId)}
-					class="px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap {
+					class="flex-1 px-3 py-2 text-sm font-medium transition-colors truncate text-left {
 						activeTabId === tabId
 							? 'bg-blue-600 text-white'
 							: 'text-gray-300 hover:bg-gray-600'
