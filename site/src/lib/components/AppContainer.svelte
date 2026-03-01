@@ -46,7 +46,9 @@
 			initialTab = createTab({ app: "Stopwatch", id: "tab1" });
 		} else if (initialState.isWiki) {
 			// Create Wiki tab if URL is /wiki or /wiki/*
-			initialTab = createTab({ app: "Wiki", id: "tab1", page: initialState.wikiPage || '' });
+			// On mobile, show content immediately (homepage or entry)
+			const showSidebar = ResponsiveService.getInitialWikiSidebarState();
+			initialTab = createTab({ app: "Wiki", id: "tab1", page: initialState.wikiPage || '', showSidebar });
 		} else {
 			// Create Bible tab with parsed book/chapter/verse and selection
 			const canonState = ResponsiveService.getInitialCanonState();
@@ -177,7 +179,9 @@
 		} else if (appType === "stopwatch") {
 			newTab = createTab({ app: "Stopwatch", id: tabsState.activeTabId });
 		} else if (appType === "wiki") {
-			newTab = createTab({ app: "Wiki", id: tabsState.activeTabId, page: "Abraham" });
+			// On mobile, show content immediately
+			const showSidebar = ResponsiveService.getInitialWikiSidebarState();
+			newTab = createTab({ app: "Wiki", id: tabsState.activeTabId, page: "Abraham", showSidebar });
 		} else {
 			console.error(`Unknown app type: ${appType}`);
 			return;
@@ -194,10 +198,13 @@
 
 	// Handle wiki link click from Bible - create new wiki tab
 	async function handleWikiLinkClick(page: string) {
+		// On mobile, show content immediately
+		const showSidebar = ResponsiveService.getInitialWikiSidebarState();
 		const newTab = createTab({
 			app: "Wiki",
 			id: `tab${tabsState.nextTabId}`,
-			page
+			page,
+			showSidebar
 		});
 
 		tabsState = {

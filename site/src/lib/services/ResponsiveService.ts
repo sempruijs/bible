@@ -32,6 +32,22 @@ export const getInitialCanonState = (): boolean => {
 };
 
 /**
+ * Get the initial state for the wiki sidebar based on viewport size.
+ * On mobile: sidebar starts closed to show content immediately (homepage or entry).
+ * On desktop: sidebar always starts open.
+ * @returns true if sidebar should be open, false if closed
+ */
+export const getInitialWikiSidebarState = (): boolean => {
+	if (typeof window === 'undefined') {
+		// Default to open for SSR
+		return true;
+	}
+	// On mobile, start with sidebar closed to show content
+	// On desktop, show sidebar
+	return !isMobile();
+};
+
+/**
  * Create a resize observer that calls the callback when the viewport size changes.
  * Useful for components that need to react to responsive breakpoint changes.
  *
@@ -59,5 +75,6 @@ export const createResizeObserver = (callback: (isMobile: boolean) => void): (()
 export const ResponsiveService = {
 	isMobile,
 	getInitialCanonState,
+	getInitialWikiSidebarState,
 	createResizeObserver
 };
