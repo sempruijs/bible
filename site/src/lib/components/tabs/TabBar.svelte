@@ -19,7 +19,7 @@
 	} = $props();
 </script>
 
-<div class="bg-gray-800 border-b border-gray-700 flex items-center px-4 py-2">
+<div class="bg-gray-800 border-b border-gray-700 flex items-center py-2 pt-[max(0.5rem,env(safe-area-inset-top))] px-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]">
 	<div class="flex items-center gap-2 flex-1 overflow-x-auto" title={isMobile ? "Navigate tabs" : "Navigate tabs: (n) next, (p) previous"}>
 		{#each tabs as tab}
 			{@const tabId = tab.id}

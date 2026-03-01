@@ -6,4 +6,5 @@ html, body {
 	width: 100%;
 	position: fixed;
 	overscroll-behavior: none;
+	background-color: #1f2937; /* gray-800 - matches tab bar for safe area */
 }
