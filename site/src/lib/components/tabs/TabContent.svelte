@@ -21,7 +21,7 @@
 	} = $props();
 </script>
 
-<div class="flex-1 overflow-hidden">
+<div class="flex-1 overflow-hidden pb-[env(safe-area-inset-bottom)]">
 	{#each tabs as tab (tab.id)}
 		<div
 			class="h-full w-full {tab.id === activeTabId ? 'block' : 'hidden'}"
