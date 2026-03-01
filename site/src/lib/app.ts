@@ -216,7 +216,7 @@ export namespace App {
 				}
 				return "Stopwatch";
 			},
-			Wiki: ({ wikiState }) => wikiState.page ? `Wiki: ${wikiState.page.replace(/_/g, ' ')}` : 'Wiki'
+			Wiki: ({ wikiState }) => wikiState.page ? wikiState.page.replace(/_/g, ' ') : 'Wiki'
 		});
 	};
 }
