@@ -156,6 +156,10 @@
 		if (onNavigate) {
 			onNavigate(entryPage);
 		}
+		// On mobile, close sidebar to show the selected entry
+		if (isMobile && showSidebar && onToggleSidebar) {
+			onToggleSidebar();
+		}
 	}
 
 	// Check if we're on the overview page
@@ -339,6 +343,12 @@
 							<p class="text-gray-500 text-sm mt-2">
 								Check that the page exists in the <a href="https://github.com/biblecomputer/wiki" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline">wiki repository</a>.
 							</p>
+							<button
+								onclick={() => onToggleSidebar?.()}
+								class="mt-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors"
+							>
+								Browse entries
+							</button>
 						</div>
 					{:else if content}
 						<!-- eslint-disable-next-line svelte/no-at-html-tags -->
