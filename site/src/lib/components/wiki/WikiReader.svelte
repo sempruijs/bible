@@ -327,9 +327,22 @@
 					</div>
 				{:else}
 					<!-- Page Title -->
-					<header class="mb-8 border-b border-gray-700 pb-4">
-						<h1 class="text-4xl font-bold text-gray-100">{findCorrectCase(page) || toDisplayName(page)}</h1>
-						<p class="text-sm text-gray-500 mt-2">Wiki</p>
+					<header class="mb-8 border-b border-gray-700 pb-4 flex justify-between items-start">
+						<div>
+							<h1 class="text-4xl font-bold text-gray-100">{findCorrectCase(page) || toDisplayName(page)}</h1>
+							<p class="text-sm text-gray-500 mt-2">Wiki</p>
+						</div>
+						<a
+							href="https://github.com/biblecomputer/wiki/edit/main/source/en/{encodeURIComponent(findCorrectCase(page) || toDisplayName(page))}.md"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-700 rounded-lg transition-colors"
+							title="Edit this page on GitHub"
+						>
+							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+							</svg>
+						</a>
 					</header>
 
 					<!-- Content -->
