@@ -7,11 +7,13 @@
 		isActive = false,
 		onNavigate,
 		onToggleSidebar,
+		onOpenInNewTab,
 	}: {
 		wikiState: WikiState;
 		isActive?: boolean;
 		onNavigate?: (page: string) => void;
 		onToggleSidebar?: () => void;
+		onOpenInNewTab?: (path: string) => void;
 	} = $props();
 </script>
 
@@ -21,4 +23,5 @@
 	{isActive}
 	{onNavigate}
 	{onToggleSidebar}
+	{onOpenInNewTab}
 />

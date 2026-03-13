@@ -3,18 +3,22 @@
 	import WikiSidebar from "$lib/components/wiki/WikiSidebar.svelte";
 	import * as ResponsiveService from "$lib/services/ResponsiveService";
 
+	import * as NavigationService from "$lib/services/NavigationService";
+
 	let {
 		page,
 		showSidebar = true,
 		isActive = true,
 		onNavigate,
 		onToggleSidebar,
+		onOpenInNewTab,
 	}: {
 		page: string;
 		showSidebar?: boolean;
 		isActive?: boolean;
 		onNavigate?: (page: string) => void;
 		onToggleSidebar?: () => void;
+		onOpenInNewTab?: (path: string) => void;
 	} = $props();
 
 	let content = $state<string>("");
@@ -108,6 +112,22 @@
 		});
 	}
 
+	// Check if a URL is an internal bible.computer link
+	function isInternalLink(url: string): boolean {
+		// Must start with /
+		if (!url.startsWith('/')) return false;
+
+		// Check for wiki, library, or about paths
+		if (url.startsWith('/wiki/') || url.startsWith('/library/') || url === '/about' || url === '/stopwatch') {
+			return true;
+		}
+
+		// Check for Bible reference (e.g., /ps.100v5, /matt.5, /john.3v16)
+		const pathWithoutSlash = url.slice(1);
+		const bibleRef = NavigationService.parseReferenceUrl(pathWithoutSlash);
+		return bibleRef !== null;
+	}
+
 	// Simple markdown to HTML conversion
 	function renderMarkdown(text: string): string {
 		let html = text;
@@ -125,8 +145,13 @@
 		html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 		html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
 
-		// Links (standard markdown)
-		html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">$1</a>');
+		// Links (standard markdown) - check for internal links
+		html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, linkText, url) => {
+			if (isInternalLink(url)) {
+				return `<a href="${url}" class="internal-link text-blue-400 hover:text-blue-300 underline cursor-pointer" data-internal-path="${url}">${linkText}</a>`;
+			}
+			return `<a href="${url}" class="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
+		});
 
 		// Line breaks - convert double newlines to paragraphs
 		html = html.split(/\n\n+/).map(para => {
@@ -140,7 +165,7 @@
 		return html;
 	}
 
-	// Handle click events on wiki links
+	// Handle click events on wiki links and internal links
 	function handleContentClick(event: MouseEvent) {
 		const target = event.target as HTMLElement;
 		if (target.classList.contains('wiki-link')) {
@@ -148,6 +173,12 @@
 			const pageName = target.getAttribute('data-wiki-page');
 			if (pageName && onNavigate) {
 				onNavigate(pageName);
+			}
+		} else if (target.classList.contains('internal-link')) {
+			event.preventDefault();
+			const path = target.getAttribute('data-internal-path');
+			if (path && onOpenInNewTab) {
+				onOpenInNewTab(path);
 			}
 		}
 	}

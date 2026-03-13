@@ -229,6 +229,81 @@
 		isProgrammaticNavigation = false;
 	}
 
+	// Handle internal link click - create new tab based on path type
+	async function handleOpenInNewTab(path: string) {
+		const showSidebar = ResponsiveService.getInitialWikiSidebarState();
+		const canonState = ResponsiveService.getInitialCanonState();
+		let newTab: TabState;
+
+		// Check for wiki path
+		const wikiMatch = path.match(/^\/wiki\/(.+)$/);
+		if (wikiMatch) {
+			newTab = createTab({
+				app: "Wiki",
+				id: `tab${tabsState.nextTabId}`,
+				page: wikiMatch[1],
+				showSidebar
+			});
+		}
+		// Check for library path
+		else if (path.match(/^\/library\/(.+)$/)) {
+			const libraryMatch = path.match(/^\/library\/(.+)$/);
+			newTab = createTab({
+				app: "Library",
+				id: `tab${tabsState.nextTabId}`,
+				document: libraryMatch![1],
+				showSidebar
+			});
+		}
+		// Check for about page
+		else if (path === '/about') {
+			newTab = createTab({
+				app: "About",
+				id: `tab${tabsState.nextTabId}`
+			});
+		}
+		// Check for stopwatch page
+		else if (path === '/stopwatch') {
+			newTab = createTab({
+				app: "Stopwatch",
+				id: `tab${tabsState.nextTabId}`
+			});
+		}
+		// Try to parse as Bible reference
+		else {
+			const pathWithoutSlash = path.startsWith('/') ? path.slice(1) : path;
+			const selection = NavigationService.parseReferenceUrl(pathWithoutSlash);
+			if (selection) {
+				newTab = createTab({
+					app: "Bible",
+					id: `tab${tabsState.nextTabId}`,
+					book: selection.start.book,
+					chapter: selection.start.chapter,
+					verse: selection.start.verse,
+					selection: selection,
+					translation,
+					showCanonExplorer: canonState
+				});
+			} else {
+				// Unknown path, don't open a tab
+				console.warn('Unknown internal link path:', path);
+				return;
+			}
+		}
+
+		tabsState = {
+			tabs: [...tabsState.tabs, newTab],
+			activeTabId: newTab.id,
+			nextTabId: tabsState.nextTabId + 1
+		};
+
+		// Update URL to the new tab
+		const url = App.getUrl(newTab.app);
+		isProgrammaticNavigation = true;
+		await NavigationService.navigateToUrl(url);
+		isProgrammaticNavigation = false;
+	}
+
 	// Handle browser navigation - ONLY updates selection, NOT scroll position
 	function syncFromURL() {
 		// Skip sync if we're in the middle of programmatic navigation
@@ -322,5 +397,6 @@
 		onAppChoice={handleAppChoice}
 		onTabRemove={removeTab}
 		onWikiLinkClick={handleWikiLinkClick}
+		onOpenInNewTab={handleOpenInNewTab}
 	/>
 </div>

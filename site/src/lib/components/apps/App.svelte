@@ -16,6 +16,7 @@
 		onAppChoice,
 		onTabClose,
 		onWikiLinkClick,
+		onOpenInNewTab,
 	}: {
 		tabState: TabState;
 		isActive?: boolean;
@@ -24,6 +25,7 @@
 		onAppChoice?: (appType: "bible" | "about" | "stopwatch" | "wiki" | "library") => void;
 		onTabClose?: () => void;
 		onWikiLinkClick?: (page: string) => void;
+		onOpenInNewTab?: (path: string) => void;
 	} = $props();
 
 	// Handle scroll state change (doesn't update URL - just internal view position)
@@ -185,6 +187,7 @@
 		{isActive}
 		onNavigate={handleWikiNavigate}
 		onToggleSidebar={handleWikiToggleSidebar}
+		{onOpenInNewTab}
 	/>
 {:else if tabState.app._tag === "Library"}
 	<LibraryApp
@@ -192,5 +195,6 @@
 		{isActive}
 		onNavigate={handleLibraryNavigate}
 		onToggleSidebar={handleLibraryToggleSidebar}
+		{onOpenInNewTab}
 	/>
 {/if}
