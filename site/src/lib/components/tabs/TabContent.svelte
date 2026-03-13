@@ -15,7 +15,7 @@
 		activeTabId: string;
 		onScrollStateChange?: (tab: TabState) => void;
 		onSelectionChange?: (tab: TabState) => void;
-		onAppChoice?: (appType: "bible" | "about" | "stopwatch" | "wiki") => void;
+		onAppChoice?: (appType: "bible" | "about" | "stopwatch" | "wiki" | "library") => void;
 		onTabRemove?: (tabId: string) => void;
 		onWikiLinkClick?: (page: string) => void;
 	} = $props();

@@ -49,6 +49,11 @@
 			// On mobile, show content immediately (homepage or entry)
 			const showSidebar = ResponsiveService.getInitialWikiSidebarState();
 			initialTab = createTab({ app: "Wiki", id: "tab1", page: initialState.wikiPage || '', showSidebar });
+		} else if (initialState.isLibrary) {
+			// Create Library tab if URL is /library or /library/*
+			// On mobile, show content immediately (homepage or document)
+			const showSidebar = ResponsiveService.getInitialWikiSidebarState();
+			initialTab = createTab({ app: "Library", id: "tab1", document: initialState.libraryDocument || '', showSidebar });
 		} else {
 			// Create Bible tab with parsed book/chapter/verse and selection
 			const canonState = ResponsiveService.getInitialCanonState();
@@ -76,9 +81,9 @@
 		console.log('📝 updateTabState called with:', updatedTab);
 		tabsState = TabsStateNS.updateTab(tabsState, updatedTab);
 
-		// Update URL hash for scroll position (Bible) or full URL (Wiki)
+		// Update URL hash for scroll position (Bible) or full URL (Wiki/Library)
 		if (updatedTab.id === tabsState.activeTabId) {
-			if (updatedTab.app._tag === "Bible" || updatedTab.app._tag === "Wiki") {
+			if (updatedTab.app._tag === "Bible" || updatedTab.app._tag === "Wiki" || updatedTab.app._tag === "Library") {
 				const url = App.getUrl(updatedTab.app);
 				NavigationService.navigateToUrl(url);
 			}
@@ -158,7 +163,7 @@
 	}
 
 	// Handle app choice in ChooseApp tabs
-	async function handleAppChoice(appType: "bible" | "about" | "stopwatch" | "wiki") {
+	async function handleAppChoice(appType: "bible" | "about" | "stopwatch" | "wiki" | "library") {
 		const tabIndex = tabsState.tabs.findIndex(tab => tab.id === tabsState.activeTabId);
 		if (tabIndex === -1) return;
 
@@ -182,6 +187,10 @@
 			// On mobile, show content immediately
 			const showSidebar = ResponsiveService.getInitialWikiSidebarState();
 			newTab = createTab({ app: "Wiki", id: tabsState.activeTabId, page: "Abraham", showSidebar });
+		} else if (appType === "library") {
+			// On mobile, show content immediately
+			const showSidebar = ResponsiveService.getInitialWikiSidebarState();
+			newTab = createTab({ app: "Library", id: tabsState.activeTabId, document: "", showSidebar });
 		} else {
 			console.error(`Unknown app type: ${appType}`);
 			return;

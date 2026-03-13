@@ -1,10 +1,11 @@
 <script lang="ts">
 	import type { TabState, BibleSelection } from "$lib/app";
-	import { Bible, BibleState, Stopwatch, Wiki, WikiState } from "$lib/app";
+	import { Bible, BibleState, Stopwatch, Wiki, WikiState, Library, LibraryState } from "$lib/app";
 	import AboutApp from "$lib/components/apps/About.svelte";
 	import BibleApp from "$lib/components/apps/Bible.svelte";
 	import StopwatchApp from "$lib/components/apps/Stopwatch.svelte";
 	import WikiApp from "$lib/components/apps/Wiki.svelte";
+	import LibraryApp from "$lib/components/apps/Library.svelte";
 	import ChooseAppComponent from "$lib/components/apps/ChooseApp.svelte";
 
 	let {
@@ -20,7 +21,7 @@
 		isActive?: boolean;
 		onStateChange?: (tab: TabState) => void;
 		onSelectionChange?: (tab: TabState) => void;
-		onAppChoice?: (appType: "bible" | "about" | "stopwatch" | "wiki") => void;
+		onAppChoice?: (appType: "bible" | "about" | "stopwatch" | "wiki" | "library") => void;
 		onTabClose?: () => void;
 		onWikiLinkClick?: (page: string) => void;
 	} = $props();
@@ -127,6 +128,34 @@
 			});
 		}
 	}
+
+	function handleLibraryNavigate(document: string) {
+		if (tabState.app._tag === "Library" && onStateChange) {
+			onStateChange({
+				...tabState,
+				app: Library({
+					libraryState: LibraryState({
+						document,
+						showSidebar: tabState.app.libraryState.showSidebar,
+					}),
+				}),
+			});
+		}
+	}
+
+	function handleLibraryToggleSidebar() {
+		if (tabState.app._tag === "Library" && onStateChange) {
+			onStateChange({
+				...tabState,
+				app: Library({
+					libraryState: LibraryState({
+						...tabState.app.libraryState,
+						showSidebar: !tabState.app.libraryState.showSidebar,
+					}),
+				}),
+			});
+		}
+	}
 </script>
 
 <!-- Content rendering based on app type -->
@@ -156,5 +185,12 @@
 		{isActive}
 		onNavigate={handleWikiNavigate}
 		onToggleSidebar={handleWikiToggleSidebar}
+	/>
+{:else if tabState.app._tag === "Library"}
+	<LibraryApp
+		libraryState={tabState.app.libraryState}
+		{isActive}
+		onNavigate={handleLibraryNavigate}
+		onToggleSidebar={handleLibraryToggleSidebar}
 	/>
 {/if}

@@ -5,12 +5,12 @@
         onChooseApp,
         onClose
     }: {
-        onChooseApp: (appType: "bible" | "about" | "stopwatch" | "wiki") => void;
+        onChooseApp: (appType: "bible" | "about" | "stopwatch" | "wiki" | "library") => void;
         onClose?: () => void;
     } = $props();
 
     type AppOption = {
-        id: "bible" | "about" | "stopwatch" | "wiki";
+        id: "bible" | "about" | "stopwatch" | "wiki" | "library";
         name: string;
         description: string;
     };
@@ -18,6 +18,7 @@
     const apps: AppOption[] = [
         { id: "bible", name: "bible", description: "Read and explore the Bible" },
         { id: "wiki", name: "wiki", description: "Browse the Bible encyclopedia" },
+        { id: "library", name: "library", description: "Read public domain documents" },
         { id: "about", name: "about", description: "Learn more about Bible Computer" },
         { id: "stopwatch", name: "stopwatch", description: "Track time with a precise stopwatch" }
     ];

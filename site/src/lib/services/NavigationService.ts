@@ -171,6 +171,8 @@ export const getInitialState = (): {
 	isStopwatch: boolean;
 	isWiki: boolean;
 	wikiPage: string | null;
+	isLibrary: boolean;
+	libraryDocument: string | null;
 } => {
 	if (typeof window === 'undefined') {
 		return {
@@ -181,7 +183,9 @@ export const getInitialState = (): {
 			isAbout: false,
 			isStopwatch: false,
 			isWiki: false,
-			wikiPage: null
+			wikiPage: null,
+			isLibrary: false,
+			libraryDocument: null
 		};
 	}
 
@@ -198,7 +202,9 @@ export const getInitialState = (): {
 			isAbout: true,
 			isStopwatch: false,
 			isWiki: false,
-			wikiPage: null
+			wikiPage: null,
+			isLibrary: false,
+			libraryDocument: null
 		};
 	}
 
@@ -212,7 +218,9 @@ export const getInitialState = (): {
 			isAbout: false,
 			isStopwatch: true,
 			isWiki: false,
-			wikiPage: null
+			wikiPage: null,
+			isLibrary: false,
+			libraryDocument: null
 		};
 	}
 
@@ -226,7 +234,9 @@ export const getInitialState = (): {
 			isAbout: false,
 			isStopwatch: false,
 			isWiki: true,
-			wikiPage: ''
+			wikiPage: '',
+			isLibrary: false,
+			libraryDocument: null
 		};
 	}
 
@@ -240,7 +250,41 @@ export const getInitialState = (): {
 			isAbout: false,
 			isStopwatch: false,
 			isWiki: true,
-			wikiPage: wikiMatch[1]
+			wikiPage: wikiMatch[1],
+			isLibrary: false,
+			libraryDocument: null
+		};
+	}
+
+	// Check if it's a library page (with or without specific document)
+	if (pathname === '/library' || pathname === '/library/') {
+		return {
+			book: BibleBook.John,
+			chapter: 1,
+			verse: null,
+			selection: null,
+			isAbout: false,
+			isStopwatch: false,
+			isWiki: false,
+			wikiPage: null,
+			isLibrary: true,
+			libraryDocument: ''
+		};
+	}
+
+	const libraryMatch = pathname.match(/^\/library\/(.+)$/);
+	if (libraryMatch) {
+		return {
+			book: BibleBook.John,
+			chapter: 1,
+			verse: null,
+			selection: null,
+			isAbout: false,
+			isStopwatch: false,
+			isWiki: false,
+			wikiPage: null,
+			isLibrary: true,
+			libraryDocument: libraryMatch[1]
 		};
 	}
 
@@ -261,7 +305,9 @@ export const getInitialState = (): {
 			isAbout: false,
 			isStopwatch: false,
 			isWiki: false,
-			wikiPage: null
+			wikiPage: null,
+			isLibrary: false,
+			libraryDocument: null
 		};
 	}
 
@@ -275,7 +321,9 @@ export const getInitialState = (): {
 			isAbout: false,
 			isStopwatch: false,
 			isWiki: false,
-			wikiPage: null
+			wikiPage: null,
+			isLibrary: false,
+			libraryDocument: null
 		};
 	}
 
@@ -288,7 +336,9 @@ export const getInitialState = (): {
 		isAbout: false,
 		isStopwatch: false,
 		isWiki: false,
-		wikiPage: null
+		wikiPage: null,
+		isLibrary: false,
+		libraryDocument: null
 	};
 };
 
