@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import WikiSidebar from "$lib/components/wiki/WikiSidebar.svelte";
+	import BibleVersePreview from "$lib/components/common/BibleVersePreview.svelte";
 	import * as ResponsiveService from "$lib/services/ResponsiveService";
-
 	import * as NavigationService from "$lib/services/NavigationService";
+	import type { Translation } from "$lib/translations/translation";
 
 	let {
 		page,
@@ -12,6 +13,7 @@
 		onNavigate,
 		onToggleSidebar,
 		onOpenInNewTab,
+		translation,
 	}: {
 		page: string;
 		showSidebar?: boolean;
@@ -19,6 +21,7 @@
 		onNavigate?: (page: string) => void;
 		onToggleSidebar?: () => void;
 		onOpenInNewTab?: (path: string) => void;
+		translation?: Translation;
 	} = $props();
 
 	let content = $state<string>("");
@@ -28,6 +31,10 @@
 	let entriesLoading = $state<boolean>(true);
 	let isMobile = $state<boolean>(false);
 	let shouldFocusSearch = $state(false);
+
+	// Hover preview state
+	let hoverPreview = $state<{ path: string; x: number; y: number } | null>(null);
+	let hoverTimeout = $state<ReturnType<typeof setTimeout> | null>(null);
 
 	// Normalize page name for comparison (lowercase, underscores to spaces)
 	function normalizePageName(str: string): string {
@@ -112,6 +119,18 @@
 		});
 	}
 
+	// Check if a URL is a Bible reference link
+	function isBibleLink(url: string): boolean {
+		if (!url.startsWith('/')) return false;
+		// Not wiki, library, about, or stopwatch
+		if (url.startsWith('/wiki/') || url.startsWith('/library/') || url === '/about' || url === '/stopwatch') {
+			return false;
+		}
+		const pathWithoutSlash = url.slice(1);
+		const bibleRef = NavigationService.parseReferenceUrl(pathWithoutSlash);
+		return bibleRef !== null;
+	}
+
 	// Check if a URL is an internal bible.computer link
 	function isInternalLink(url: string): boolean {
 		// Must start with /
@@ -123,9 +142,7 @@
 		}
 
 		// Check for Bible reference (e.g., /ps.100v5, /matt.5, /john.3v16)
-		const pathWithoutSlash = url.slice(1);
-		const bibleRef = NavigationService.parseReferenceUrl(pathWithoutSlash);
-		return bibleRef !== null;
+		return isBibleLink(url);
 	}
 
 	// Simple markdown to HTML conversion
@@ -147,6 +164,10 @@
 
 		// Links (standard markdown) - check for internal links
 		html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, linkText, url) => {
+			if (isBibleLink(url)) {
+				// Bible links get special class for hover preview
+				return `<a href="${url}" class="internal-link bible-link text-blue-400 hover:text-blue-300 underline cursor-pointer" data-internal-path="${url}">${linkText}</a>`;
+			}
 			if (isInternalLink(url)) {
 				return `<a href="${url}" class="internal-link text-blue-400 hover:text-blue-300 underline cursor-pointer" data-internal-path="${url}">${linkText}</a>`;
 			}
@@ -167,6 +188,9 @@
 
 	// Handle click events on wiki links and internal links
 	function handleContentClick(event: MouseEvent) {
+		// Clear any hover preview on click
+		clearHoverPreview();
+
 		const target = event.target as HTMLElement;
 		if (target.classList.contains('wiki-link')) {
 			event.preventDefault();
@@ -181,6 +205,50 @@
 				onOpenInNewTab(path);
 			}
 		}
+	}
+
+	// Handle mouseover for Bible link preview
+	function handleContentMouseOver(event: MouseEvent) {
+		const target = event.target as HTMLElement;
+		if (target.classList.contains('bible-link') && translation) {
+			const path = target.getAttribute('data-internal-path');
+			if (path) {
+				// Clear any existing timeout
+				if (hoverTimeout) {
+					clearTimeout(hoverTimeout);
+				}
+				// Delay showing preview slightly to avoid flickering
+				hoverTimeout = setTimeout(() => {
+					hoverPreview = { path, x: event.clientX, y: event.clientY };
+				}, 300);
+			}
+		}
+	}
+
+	// Handle mouseout to clear preview
+	function handleContentMouseOut(event: MouseEvent) {
+		const target = event.target as HTMLElement;
+		if (target.classList.contains('bible-link')) {
+			if (hoverTimeout) {
+				clearTimeout(hoverTimeout);
+				hoverTimeout = null;
+			}
+			// Small delay before hiding to allow moving to the preview
+			setTimeout(() => {
+				// Only clear if we're not hovering over the preview itself
+				if (hoverPreview) {
+					hoverPreview = null;
+				}
+			}, 100);
+		}
+	}
+
+	function clearHoverPreview() {
+		if (hoverTimeout) {
+			clearTimeout(hoverTimeout);
+			hoverTimeout = null;
+		}
+		hoverPreview = null;
 	}
 
 	function handleEntrySelect(entryPage: string) {
@@ -396,7 +464,12 @@
 						</div>
 					{:else if content}
 						<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-						<div class="wiki-content" onclick={handleContentClick}>
+						<div
+							class="wiki-content"
+							onclick={handleContentClick}
+							onmouseover={handleContentMouseOver}
+							onmouseout={handleContentMouseOut}
+						>
 							{@html renderMarkdown(content)}
 						</div>
 					{:else}
@@ -409,6 +482,17 @@
 		</div>
 	</div>
 </div>
+
+<!-- Bible verse hover preview -->
+{#if hoverPreview && translation}
+	<BibleVersePreview
+		path={hoverPreview.path}
+		x={hoverPreview.x}
+		y={hoverPreview.y}
+		{translation}
+		onClose={clearHoverPreview}
+	/>
+{/if}
 
 <style>
 	.wiki-content :global(p) {

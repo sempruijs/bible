@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { TabState, BibleSelection } from "$lib/app";
+	import type { Translation } from "$lib/translations/translation";
 	import { Bible, BibleState, Stopwatch, Wiki, WikiState, Library, LibraryState } from "$lib/app";
 	import AboutApp from "$lib/components/apps/About.svelte";
 	import BibleApp from "$lib/components/apps/Bible.svelte";
@@ -17,6 +18,7 @@
 		onTabClose,
 		onWikiLinkClick,
 		onOpenInNewTab,
+		translation,
 	}: {
 		tabState: TabState;
 		isActive?: boolean;
@@ -26,6 +28,7 @@
 		onTabClose?: () => void;
 		onWikiLinkClick?: (page: string) => void;
 		onOpenInNewTab?: (path: string) => void;
+		translation?: Translation;
 	} = $props();
 
 	// Handle scroll state change (doesn't update URL - just internal view position)
@@ -188,6 +191,7 @@
 		onNavigate={handleWikiNavigate}
 		onToggleSidebar={handleWikiToggleSidebar}
 		{onOpenInNewTab}
+		{translation}
 	/>
 {:else if tabState.app._tag === "Library"}
 	<LibraryApp
@@ -196,5 +200,6 @@
 		onNavigate={handleLibraryNavigate}
 		onToggleSidebar={handleLibraryToggleSidebar}
 		{onOpenInNewTab}
+		{translation}
 	/>
 {/if}

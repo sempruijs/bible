@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { TabState } from "$lib/app";
+	import type { Translation } from "$lib/translations/translation";
 	import App from "$lib/components/apps/App.svelte";
 
 	let {
@@ -11,6 +12,7 @@
 		onTabClose,
 		onWikiLinkClick,
 		onOpenInNewTab,
+		translation,
 	}: {
 		app: TabState;
 		isActive?: boolean;
@@ -20,6 +22,7 @@
 		onTabClose?: () => void;
 		onWikiLinkClick?: (page: string) => void;
 		onOpenInNewTab?: (path: string) => void;
+		translation?: Translation;
 	} = $props();
 </script>
 
@@ -32,4 +35,5 @@
 	{onTabClose}
 	{onWikiLinkClick}
 	{onOpenInNewTab}
+	{translation}
 />

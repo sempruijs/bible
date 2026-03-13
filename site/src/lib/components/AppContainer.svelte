@@ -398,5 +398,6 @@
 		onTabRemove={removeTab}
 		onWikiLinkClick={handleWikiLinkClick}
 		onOpenInNewTab={handleOpenInNewTab}
+		{translation}
 	/>
 </div>
