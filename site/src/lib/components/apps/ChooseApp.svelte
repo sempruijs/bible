@@ -5,7 +5,7 @@
 		onChooseApp,
 		onClose,
 	}: {
-		onChooseApp?: (appType: "bible" | "about" | "stopwatch" | "wiki") => void;
+		onChooseApp?: (appType: "bible" | "about" | "stopwatch" | "wiki" | "library") => void;
 		onClose?: () => void;
 	} = $props();
 </script>

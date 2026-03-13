@@ -38,6 +38,11 @@ export const WikiStateSchema = Schema.Struct({
 	showSidebar: Schema.Boolean
 });
 
+export const LibraryStateSchema = Schema.Struct({
+	document: Schema.String, // The document path (e.g., "en/sempruijs/the-goodness-of-God")
+	showSidebar: Schema.Boolean
+});
+
 // App schema - represents the application running in a tab
 export const AppSchema = Schema.Union(
 	Schema.Struct({
@@ -57,6 +62,10 @@ export const AppSchema = Schema.Union(
 	Schema.Struct({
 		_tag: Schema.Literal("Wiki"),
 		wikiState: WikiStateSchema
+	}),
+	Schema.Struct({
+		_tag: Schema.Literal("Library"),
+		libraryState: LibraryStateSchema
 	})
 );
 
@@ -84,6 +93,7 @@ type BibleSelectionReadonly = Schema.Schema.Type<typeof BibleSelectionSchema>;
 type BibleStateReadonly = Schema.Schema.Type<typeof BibleStateSchema>;
 type StopwatchStateReadonly = Schema.Schema.Type<typeof StopwatchStateSchema>;
 type WikiStateReadonly = Schema.Schema.Type<typeof WikiStateSchema>;
+type LibraryStateReadonly = Schema.Schema.Type<typeof LibraryStateSchema>;
 type AppReadonly = Schema.Schema.Type<typeof AppSchema>;
 type TabStateReadonly = Schema.Schema.Type<typeof TabStateSchema>;
 type TabsStateReadonly = Schema.Schema.Type<typeof TabsStateSchema>;
@@ -93,6 +103,7 @@ export type BibleSelection = DeepWritable<BibleSelectionReadonly>;
 export type BibleState = DeepWritable<BibleStateReadonly>;
 export type StopwatchState = DeepWritable<StopwatchStateReadonly>;
 export type WikiState = DeepWritable<WikiStateReadonly>;
+export type LibraryState = DeepWritable<LibraryStateReadonly>;
 export type App = DeepWritable<AppReadonly>;
 export type TabState = DeepWritable<TabStateReadonly>;
 export type TabsState = DeepWritable<TabsStateReadonly>;
@@ -101,9 +112,10 @@ export type TabsState = DeepWritable<TabsStateReadonly>;
 export const BibleState = Data.case<BibleState>();
 export const StopwatchState = Data.case<StopwatchState>();
 export const WikiState = Data.case<WikiState>();
+export const LibraryState = Data.case<LibraryState>();
 
 // App constructors
-export const { Bible, About, ChooseApp, Stopwatch, Wiki, $match } = Data.taggedEnum<App>()
+export const { Bible, About, ChooseApp, Stopwatch, Wiki, Library, $match } = Data.taggedEnum<App>()
 
 // Format time as MM:SS for tab title
 const formatTimeForTitle = (milliseconds: number): string => {
@@ -196,7 +208,8 @@ export namespace App {
 			About: () => "/about",
 			ChooseApp: () => "/",
 			Stopwatch: () => "/stopwatch",
-			Wiki: ({ wikiState }) => wikiState.page ? `/wiki/${wikiState.page.replace(/ /g, '_')}` : '/wiki'
+			Wiki: ({ wikiState }) => wikiState.page ? `/wiki/${wikiState.page.replace(/ /g, '_')}` : '/wiki',
+			Library: ({ libraryState }) => libraryState.document ? `/library/${libraryState.document}` : '/library'
 		});
 	};
 
@@ -216,7 +229,14 @@ export namespace App {
 				}
 				return "Stopwatch";
 			},
-			Wiki: ({ wikiState }) => wikiState.page ? wikiState.page.replace(/_/g, ' ') : 'Wiki'
+			Wiki: ({ wikiState }) => wikiState.page ? wikiState.page.replace(/_/g, ' ') : 'Wiki',
+			Library: ({ libraryState }) => {
+				if (!libraryState.document) return 'Library';
+				// Extract filename from path (e.g., "en/sempruijs/the-goodness-of-God" -> "the-goodness-of-God")
+				const parts = libraryState.document.split('/');
+				const filename = parts[parts.length - 1];
+				return filename.replace(/-/g, ' ');
+			}
 		});
 	};
 }
@@ -311,7 +331,8 @@ export type CreateTabConfig =
 	| { app: "Stopwatch", id: string }
 	| { app: "About", id: string }
 	| { app: "ChooseApp", id: string }
-	| { app: "Wiki", id: string, page: string, showSidebar?: boolean };
+	| { app: "Wiki", id: string, page: string, showSidebar?: boolean }
+	| { app: "Library", id: string, document: string, showSidebar?: boolean };
 
 // Unified tab creation function - pure data construction
 export const createTab = (config: CreateTabConfig): TabState => {
@@ -356,6 +377,16 @@ export const createTab = (config: CreateTabConfig): TabState => {
 				app: Wiki({
 					wikiState: WikiState({
 						page: config.page,
+						showSidebar: config.showSidebar ?? true
+					})
+				})
+			};
+		case "Library":
+			return {
+				id: config.id,
+				app: Library({
+					libraryState: LibraryState({
+						document: config.document,
 						showSidebar: config.showSidebar ?? true
 					})
 				})
