@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
+	import { Option, Effect, Exit, pipe } from "effect";
 	import LibrarySidebar from "$lib/components/library/LibrarySidebar.svelte";
 	import BibleVersePreview from "$lib/components/common/BibleVersePreview.svelte";
 	import * as ResponsiveService from "$lib/services/ResponsiveService";
@@ -26,15 +27,15 @@
 
 	let content = $state<string>("");
 	let loading = $state<boolean>(true);
-	let error = $state<string | null>(null);
+	let error = $state<Option.Option<string>>(Option.none());
 	let entries = $state<LibraryEntry[]>([]);
 	let entriesLoading = $state<boolean>(true);
 	let isMobile = $state<boolean>(false);
 	let shouldFocusSearch = $state(false);
 
 	// Hover preview state
-	let hoverPreview = $state<{ path: string; x: number; y: number } | null>(null);
-	let hoverTimeout = $state<ReturnType<typeof setTimeout> | null>(null);
+	let hoverPreview = $state<Option.Option<{ path: string; x: number; y: number }>>(Option.none());
+	let hoverTimeout = $state<Option.Option<ReturnType<typeof setTimeout>>>(Option.none());
 
 	type LibraryEntry = {
 		path: string;
@@ -84,7 +85,7 @@
 	// Fetch document content from GitHub
 	async function fetchDocumentContent(docPath: string) {
 		loading = true;
-		error = null;
+		error = Option.none();
 
 		const url = `https://raw.githubusercontent.com/biblecomputer/public-domain/main/${docPath}.md`;
 
@@ -92,16 +93,16 @@
 			const response = await fetch(url);
 			if (!response.ok) {
 				if (response.status === 404) {
-					error = `Document "${toDisplayName(docPath)}" not found`;
+					error = Option.some(`Document "${toDisplayName(docPath)}" not found`);
 				} else {
-					error = `Failed to fetch document: ${response.statusText}`;
+					error = Option.some(`Failed to fetch document: ${response.statusText}`);
 				}
 				content = "";
 			} else {
 				content = await response.text();
 			}
 		} catch (err) {
-			error = `Failed to load document: ${err}`;
+			error = Option.some(`Failed to load document: ${err}`);
 			content = "";
 		} finally {
 			loading = false;
@@ -116,8 +117,7 @@
 			return false;
 		}
 		const pathWithoutSlash = url.slice(1);
-		const bibleRef = NavigationService.parseReferenceUrl(pathWithoutSlash);
-		return bibleRef !== null;
+		return Option.isSome(NavigationService.parseReferenceUrl(pathWithoutSlash));
 	}
 
 	// Check if a URL is an internal bible.computer link
@@ -156,13 +156,14 @@
 			const path = target.getAttribute('data-internal-path');
 			if (path) {
 				// Clear any existing timeout
-				if (hoverTimeout) {
-					clearTimeout(hoverTimeout);
-				}
+				pipe(
+					hoverTimeout,
+					Option.map(clearTimeout)
+				);
 				// Delay showing preview slightly to avoid flickering
-				hoverTimeout = setTimeout(() => {
-					hoverPreview = { path, x: event.clientX, y: event.clientY };
-				}, 300);
+				hoverTimeout = Option.some(setTimeout(() => {
+					hoverPreview = Option.some({ path, x: event.clientX, y: event.clientY });
+				}, 300));
 			}
 		}
 	}
@@ -171,25 +172,27 @@
 	function handleContentMouseOut(event: MouseEvent) {
 		const target = event.target as HTMLElement;
 		if (target.classList.contains('bible-link')) {
-			if (hoverTimeout) {
-				clearTimeout(hoverTimeout);
-				hoverTimeout = null;
-			}
+			pipe(
+				hoverTimeout,
+				Option.map(clearTimeout)
+			);
+			hoverTimeout = Option.none();
 			// Small delay before hiding to allow moving to the preview
 			setTimeout(() => {
-				if (hoverPreview) {
-					hoverPreview = null;
+				if (Option.isSome(hoverPreview)) {
+					hoverPreview = Option.none();
 				}
 			}, 100);
 		}
 	}
 
 	function clearHoverPreview() {
-		if (hoverTimeout) {
-			clearTimeout(hoverTimeout);
-			hoverTimeout = null;
-		}
-		hoverPreview = null;
+		pipe(
+			hoverTimeout,
+			Option.map(clearTimeout)
+		);
+		hoverTimeout = Option.none();
+		hoverPreview = Option.none();
 	}
 
 	// Simple markdown to HTML conversion
@@ -250,7 +253,7 @@
 		} else {
 			loading = false;
 			content = '';
-			error = null;
+			error = Option.none();
 		}
 	});
 
@@ -428,9 +431,9 @@
 						<div class="flex items-center justify-center py-12">
 							<div class="text-gray-400">Loading...</div>
 						</div>
-					{:else if error}
+					{:else if Option.isSome(error)}
 						<div class="bg-red-900/20 border border-red-700 rounded-lg p-6 text-center">
-							<p class="text-red-400">{error}</p>
+							<p class="text-red-400">{error.value}</p>
 							<p class="text-gray-500 text-sm mt-2">
 								Check that the document exists in the <a href="https://github.com/biblecomputer/public-domain" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline">library repository</a>.
 							</p>
@@ -463,11 +466,11 @@
 </div>
 
 <!-- Bible verse hover preview -->
-{#if hoverPreview && translation}
+{#if Option.isSome(hoverPreview) && translation}
 	<BibleVersePreview
-		path={hoverPreview.path}
-		x={hoverPreview.x}
-		y={hoverPreview.y}
+		path={hoverPreview.value.path}
+		x={hoverPreview.value.x}
+		y={hoverPreview.value.y}
 		{translation}
 		onClose={clearHoverPreview}
 	/>

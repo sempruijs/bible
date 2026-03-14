@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
+	import { Option, Effect, Exit, pipe } from "effect";
 	import WikiSidebar from "$lib/components/wiki/WikiSidebar.svelte";
 	import BibleVersePreview from "$lib/components/common/BibleVersePreview.svelte";
 	import * as ResponsiveService from "$lib/services/ResponsiveService";
@@ -26,15 +27,15 @@
 
 	let content = $state<string>("");
 	let loading = $state<boolean>(true);
-	let error = $state<string | null>(null);
+	let error = $state<Option.Option<string>>(Option.none());
 	let entries = $state<string[]>([]);
 	let entriesLoading = $state<boolean>(true);
 	let isMobile = $state<boolean>(false);
 	let shouldFocusSearch = $state(false);
 
 	// Hover preview state
-	let hoverPreview = $state<{ path: string; x: number; y: number } | null>(null);
-	let hoverTimeout = $state<ReturnType<typeof setTimeout> | null>(null);
+	let hoverPreview = $state<Option.Option<{ path: string; x: number; y: number }>>(Option.none());
+	let hoverTimeout = $state<Option.Option<ReturnType<typeof setTimeout>>>(Option.none());
 
 	// Normalize page name for comparison (lowercase, underscores to spaces)
 	function normalizePageName(str: string): string {
@@ -47,67 +48,130 @@
 	}
 
 	// Find the correct case-sensitive entry name from the entries list
-	function findCorrectCase(pageName: string): string | null {
+	function findCorrectCase(pageName: string): Option.Option<string> {
 		const normalized = normalizePageName(pageName);
-		return entries.find(entry => normalizePageName(entry) === normalized) || null;
+		return Option.fromNullable(entries.find(entry => normalizePageName(entry) === normalized));
 	}
+
+	// Effect-based fetch for wiki entries
+	const fetchWikiEntriesEffect = Effect.gen(function* () {
+		const response = yield* Effect.tryPromise({
+			try: () => fetch('https://api.github.com/repos/biblecomputer/wiki/contents/source/en'),
+			catch: (error) => new Error(`Network error: ${error}`)
+		});
+
+		if (!response.ok) {
+			return yield* Effect.fail(new Error(`HTTP ${response.status}`));
+		}
+
+		const data = yield* Effect.tryPromise({
+			try: () => response.json(),
+			catch: (error) => new Error(`JSON parse error: ${error}`)
+		});
+
+		return (data as any[])
+			.filter((item: any) => item.name.endsWith('.md') && item.name !== 'README.md')
+			.map((item: any) => item.name.replace('.md', ''))
+			.sort((a: string, b: string) => a.localeCompare(b));
+	});
 
 	// Fetch wiki entries list from GitHub
-	async function fetchWikiEntries() {
+	function fetchWikiEntries() {
 		entriesLoading = true;
-		try {
-			const response = await fetch('https://api.github.com/repos/biblecomputer/wiki/contents/source/en');
-			if (response.ok) {
-				const data = await response.json();
-				entries = data
-					.filter((item: any) => item.name.endsWith('.md') && item.name !== 'README.md')
-					.map((item: any) => item.name.replace('.md', ''))
-					.sort((a: string, b: string) => a.localeCompare(b));
-			}
-		} catch (err) {
-			console.error('Failed to fetch wiki entries:', err);
-			entries = [];
-		} finally {
-			entriesLoading = false;
+		Effect.runPromiseExit(fetchWikiEntriesEffect)
+			.then((exit) => {
+				Exit.match(exit, {
+					onSuccess: (result) => {
+						entries = result;
+						entriesLoading = false;
+					},
+					onFailure: (cause) => {
+						console.error('Failed to fetch wiki entries:', cause);
+						entries = [];
+						entriesLoading = false;
+					}
+				});
+			});
+	}
+
+	// Error types for wiki content fetching
+	class WikiNotFoundError {
+		readonly _tag = "WikiNotFoundError";
+		readonly displayName: string;
+		constructor(displayName: string) {
+			this.displayName = displayName;
 		}
 	}
 
-	// Fetch wiki content from GitHub
-	async function fetchWikiContent(pageName: string) {
-		loading = true;
-		error = null;
+	class WikiFetchError {
+		readonly _tag = "WikiFetchError";
+		readonly message: string;
+		constructor(message: string) {
+			this.message = message;
+		}
+	}
 
-		// Try to find the correct case from entries list
-		const correctName = findCorrectCase(pageName);
+	// Effect-based fetch for wiki content
+	const createFetchWikiContentEffect = (pageName: string) => Effect.gen(function* () {
+		const correctNameOption = findCorrectCase(pageName);
 		const displayName = toDisplayName(pageName);
-
-		// Use the correct case if found, otherwise use the page name as-is
-		const fileName = correctName || pageName.replace(/_/g, ' ');
+		const fileName = Option.getOrElse(correctNameOption, () => pageName.replace(/_/g, ' '));
 		const url = `https://raw.githubusercontent.com/biblecomputer/wiki/main/source/en/${encodeURIComponent(fileName)}.md`;
 
-		try {
-			const response = await fetch(url);
-			if (!response.ok) {
-				if (response.status === 404) {
-					error = `Page "${displayName}" not found`;
-				} else {
-					error = `Failed to fetch page: ${response.statusText}`;
-				}
-				content = "";
-			} else {
-				content = await response.text();
-				// If we found the correct case, update the URL to reflect it
-				if (correctName && correctName !== pageName && onNavigate) {
-					// Navigate to the correct case version (this updates the URL)
-					onNavigate(correctName);
-				}
+		const response = yield* Effect.tryPromise({
+			try: () => fetch(url),
+			catch: (err) => new WikiFetchError(`Failed to load wiki page: ${err}`)
+		});
+
+		if (!response.ok) {
+			if (response.status === 404) {
+				return yield* Effect.fail(new WikiNotFoundError(displayName));
 			}
-		} catch (err) {
-			error = `Failed to load wiki page: ${err}`;
-			content = "";
-		} finally {
-			loading = false;
+			return yield* Effect.fail(new WikiFetchError(`Failed to fetch page: ${response.statusText}`));
 		}
+
+		const text = yield* Effect.tryPromise({
+			try: () => response.text(),
+			catch: (err) => new WikiFetchError(`Failed to read response: ${err}`)
+		});
+
+		return { text, correctNameOption, pageName };
+	});
+
+	// Fetch wiki content from GitHub
+	function fetchWikiContent(pageName: string) {
+		loading = true;
+		error = Option.none();
+
+		Effect.runPromiseExit(createFetchWikiContentEffect(pageName))
+			.then((exit) => {
+				Exit.match(exit, {
+					onSuccess: (result) => {
+						content = result.text;
+						// If we found the correct case, update the URL to reflect it
+						pipe(
+							result.correctNameOption,
+							Option.filter(correctName => correctName !== result.pageName),
+							Option.map(correctName => {
+								if (onNavigate) onNavigate(correctName);
+							})
+						);
+						loading = false;
+					},
+					onFailure: (cause) => {
+						const failure = cause._tag === "Fail" ? cause.error : null;
+						if (failure && failure._tag === "WikiNotFoundError") {
+							error = Option.some(`Page "${failure.displayName}" not found`);
+						} else if (failure && failure._tag === "WikiFetchError") {
+							error = Option.some(failure.message);
+						} else {
+							error = Option.some("An unexpected error occurred");
+						}
+						content = "";
+						loading = false;
+					}
+				});
+			});
 	}
 
 	// Parse Obsidian-style links [[PageName]] and convert to clickable links
@@ -127,8 +191,7 @@
 			return false;
 		}
 		const pathWithoutSlash = url.slice(1);
-		const bibleRef = NavigationService.parseReferenceUrl(pathWithoutSlash);
-		return bibleRef !== null;
+		return Option.isSome(NavigationService.parseReferenceUrl(pathWithoutSlash));
 	}
 
 	// Check if a URL is an internal bible.computer link
@@ -214,13 +277,14 @@
 			const path = target.getAttribute('data-internal-path');
 			if (path) {
 				// Clear any existing timeout
-				if (hoverTimeout) {
-					clearTimeout(hoverTimeout);
-				}
+				pipe(
+					hoverTimeout,
+					Option.map(clearTimeout)
+				);
 				// Delay showing preview slightly to avoid flickering
-				hoverTimeout = setTimeout(() => {
-					hoverPreview = { path, x: event.clientX, y: event.clientY };
-				}, 300);
+				hoverTimeout = Option.some(setTimeout(() => {
+					hoverPreview = Option.some({ path, x: event.clientX, y: event.clientY });
+				}, 300));
 			}
 		}
 	}
@@ -229,26 +293,28 @@
 	function handleContentMouseOut(event: MouseEvent) {
 		const target = event.target as HTMLElement;
 		if (target.classList.contains('bible-link')) {
-			if (hoverTimeout) {
-				clearTimeout(hoverTimeout);
-				hoverTimeout = null;
-			}
+			pipe(
+				hoverTimeout,
+				Option.map(clearTimeout)
+			);
+			hoverTimeout = Option.none();
 			// Small delay before hiding to allow moving to the preview
 			setTimeout(() => {
 				// Only clear if we're not hovering over the preview itself
-				if (hoverPreview) {
-					hoverPreview = null;
+				if (Option.isSome(hoverPreview)) {
+					hoverPreview = Option.none();
 				}
 			}, 100);
 		}
 	}
 
 	function clearHoverPreview() {
-		if (hoverTimeout) {
-			clearTimeout(hoverTimeout);
-			hoverTimeout = null;
-		}
-		hoverPreview = null;
+		pipe(
+			hoverTimeout,
+			Option.map(clearTimeout)
+		);
+		hoverTimeout = Option.none();
+		hoverPreview = Option.none();
 	}
 
 	function handleEntrySelect(entryPage: string) {
@@ -271,7 +337,7 @@
 		} else {
 			loading = false;
 			content = '';
-			error = null;
+			error = Option.none();
 		}
 	});
 
@@ -428,11 +494,11 @@
 					<!-- Page Title -->
 					<header class="mb-8 border-b border-gray-700 pb-4 flex justify-between items-start">
 						<div>
-							<h1 class="text-4xl font-bold text-gray-100">{findCorrectCase(page) || toDisplayName(page)}</h1>
+							<h1 class="text-4xl font-bold text-gray-100">{Option.getOrElse(findCorrectCase(page), () => toDisplayName(page))}</h1>
 							<p class="text-sm text-gray-500 mt-2">Wiki</p>
 						</div>
 						<a
-							href="https://github.com/biblecomputer/wiki/edit/main/source/en/{encodeURIComponent(findCorrectCase(page) || toDisplayName(page))}.md"
+							href="https://github.com/biblecomputer/wiki/edit/main/source/en/{encodeURIComponent(Option.getOrElse(findCorrectCase(page), () => toDisplayName(page)))}.md"
 							target="_blank"
 							rel="noopener noreferrer"
 							class="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-700 rounded-lg transition-colors"
@@ -449,9 +515,9 @@
 						<div class="flex items-center justify-center py-12">
 							<div class="text-gray-400">Loading...</div>
 						</div>
-					{:else if error}
+					{:else if Option.isSome(error)}
 						<div class="bg-red-900/20 border border-red-700 rounded-lg p-6 text-center">
-							<p class="text-red-400">{error}</p>
+							<p class="text-red-400">{error.value}</p>
 							<p class="text-gray-500 text-sm mt-2">
 								Check that the page exists in the <a href="https://github.com/biblecomputer/wiki" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline">wiki repository</a>.
 							</p>
@@ -484,11 +550,11 @@
 </div>
 
 <!-- Bible verse hover preview -->
-{#if hoverPreview && translation}
+{#if Option.isSome(hoverPreview) && translation}
 	<BibleVersePreview
-		path={hoverPreview.path}
-		x={hoverPreview.x}
-		y={hoverPreview.y}
+		path={hoverPreview.value.path}
+		x={hoverPreview.value.x}
+		y={hoverPreview.value.y}
 		{translation}
 		onClose={clearHoverPreview}
 	/>
