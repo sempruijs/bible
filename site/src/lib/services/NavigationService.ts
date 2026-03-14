@@ -12,41 +12,34 @@
 
 import { BibleBook, toBibleBook } from "$lib/book";
 import type { BibleReference, BibleSelection } from "$lib/app";
-import { Option, pipe } from "effect";
+import { Option } from "effect";
 
 /**
  * Parse a single reference point like "matt.5" or "matt.5v3"
- * Returns Option containing { book, chapter, verse } if valid
+ * Returns { book, chapter, verse } or null if invalid
  */
-const parseReferencePoint = (str: string): Option.Option<BibleReference> => {
+const parseReferencePoint = (str: string): BibleReference | null => {
 	// Pattern: book.chapterVverse or book.chapter
 	const match = str.match(/^([a-z0-9]+)\.(\d+)(?:v(\d+))?$/i);
-	if (!match) return Option.none();
+	if (!match) return null;
 
-	return pipe(
-		toBibleBook(match[1].toLowerCase()),
-		Option.flatMap(book => {
-			const chapter = parseInt(match[2]);
-			const verseStr = match[3];
-			const verse = verseStr ? parseInt(verseStr) : undefined;
+	const bookOption = toBibleBook(match[1].toLowerCase());
+	if (Option.isNone(bookOption)) return null;
 
-			if (isNaN(chapter) || chapter < 1) return Option.none();
-			if (verse !== undefined && (isNaN(verse) || verse < 1)) return Option.none();
+	const chapter = parseInt(match[2]);
+	const verse = match[3] ? parseInt(match[3]) : null;
 
-			return Option.some({
-				book,
-				chapter,
-				verse: Option.fromNullable(verse)
-			});
-		})
-	);
+	if (isNaN(chapter) || chapter < 1) return null;
+	if (verse !== null && (isNaN(verse) || verse < 1)) return null;
+
+	return { book: bookOption.value, chapter, verse };
 };
 
 /**
  * Parse a Bible reference URL path (without leading slash)
  * Handles all URL formats including ranges
  */
-export const parseReferenceUrl = (path: string): Option.Option<BibleSelection> => {
+export const parseReferenceUrl = (path: string): BibleSelection | null => {
 	// Remove leading slash if present
 	const cleanPath = path.startsWith('/') ? path.slice(1) : path;
 
@@ -54,58 +47,57 @@ export const parseReferenceUrl = (path: string): Option.Option<BibleSelection> =
 	// Pattern: book.chapterVverse-book.chapterVverse
 	const crossBookMatch = cleanPath.match(/^([a-z0-9]+\.\d+(?:v\d+)?)-([a-z0-9]+\.\d+(?:v\d+)?)$/i);
 	if (crossBookMatch) {
-		return pipe(
-			Option.all([
-				parseReferencePoint(crossBookMatch[1]),
-				parseReferencePoint(crossBookMatch[2])
-			]),
-			Option.map(([start, end]) => ({ start, end: Option.some(end) }))
-		);
+		const start = parseReferencePoint(crossBookMatch[1]);
+		const end = parseReferencePoint(crossBookMatch[2]);
+		if (start && end) {
+			return { start, end };
+		}
 	}
 
 	// Check for same-book range patterns
 	// Pattern: book.start-end where end can be chapter, chapterVverse, or just verse
 	const sameBookMatch = cleanPath.match(/^([a-z0-9]+)\.(\d+(?:v\d+)?)-(\d+(?:v\d+)?)$/i);
 	if (sameBookMatch) {
-		return pipe(
-			toBibleBook(sameBookMatch[1].toLowerCase()),
-			Option.flatMap(book => {
-				// Parse start part
-				const startMatch = sameBookMatch[2].match(/^(\d+)(?:v(\d+))?$/);
-				if (!startMatch) return Option.none();
-				const startChapter = parseInt(startMatch[1]);
-				const startVerse = startMatch[2] ? parseInt(startMatch[2]) : undefined;
+		const bookOption = toBibleBook(sameBookMatch[1].toLowerCase());
+		if (Option.isNone(bookOption)) return null;
+		const book = bookOption.value;
 
-				// Parse end part
-				const endMatch = sameBookMatch[3].match(/^(\d+)(?:v(\d+))?$/);
-				if (!endMatch) return Option.none();
-				const endNum = parseInt(endMatch[1]);
-				const endVerse = endMatch[2] ? parseInt(endMatch[2]) : undefined;
+		// Parse start part
+		const startMatch = sameBookMatch[2].match(/^(\d+)(?:v(\d+))?$/);
+		if (!startMatch) return null;
+		const startChapter = parseInt(startMatch[1]);
+		const startVerse = startMatch[2] ? parseInt(startMatch[2]) : null;
 
-				// Determine if end is chapter or verse
-				// If start has verse and end is small number without v prefix, treat as verse
-				if (startVerse !== undefined && !endMatch[2] && endNum <= startVerse + 100) {
-					// Same chapter verse range: matt.5v1-12 means verses 1-12 of chapter 5
-					return Option.some({
-						start: { book, chapter: startChapter, verse: Option.some(startVerse) },
-						end: Option.some({ book, chapter: startChapter, verse: Option.some(endNum) })
-					});
-				}
+		// Parse end part
+		const endMatch = sameBookMatch[3].match(/^(\d+)(?:v(\d+))?$/);
+		if (!endMatch) return null;
+		const endNum = parseInt(endMatch[1]);
+		const endVerse = endMatch[2] ? parseInt(endMatch[2]) : null;
 
-				// Chapter range (with optional verse): matt.5-7 or matt.5-7v30
-				return Option.some({
-					start: { book, chapter: startChapter, verse: Option.fromNullable(startVerse) },
-					end: Option.some({ book, chapter: endNum, verse: Option.fromNullable(endVerse) })
-				});
-			})
-		);
+		// Determine if end is chapter or verse
+		// If start has verse and end is small number without v prefix, treat as verse
+		if (startVerse !== null && !endMatch[2] && endNum <= startVerse + 100) {
+			// Same chapter verse range: matt.5v1-12 means verses 1-12 of chapter 5
+			return {
+				start: { book, chapter: startChapter, verse: startVerse },
+				end: { book, chapter: startChapter, verse: endNum }
+			};
+		}
+
+		// Chapter range (with optional verse): matt.5-7 or matt.5-7v30
+		return {
+			start: { book, chapter: startChapter, verse: startVerse },
+			end: { book, chapter: endNum, verse: endVerse }
+		};
 	}
 
 	// Single reference: book.chapter or book.chapterVverse
-	return pipe(
-		parseReferencePoint(cleanPath),
-		Option.map(start => ({ start, end: Option.none() }))
-	);
+	const singleRef = parseReferencePoint(cleanPath);
+	if (singleRef) {
+		return { start: singleRef, end: null };
+	}
+
+	return null;
 };
 
 /**
@@ -131,27 +123,23 @@ export const navigateToUrl = (url: string): void => {
  */
 export const parseURL = (pathname: string): Option.Option<BibleSelection> => {
 	// Try new format first
-	const newFormatResult = parseReferenceUrl(pathname);
-	if (Option.isSome(newFormatResult)) {
-		return newFormatResult;
+	const selection = parseReferenceUrl(pathname);
+	if (selection) {
+		return Option.some(selection);
 	}
 
 	// Try legacy format: /book/chapter or /book/chapterVverse
 	const urlParts = pathname.split('/').filter(Boolean);
 	if (urlParts.length >= 2) {
+		const bookOption = toBibleBook(urlParts[0]);
 		const chapterMatch = urlParts[1].match(/^(\d+)(?:v(\d+))?$/);
-		if (chapterMatch) {
-			return pipe(
-				toBibleBook(urlParts[0]),
-				Option.map(book => {
-					const chapter = parseInt(chapterMatch[1]);
-					const verse = chapterMatch[2] ? parseInt(chapterMatch[2]) : undefined;
-					return {
-						start: { book, chapter, verse: Option.fromNullable(verse) },
-						end: Option.none()
-					};
-				})
-			);
+		if (Option.isSome(bookOption) && chapterMatch) {
+			const chapter = parseInt(chapterMatch[1]);
+			const verse = chapterMatch[2] ? parseInt(chapterMatch[2]) : null;
+			return Option.some({
+				start: { book: bookOption.value, chapter, verse },
+				end: null
+			});
 		}
 	}
 
@@ -161,39 +149,11 @@ export const parseURL = (pathname: string): Option.Option<BibleSelection> => {
 /**
  * Parse the URL hash to extract scroll position (e.g., "#john.1v1")
  */
-export const parseScrollHash = (hash: string): Option.Option<BibleReference> => {
-	if (!hash || hash === '#') return Option.none();
+export const parseScrollHash = (hash: string): BibleReference | null => {
+	if (!hash || hash === '#') return null;
 	// Remove the # prefix
 	const cleanHash = hash.startsWith('#') ? hash.slice(1) : hash;
 	return parseReferencePoint(cleanHash);
-};
-
-// Initial state type using Option for optional values
-export type InitialState = {
-	book: BibleBook;
-	chapter: number;
-	verse: Option.Option<number>;
-	selection: Option.Option<BibleSelection>;
-	isAbout: boolean;
-	isStopwatch: boolean;
-	isWiki: boolean;
-	wikiPage: Option.Option<string>;
-	isLibrary: boolean;
-	libraryDocument: Option.Option<string>;
-};
-
-// Default initial state
-const defaultInitialState: InitialState = {
-	book: BibleBook.John,
-	chapter: 1,
-	verse: Option.none(),
-	selection: Option.none(),
-	isAbout: false,
-	isStopwatch: false,
-	isWiki: false,
-	wikiPage: Option.none(),
-	isLibrary: false,
-	libraryDocument: Option.none()
 };
 
 /**
@@ -202,9 +162,31 @@ const defaultInitialState: InitialState = {
  *
  * @returns Object containing the initial book, chapter, verse, selection, and app type flags
  */
-export const getInitialState = (): InitialState => {
+export const getInitialState = (): {
+	book: BibleBook;
+	chapter: number;
+	verse: number | null;
+	selection: BibleSelection | null;
+	isAbout: boolean;
+	isStopwatch: boolean;
+	isWiki: boolean;
+	wikiPage: string | null;
+	isLibrary: boolean;
+	libraryDocument: string | null;
+} => {
 	if (typeof window === 'undefined') {
-		return defaultInitialState;
+		return {
+			book: BibleBook.John,
+			chapter: 1,
+			verse: null,
+			selection: null,
+			isAbout: false,
+			isStopwatch: false,
+			isWiki: false,
+			wikiPage: null,
+			isLibrary: false,
+			libraryDocument: null
+		};
 	}
 
 	const pathname = window.location.pathname;
@@ -212,82 +194,152 @@ export const getInitialState = (): InitialState => {
 
 	// Check if it's the about page
 	if (pathname === '/about') {
-		return { ...defaultInitialState, isAbout: true };
+		return {
+			book: BibleBook.John,
+			chapter: 1,
+			verse: null,
+			selection: null,
+			isAbout: true,
+			isStopwatch: false,
+			isWiki: false,
+			wikiPage: null,
+			isLibrary: false,
+			libraryDocument: null
+		};
 	}
 
 	// Check if it's the stopwatch page
 	if (pathname === '/stopwatch') {
-		return { ...defaultInitialState, isStopwatch: true };
+		return {
+			book: BibleBook.John,
+			chapter: 1,
+			verse: null,
+			selection: null,
+			isAbout: false,
+			isStopwatch: true,
+			isWiki: false,
+			wikiPage: null,
+			isLibrary: false,
+			libraryDocument: null
+		};
 	}
 
 	// Check if it's a wiki page (with or without specific page)
 	if (pathname === '/wiki' || pathname === '/wiki/') {
 		return {
-			...defaultInitialState,
+			book: BibleBook.John,
+			chapter: 1,
+			verse: null,
+			selection: null,
+			isAbout: false,
+			isStopwatch: false,
 			isWiki: true,
-			wikiPage: Option.some('')
+			wikiPage: '',
+			isLibrary: false,
+			libraryDocument: null
 		};
 	}
 
 	const wikiMatch = pathname.match(/^\/wiki\/([^/]+)$/);
 	if (wikiMatch) {
 		return {
-			...defaultInitialState,
+			book: BibleBook.John,
+			chapter: 1,
+			verse: null,
+			selection: null,
+			isAbout: false,
+			isStopwatch: false,
 			isWiki: true,
-			wikiPage: Option.some(wikiMatch[1])
+			wikiPage: wikiMatch[1],
+			isLibrary: false,
+			libraryDocument: null
 		};
 	}
 
 	// Check if it's a library page (with or without specific document)
 	if (pathname === '/library' || pathname === '/library/') {
 		return {
-			...defaultInitialState,
+			book: BibleBook.John,
+			chapter: 1,
+			verse: null,
+			selection: null,
+			isAbout: false,
+			isStopwatch: false,
+			isWiki: false,
+			wikiPage: null,
 			isLibrary: true,
-			libraryDocument: Option.some('')
+			libraryDocument: ''
 		};
 	}
 
 	const libraryMatch = pathname.match(/^\/library\/(.+)$/);
 	if (libraryMatch) {
 		return {
-			...defaultInitialState,
+			book: BibleBook.John,
+			chapter: 1,
+			verse: null,
+			selection: null,
+			isAbout: false,
+			isStopwatch: false,
+			isWiki: false,
+			wikiPage: null,
 			isLibrary: true,
-			libraryDocument: Option.some(libraryMatch[1])
+			libraryDocument: libraryMatch[1]
 		};
 	}
 
 	// Parse selection from path
-	const selection = parseURL(pathname);
+	const selectionOption = parseURL(pathname);
+	const selection = Option.isSome(selectionOption) ? selectionOption.value : null;
 
 	// Parse scroll position from hash
 	const scrollPosition = parseScrollHash(hash);
 
 	// If we have a scroll position in hash, use it
-	return pipe(
-		scrollPosition,
-		Option.match({
-			onSome: (pos) => ({
-				...defaultInitialState,
-				book: pos.book,
-				chapter: pos.chapter,
-				verse: pos.verse,
-				selection
-			}),
-			onNone: () => pipe(
-				selection,
-				Option.match({
-					onSome: (sel) => ({
-						...defaultInitialState,
-						book: sel.start.book,
-						chapter: sel.start.chapter,
-						verse: sel.start.verse,
-						selection: Option.some(sel)
-					}),
-					onNone: () => defaultInitialState
-				})
-			)
-		})
-	);
+	if (scrollPosition) {
+		return {
+			book: scrollPosition.book,
+			chapter: scrollPosition.chapter,
+			verse: scrollPosition.verse,
+			selection,
+			isAbout: false,
+			isStopwatch: false,
+			isWiki: false,
+			wikiPage: null,
+			isLibrary: false,
+			libraryDocument: null
+		};
+	}
+
+	// If we have a selection but no scroll hash, scroll to selection start
+	if (selection) {
+		return {
+			book: selection.start.book,
+			chapter: selection.start.chapter,
+			verse: selection.start.verse,
+			selection,
+			isAbout: false,
+			isStopwatch: false,
+			isWiki: false,
+			wikiPage: null,
+			isLibrary: false,
+			libraryDocument: null
+		};
+	}
+
+	// Default to John 1
+	return {
+		book: BibleBook.John,
+		chapter: 1,
+		verse: null,
+		selection: null,
+		isAbout: false,
+		isStopwatch: false,
+		isWiki: false,
+		wikiPage: null,
+		isLibrary: false,
+		libraryDocument: null
+	};
 };
 
 export const NavigationService = {
