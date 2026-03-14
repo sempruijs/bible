@@ -3,7 +3,7 @@
     import { loadTranslationContent } from "$lib/translations/loadTranslationContent";
     import { BibleBook, toBibleBook } from "$lib/book";
     import type { BibleSelection } from "$lib/app";
-    import { Option, Effect } from "effect";
+    import { Option, Effect, Exit, pipe } from "effect";
     import BibleCanonExplorerWithSearch from "$lib/components/bible/BibleCanonExplorerWithSearch.svelte";
     import VirtualBibleScroll from "$lib/components/bible/VirtualBibleScroll.svelte";
     import { availableTranslations } from "$lib/translations/availableTranslations";
@@ -16,8 +16,8 @@
         translation,
         currentBook = BibleBook.John,
         currentChapter = 1,
-        currentVerse = null as number | null,
-        selection = null as BibleSelection | null,
+        currentVerse = Option.none() as Option.Option<number>,
+        selection = Option.none() as Option.Option<BibleSelection>,
         showCanonExplorer = true,
         isActive = true,
         onScrollStateChange = () => {},
@@ -29,12 +29,12 @@
         translation: Translation;
         currentBook?: BibleBook;
         currentChapter?: number;
-        currentVerse?: number | null;
-        selection?: BibleSelection | null;
+        currentVerse?: Option.Option<number>;
+        selection?: Option.Option<BibleSelection>;
         showCanonExplorer?: boolean;
         isActive?: boolean;
-        onScrollStateChange?: (book: BibleBook, chapter: number, verse: number | null) => void;
-        onSelectionChange?: (selection: BibleSelection | null) => void;
+        onScrollStateChange?: (book: BibleBook, chapter: number, verse: Option.Option<number>) => void;
+        onSelectionChange?: (selection: Option.Option<BibleSelection>) => void;
         onToggleCanonExplorer?: () => void;
         onTranslationChange?: (translation: Translation) => void;
         onWikiLinkClick?: (page: string) => void;
@@ -43,10 +43,10 @@
     // Internal state that gets updated by user interactions (URL/canon explorer)
     let internalBook = $state<BibleBook>(currentBook);
     let internalChapter = $state<number>(currentChapter);
-    let internalVerse = $state<number | null>(currentVerse);
+    let internalVerse = $state<Option.Option<number>>(currentVerse);
 
     // Internal selection state (separate from scroll state)
-    let internalSelection = $state<BibleSelection | null>(selection);
+    let internalSelection = $state<Option.Option<BibleSelection>>(selection);
 
     // Scroll target - only updated on explicit navigation (clicks), NOT on scroll events
     let scrollTarget = $state({ book: currentBook, chapter: currentChapter, verse: currentVerse, version: 0 });
@@ -79,13 +79,17 @@
     // Load translation content when translation changes
     $effect(() => {
         if (translation) {
-            Effect.runPromise(loadTranslationContent(translation))
-                .then((content) => {
-                    translationContent = Option.some(content);
-                })
-                .catch((error) => {
-                    console.error("Failed to load translation content:", error);
-                    translationContent = Option.none();
+            Effect.runPromiseExit(loadTranslationContent(translation))
+                .then((exit) => {
+                    Exit.match(exit, {
+                        onSuccess: (content) => {
+                            translationContent = Option.some(content);
+                        },
+                        onFailure: (cause) => {
+                            console.error("Failed to load translation content:", cause);
+                            translationContent = Option.none();
+                        }
+                    });
                 });
         }
     });
@@ -101,29 +105,29 @@
                 onToggleCanonExplorer();
                 // Delay scroll update to ensure canon explorer closes and VirtualBibleScroll renders
                 setTimeout(() => {
-                    scrollTarget = { book: bookOption.value, chapter, verse: null, version: scrollTarget.version + 1 };
+                    scrollTarget = { book: bookOption.value, chapter, verse: Option.none(), version: scrollTarget.version + 1 };
                     internalBook = bookOption.value;
                     internalChapter = chapter;
-                    internalVerse = null;
+                    internalVerse = Option.none();
                     // Only update scroll state, NOT selection - selection is independent
-                    onScrollStateChange(bookOption.value, chapter, null);
+                    onScrollStateChange(bookOption.value, chapter, Option.none());
                 }, 50);
             } else {
                 // On desktop, update immediately
-                scrollTarget = { book: bookOption.value, chapter, verse: null, version: scrollTarget.version + 1 };
+                scrollTarget = { book: bookOption.value, chapter, verse: Option.none(), version: scrollTarget.version + 1 };
                 console.log(`   After: scrollTarget.version=${scrollTarget.version}`);
 
                 internalBook = bookOption.value;
                 internalChapter = chapter;
-                internalVerse = null;
+                internalVerse = Option.none();
                 // Only update scroll state, NOT selection - selection is independent
-                onScrollStateChange(bookOption.value, chapter, null);
+                onScrollStateChange(bookOption.value, chapter, Option.none());
             }
         }
     }
 
     // Handle scroll state changes - update URL/canon explorer but NOT scroll target
-    function handleScrollStateChange(book: BibleBook, chapter: number, verse: number | null) {
+    function handleScrollStateChange(book: BibleBook, chapter: number, verse: Option.Option<number>) {
         internalBook = book;
         internalChapter = chapter;
         internalVerse = verse;
@@ -136,25 +140,31 @@
         console.log('📖 handleVerseSelect called:', book, chapter, verse);
 
         // Check if this verse is already selected - if so, deselect
-        const isAlreadySelected = internalSelection &&
-            internalSelection.start.book === book &&
-            internalSelection.start.chapter === chapter &&
-            internalSelection.start.verse === verse &&
-            internalSelection.end === null;
+        const isAlreadySelected = pipe(
+            internalSelection,
+            Option.match({
+                onNone: () => false,
+                onSome: (sel) =>
+                    sel.start.book === book &&
+                    sel.start.chapter === chapter &&
+                    Option.getOrElse(sel.start.verse, () => -1) === verse &&
+                    Option.isNone(sel.end)
+            })
+        );
 
         if (isAlreadySelected) {
             console.log('📖 Verse already selected - deselecting');
-            internalSelection = null;
-            onSelectionChange(null);
+            internalSelection = Option.none();
+            onSelectionChange(Option.none());
         } else {
             // Create selection for the clicked verse
             const newSelection: BibleSelection = {
-                start: { book, chapter, verse },
-                end: null
+                start: { book, chapter, verse: Option.some(verse) },
+                end: Option.none()
             };
-            internalSelection = newSelection;
+            internalSelection = Option.some(newSelection);
             console.log('📖 Calling onSelectionChange with:', newSelection);
-            onSelectionChange(newSelection);
+            onSelectionChange(Option.some(newSelection));
         }
         // Note: scroll position (internalBook/Chapter/Verse, scrollTarget) is NOT changed
     }
@@ -170,21 +180,21 @@
         if (internalChapter < currentBookData.chapters.length) {
             // Go to next chapter in same book
             const nextChapter = internalChapter + 1;
-            scrollTarget = { book: internalBook, chapter: nextChapter, verse: null, version: scrollTarget.version + 1 };
+            scrollTarget = { book: internalBook, chapter: nextChapter, verse: Option.none(), version: scrollTarget.version + 1 };
             internalBook = internalBook;
             internalChapter = nextChapter;
-            internalVerse = null;
-            onScrollStateChange(internalBook, nextChapter, null);
+            internalVerse = Option.none();
+            onScrollStateChange(internalBook, nextChapter, Option.none());
         } else {
             // Go to first chapter of next book
             const currentBookIndex = protestantBookOrder.books.indexOf(internalBook);
             if (currentBookIndex >= 0 && currentBookIndex < protestantBookOrder.books.length - 1) {
                 const nextBook = protestantBookOrder.books[currentBookIndex + 1];
-                scrollTarget = { book: nextBook, chapter: 1, verse: null, version: scrollTarget.version + 1 };
+                scrollTarget = { book: nextBook, chapter: 1, verse: Option.none(), version: scrollTarget.version + 1 };
                 internalBook = nextBook;
                 internalChapter = 1;
-                internalVerse = null;
-                onScrollStateChange(nextBook, 1, null);
+                internalVerse = Option.none();
+                onScrollStateChange(nextBook, 1, Option.none());
             }
         }
     }
@@ -197,11 +207,11 @@
         if (internalChapter > 1) {
             // Go to previous chapter in same book
             const prevChapter = internalChapter - 1;
-            scrollTarget = { book: internalBook, chapter: prevChapter, verse: null, version: scrollTarget.version + 1 };
+            scrollTarget = { book: internalBook, chapter: prevChapter, verse: Option.none(), version: scrollTarget.version + 1 };
             internalBook = internalBook;
             internalChapter = prevChapter;
-            internalVerse = null;
-            onScrollStateChange(internalBook, prevChapter, null);
+            internalVerse = Option.none();
+            onScrollStateChange(internalBook, prevChapter, Option.none());
         } else {
             // Go to last chapter of previous book
             const currentBookIndex = protestantBookOrder.books.indexOf(internalBook);
@@ -210,11 +220,11 @@
                 const prevBookData = translationContent.value.books.find(b => b.name === prevBook);
                 if (prevBookData) {
                     const lastChapter = prevBookData.chapters.length;
-                    scrollTarget = { book: prevBook, chapter: lastChapter, verse: null, version: scrollTarget.version + 1 };
+                    scrollTarget = { book: prevBook, chapter: lastChapter, verse: Option.none(), version: scrollTarget.version + 1 };
                     internalBook = prevBook;
                     internalChapter = lastChapter;
-                    internalVerse = null;
-                    onScrollStateChange(prevBook, lastChapter, null);
+                    internalVerse = Option.none();
+                    onScrollStateChange(prevBook, lastChapter, Option.none());
                 }
             }
         }
@@ -230,15 +240,15 @@
         const currentChapterData = currentBookData.chapters.find(c => c.chapter === internalChapter);
         if (!currentChapterData) return;
 
-        const currentVerseNum = internalVerse ?? 1;
+        const currentVerseNum = Option.getOrElse(internalVerse, () => 1);
         const maxVerse = currentChapterData.verses.length;
 
         if (currentVerseNum < maxVerse) {
             // Go to next verse in same chapter
             const nextVerse = currentVerseNum + 1;
-            scrollTarget = { book: internalBook, chapter: internalChapter, verse: nextVerse, version: scrollTarget.version + 1 };
-            internalVerse = nextVerse;
-            onScrollStateChange(internalBook, internalChapter, nextVerse);
+            scrollTarget = { book: internalBook, chapter: internalChapter, verse: Option.some(nextVerse), version: scrollTarget.version + 1 };
+            internalVerse = Option.some(nextVerse);
+            onScrollStateChange(internalBook, internalChapter, Option.some(nextVerse));
         } else {
             // Go to first verse of next chapter
             goToNextChapter();
@@ -249,14 +259,14 @@
     function goToPreviousVerse() {
         if (!Option.isSome(translationContent)) return;
 
-        const currentVerseNum = internalVerse ?? 1;
+        const currentVerseNum = Option.getOrElse(internalVerse, () => 1);
 
         if (currentVerseNum > 1) {
             // Go to previous verse in same chapter
             const prevVerse = currentVerseNum - 1;
-            scrollTarget = { book: internalBook, chapter: internalChapter, verse: prevVerse, version: scrollTarget.version + 1 };
-            internalVerse = prevVerse;
-            onScrollStateChange(internalBook, internalChapter, prevVerse);
+            scrollTarget = { book: internalBook, chapter: internalChapter, verse: Option.some(prevVerse), version: scrollTarget.version + 1 };
+            internalVerse = Option.some(prevVerse);
+            onScrollStateChange(internalBook, internalChapter, Option.some(prevVerse));
         } else {
             // Go to last verse of previous chapter
             const currentBookData = translationContent.value.books.find(b => b.name === internalBook);
@@ -266,10 +276,10 @@
                 const prevChapterData = currentBookData.chapters.find(c => c.chapter === internalChapter - 1);
                 if (prevChapterData) {
                     const lastVerse = prevChapterData.verses.length;
-                    scrollTarget = { book: internalBook, chapter: internalChapter - 1, verse: lastVerse, version: scrollTarget.version + 1 };
+                    scrollTarget = { book: internalBook, chapter: internalChapter - 1, verse: Option.some(lastVerse), version: scrollTarget.version + 1 };
                     internalChapter = internalChapter - 1;
-                    internalVerse = lastVerse;
-                    onScrollStateChange(internalBook, internalChapter, lastVerse);
+                    internalVerse = Option.some(lastVerse);
+                    onScrollStateChange(internalBook, internalChapter, Option.some(lastVerse));
                 }
             } else {
                 // Last verse of previous book's last chapter
@@ -281,11 +291,11 @@
                         const lastChapter = prevBookData.chapters.length;
                         const lastChapterData = prevBookData.chapters[lastChapter - 1];
                         const lastVerse = lastChapterData.verses.length;
-                        scrollTarget = { book: prevBook, chapter: lastChapter, verse: lastVerse, version: scrollTarget.version + 1 };
+                        scrollTarget = { book: prevBook, chapter: lastChapter, verse: Option.some(lastVerse), version: scrollTarget.version + 1 };
                         internalBook = prevBook;
                         internalChapter = lastChapter;
-                        internalVerse = lastVerse;
-                        onScrollStateChange(prevBook, lastChapter, lastVerse);
+                        internalVerse = Option.some(lastVerse);
+                        onScrollStateChange(prevBook, lastChapter, Option.some(lastVerse));
                     }
                 }
             }
@@ -353,8 +363,8 @@
                 event.preventDefault();
                 console.log('📖 Escape pressed - clearing selection');
                 // Clear selection
-                internalSelection = null;
-                onSelectionChange(null);
+                internalSelection = Option.none();
+                onSelectionChange(Option.none());
             }
         };
 

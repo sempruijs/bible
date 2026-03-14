@@ -48,12 +48,14 @@
 			// Create Wiki tab if URL is /wiki or /wiki/*
 			// On mobile, show content immediately (homepage or entry)
 			const showSidebar = ResponsiveService.getInitialWikiSidebarState();
-			initialTab = createTab({ app: "Wiki", id: "tab1", page: initialState.wikiPage || '', showSidebar });
+			const page = Option.getOrElse(initialState.wikiPage, () => '');
+			initialTab = createTab({ app: "Wiki", id: "tab1", page, showSidebar });
 		} else if (initialState.isLibrary) {
 			// Create Library tab if URL is /library or /library/*
 			// On mobile, show content immediately (homepage or document)
 			const showSidebar = ResponsiveService.getInitialWikiSidebarState();
-			initialTab = createTab({ app: "Library", id: "tab1", document: initialState.libraryDocument || '', showSidebar });
+			const document = Option.getOrElse(initialState.libraryDocument, () => '');
+			initialTab = createTab({ app: "Library", id: "tab1", document, showSidebar });
 		} else {
 			// Create Bible tab with parsed book/chapter/verse and selection
 			const canonState = ResponsiveService.getInitialCanonState();
@@ -175,7 +177,7 @@
 				id: tabsState.activeTabId,
 				book: BibleBook.John,
 				chapter: 1,
-				verse: null,
+				verse: Option.none(),
 				translation,
 				showCanonExplorer: canonState
 			});
@@ -272,15 +274,16 @@
 		// Try to parse as Bible reference
 		else {
 			const pathWithoutSlash = path.startsWith('/') ? path.slice(1) : path;
-			const selection = NavigationService.parseReferenceUrl(pathWithoutSlash);
-			if (selection) {
+			const selectionOption = NavigationService.parseReferenceUrl(pathWithoutSlash);
+			if (Option.isSome(selectionOption)) {
+				const selection = selectionOption.value;
 				newTab = createTab({
 					app: "Bible",
 					id: `tab${tabsState.nextTabId}`,
 					book: selection.start.book,
 					chapter: selection.start.chapter,
 					verse: selection.start.verse,
-					selection: selection,
+					selection: Option.some(selection),
 					translation,
 					showCanonExplorer: canonState
 				});
@@ -336,7 +339,7 @@
 			book: activeTab.app.bibleState.currentBook,
 			chapter: activeTab.app.bibleState.currentChapter,
 			verse: activeTab.app.bibleState.currentVerse,
-			selection: selection,
+			selection: Option.some(selection),
 			translation: activeTab.app.bibleState.translation,
 			showCanonExplorer: activeTab.app.bibleState.showCanonExplorer
 		});

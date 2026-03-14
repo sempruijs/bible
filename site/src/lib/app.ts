@@ -1,4 +1,4 @@
-import { Data, Schema, Option } from "effect";
+import { Data, Schema, Option, pipe } from "effect";
 import type { BibleBook } from "$lib/book";
 import { BibleBookSchema, getDisplayName as getBibleBookDisplayName, getShortName } from "$lib/book";
 import type { Translation } from "$lib/translations/translation";
@@ -8,22 +8,22 @@ import { TranslationSchema } from "$lib/translations/translation";
 export const BibleReferenceSchema = Schema.Struct({
 	book: BibleBookSchema,
 	chapter: Schema.Number,
-	verse: Schema.NullOr(Schema.Number)
+	verse: Schema.OptionFromNullOr(Schema.Number)
 });
 
 // Bible selection - a range from start to optional end
 export const BibleSelectionSchema = Schema.Struct({
 	start: BibleReferenceSchema,
-	end: Schema.NullOr(BibleReferenceSchema)
+	end: Schema.OptionFromNullOr(BibleReferenceSchema)
 });
 
 // Effect Schema definitions - App-specific state
 export const BibleStateSchema = Schema.Struct({
 	currentBook: BibleBookSchema,
 	currentChapter: Schema.Number,
-	currentVerse: Schema.NullOr(Schema.Number),
+	currentVerse: Schema.OptionFromNullOr(Schema.Number),
 	// Selection state (separate from scroll state)
-	selection: Schema.NullOr(BibleSelectionSchema),
+	selection: Schema.OptionFromNullOr(BibleSelectionSchema),
 	translation: TranslationSchema,
 	showCanonExplorer: Schema.Boolean
 });
@@ -83,9 +83,11 @@ export const TabsStateSchema = Schema.Struct({
 });
 
 // Helper type to make deeply readonly types writable (for Svelte $state compatibility)
-type DeepWritable<T> = T extends object
-	? { -readonly [P in keyof T]: DeepWritable<T[P]> }
-	: T;
+// Preserves Option types without mangling their internal structure
+type DeepWritable<T> =
+	T extends Option.Option<infer A> ? Option.Option<DeepWritable<A>> :
+	T extends object ? { -readonly [P in keyof T]: DeepWritable<T[P]> } :
+	T;
 
 // Type exports - Schema.Type generates readonly types, make them writable for $state
 type BibleReferenceReadonly = Schema.Schema.Type<typeof BibleReferenceSchema>;
@@ -128,9 +130,13 @@ const formatTimeForTitle = (milliseconds: number): string => {
 // Helper to format a single reference point as URL segment (e.g., "matt.5v3" or "matt.5")
 const formatReferencePoint = (ref: BibleReference): string => {
 	const bookShort = getShortName(ref.book);
-	return ref.verse !== null
-		? `${bookShort}.${ref.chapter}v${ref.verse}`
-		: `${bookShort}.${ref.chapter}`;
+	return pipe(
+		ref.verse,
+		Option.match({
+			onSome: (v) => `${bookShort}.${ref.chapter}v${v}`,
+			onNone: () => `${bookShort}.${ref.chapter}`
+		})
+	);
 };
 
 // Generate URL from selection state
@@ -145,46 +151,63 @@ const formatReferencePoint = (ref: BibleReference): string => {
 const selectionToUrl = (selection: BibleSelection): string => {
 	const { start, end } = selection;
 
-	if (!end) {
-		// Single point
-		return `/${formatReferencePoint(start)}`;
-	}
+	return pipe(
+		end,
+		Option.match({
+			onNone: () => `/${formatReferencePoint(start)}`,
+			onSome: (endRef) => {
+				const sameBook = start.book === endRef.book;
+				const sameChapter = sameBook && start.chapter === endRef.chapter;
 
-	const sameBook = start.book === end.book;
-	const sameChapter = sameBook && start.chapter === end.chapter;
+				if (sameChapter) {
+					// Same chapter: matt.5v1-12
+					const bookShort = getShortName(start.book);
+					return pipe(
+						Option.all([start.verse, endRef.verse]),
+						Option.match({
+							onSome: ([sv, ev]) => `/${bookShort}.${start.chapter}v${sv}-${ev}`,
+							onNone: () => `/${bookShort}.${start.chapter}`
+						})
+					);
+				}
 
-	if (sameChapter) {
-		// Same chapter: matt.5v1-12
-		const bookShort = getShortName(start.book);
-		if (start.verse !== null && end.verse !== null) {
-			return `/${bookShort}.${start.chapter}v${start.verse}-${end.verse}`;
-		}
-		// Just chapter (no verse range)
-		return `/${bookShort}.${start.chapter}`;
-	}
+				if (sameBook) {
+					// Same book, different chapters: matt.5-7 or matt.5-7v30
+					const bookShort = getShortName(start.book);
+					const startPart = pipe(
+						start.verse,
+						Option.match({
+							onSome: (v) => `${start.chapter}v${v}`,
+							onNone: () => `${start.chapter}`
+						})
+					);
+					const endPart = pipe(
+						endRef.verse,
+						Option.match({
+							onSome: (v) => `${endRef.chapter}v${v}`,
+							onNone: () => `${endRef.chapter}`
+						})
+					);
+					return `/${bookShort}.${startPart}-${endPart}`;
+				}
 
-	if (sameBook) {
-		// Same book, different chapters: matt.5-7 or matt.5-7v30
-		const bookShort = getShortName(start.book);
-		const startPart = start.verse !== null
-			? `${start.chapter}v${start.verse}`
-			: `${start.chapter}`;
-		const endPart = end.verse !== null
-			? `${end.chapter}v${end.verse}`
-			: `${end.chapter}`;
-		return `/${bookShort}.${startPart}-${endPart}`;
-	}
-
-	// Different books: matt.28v10-mark.1v5
-	return `/${formatReferencePoint(start)}-${formatReferencePoint(end)}`;
+				// Different books: matt.28v10-mark.1v5
+				return `/${formatReferencePoint(start)}-${formatReferencePoint(endRef)}`;
+			}
+		})
+	);
 };
 
 // Helper to format scroll position as hash (e.g., "#john.1v1")
-const formatScrollHash = (book: BibleBook, chapter: number, verse: number | null): string => {
+const formatScrollHash = (book: BibleBook, chapter: number, verse: Option.Option<number>): string => {
 	const bookShort = getShortName(book);
-	return verse !== null
-		? `#${bookShort}.${chapter}v${verse}`
-		: `#${bookShort}.${chapter}`;
+	return pipe(
+		verse,
+		Option.match({
+			onSome: (v) => `#${bookShort}.${chapter}v${v}`,
+			onNone: () => `#${bookShort}.${chapter}`
+		})
+	);
 };
 
 // App namespace - operations on App type
@@ -199,11 +222,13 @@ export namespace App {
 					bibleState.currentVerse
 				);
 
-				if (bibleState.selection) {
-					return selectionToUrl(bibleState.selection) + scrollHash;
-				}
-				// No selection = just hash for scroll position
-				return "/" + scrollHash;
+				return pipe(
+					bibleState.selection,
+					Option.match({
+						onSome: (sel) => selectionToUrl(sel) + scrollHash,
+						onNone: () => "/" + scrollHash
+					})
+				);
 			},
 			About: () => "/about",
 			ChooseApp: () => "/",
@@ -216,9 +241,13 @@ export namespace App {
 	export const getTitle = (app: App): string => {
 		return $match(app, {
 			Bible: ({ bibleState }) => {
-				const reference = bibleState.currentVerse
-					? `${getBibleBookDisplayName(bibleState.currentBook)} ${bibleState.currentChapter}:${bibleState.currentVerse}`
-					: `${getBibleBookDisplayName(bibleState.currentBook)} ${bibleState.currentChapter}`;
+				const reference = pipe(
+					bibleState.currentVerse,
+					Option.match({
+						onSome: (v) => `${getBibleBookDisplayName(bibleState.currentBook)} ${bibleState.currentChapter}:${v}`,
+						onNone: () => `${getBibleBookDisplayName(bibleState.currentBook)} ${bibleState.currentChapter}`
+					})
+				);
 				return `${reference} (${bibleState.translation.metadata.shortName})`;
 			},
 			About: () => "About",
@@ -326,13 +355,21 @@ export namespace TabsState {
 
 
 // Create tab configuration types
+// verse and selection can be Option or null/undefined for convenience
 export type CreateTabConfig =
-	| { app: "Bible", id: string, book: BibleBook, chapter: number, verse?: number | null, selection?: BibleSelection | null, translation: Translation, showCanonExplorer: boolean }
+	| { app: "Bible", id: string, book: BibleBook, chapter: number, verse?: Option.Option<number> | number | null, selection?: Option.Option<BibleSelection> | BibleSelection | null, translation: Translation, showCanonExplorer: boolean }
 	| { app: "Stopwatch", id: string }
 	| { app: "About", id: string }
 	| { app: "ChooseApp", id: string }
 	| { app: "Wiki", id: string, page: string, showSidebar?: boolean }
 	| { app: "Library", id: string, document: string, showSidebar?: boolean };
+
+// Helper to convert value to Option (handles Option, T, null, undefined)
+const toOption = <T>(value: Option.Option<T> | T | null | undefined): Option.Option<T> => {
+	if (value === null || value === undefined) return Option.none();
+	if (Option.isOption(value)) return value;
+	return Option.some(value);
+};
 
 // Unified tab creation function - pure data construction
 export const createTab = (config: CreateTabConfig): TabState => {
@@ -344,8 +381,8 @@ export const createTab = (config: CreateTabConfig): TabState => {
 					bibleState: BibleState({
 						currentBook: config.book,
 						currentChapter: config.chapter,
-						currentVerse: config.verse ?? null,
-						selection: config.selection ?? null,
+						currentVerse: toOption(config.verse),
+						selection: toOption(config.selection),
 						translation: config.translation as any, // Translation types are readonly but compatible
 						showCanonExplorer: config.showCanonExplorer
 					})

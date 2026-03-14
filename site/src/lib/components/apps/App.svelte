@@ -2,6 +2,7 @@
 	import type { TabState, BibleSelection } from "$lib/app";
 	import type { Translation } from "$lib/translations/translation";
 	import { Bible, BibleState, Stopwatch, Wiki, WikiState, Library, LibraryState } from "$lib/app";
+	import { Option } from "effect";
 	import AboutApp from "$lib/components/apps/About.svelte";
 	import BibleApp from "$lib/components/apps/Bible.svelte";
 	import StopwatchApp from "$lib/components/apps/Stopwatch.svelte";
@@ -32,7 +33,7 @@
 	} = $props();
 
 	// Handle scroll state change (doesn't update URL - just internal view position)
-	function handleBibleScrollStateChange(book: any, chapter: any, verse: any) {
+	function handleBibleScrollStateChange(book: any, chapter: number, verse: Option.Option<number>) {
 		console.log("App: handleBibleScrollStateChange called", book, chapter, verse);
 		if (tabState.app._tag === "Bible" && onStateChange) {
 			const updatedBibleState = BibleState({
@@ -50,7 +51,7 @@
 	}
 
 	// Handle selection change (updates URL only, NOT scroll position)
-	function handleBibleSelectionChange(selection: BibleSelection | null) {
+	function handleBibleSelectionChange(selection: Option.Option<BibleSelection>) {
 		console.log("App: handleBibleSelectionChange called", selection);
 		console.log("App: onSelectionChange prop is:", onSelectionChange ? "defined" : "undefined");
 		console.log("App: app._tag is:", tabState.app._tag);

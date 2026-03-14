@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { onMount } from "svelte";
+	import { Option, Effect, Exit, pipe } from "effect";
 	import type { Translation } from "$lib/translations/translation";
 	import type { TranslationContent } from "$lib/translations/translation";
 	import { loadTranslationContent } from "$lib/translations/loadTranslationContent";
 	import * as NavigationService from "$lib/services/NavigationService";
 	import { getDisplayName } from "$lib/book";
-	import { Effect } from "effect";
 
 	let {
 		path,
@@ -21,86 +21,122 @@
 		onClose: () => void;
 	} = $props();
 
-	let content = $state<TranslationContent | null>(null);
+	let content = $state<Option.Option<TranslationContent>>(Option.none());
 	let loading = $state(true);
-	let error = $state<string | null>(null);
+	let error = $state<Option.Option<string>>(Option.none());
 	let verseText = $state<string>("");
 	let reference = $state<string>("");
 
 	// Parse the path and extract verse info
 	function parseAndLoadVerse() {
 		const pathWithoutSlash = path.startsWith('/') ? path.slice(1) : path;
-		const selection = NavigationService.parseReferenceUrl(pathWithoutSlash);
+		const selectionOption = NavigationService.parseReferenceUrl(pathWithoutSlash);
 
-		if (!selection) {
-			error = "Invalid reference";
-			loading = false;
-			return;
-		}
-
-		// Build reference string
-		const bookName = getDisplayName(selection.start.book);
-		if (selection.start.verse) {
-			reference = `${bookName} ${selection.start.chapter}:${selection.start.verse}`;
-		} else {
-			reference = `${bookName} ${selection.start.chapter}`;
-		}
-
-		// Load translation content and extract verse
-		Effect.runPromise(loadTranslationContent(translation))
-			.then((translationContent) => {
-				content = translationContent;
-
-				// Find the book
-				const book = translationContent.books.find(b => b.name === selection.start.book);
-				if (!book) {
-					error = "Book not found";
+		pipe(
+			selectionOption,
+			Option.match({
+				onNone: () => {
+					error = Option.some("Invalid reference");
 					loading = false;
-					return;
-				}
-
-				// Find the chapter
-				const chapter = book.chapters.find(c => c.chapter === selection.start.chapter);
-				if (!chapter) {
-					error = "Chapter not found";
-					loading = false;
-					return;
-				}
-
-				// Get verse(s)
-				if (selection.start.verse) {
-					// Single verse or verse range
-					const startVerse = selection.start.verse;
-					const endVerse = selection.end?.verse ?? startVerse;
-
-					const verses = chapter.verses.filter(v =>
-						v.verse >= startVerse && v.verse <= endVerse
+				},
+				onSome: (selection) => {
+					// Build reference string
+					const bookName = getDisplayName(selection.start.book);
+					reference = pipe(
+						selection.start.verse,
+						Option.match({
+							onSome: (v) => `${bookName} ${selection.start.chapter}:${v}`,
+							onNone: () => `${bookName} ${selection.start.chapter}`
+						})
 					);
 
-					if (verses.length === 0) {
-						error = "Verse not found";
-					} else {
-						verseText = verses.map(v => `${v.verse} ${v.text}`).join(" ");
-						if (startVerse !== endVerse) {
-							reference = `${bookName} ${selection.start.chapter}:${startVerse}-${endVerse}`;
-						}
-					}
-				} else {
-					// Whole chapter - show first few verses
-					const preview = chapter.verses.slice(0, 3);
-					verseText = preview.map(v => `${v.verse} ${v.text}`).join(" ");
-					if (chapter.verses.length > 3) {
-						verseText += "...";
-					}
-				}
+					// Load translation content and extract verse
+					Effect.runPromiseExit(loadTranslationContent(translation))
+						.then((exit) => {
+							Exit.match(exit, {
+								onFailure: (cause) => {
+									error = Option.some("Failed to load");
+									loading = false;
+									console.error("Failed to load translation:", cause);
+								},
+								onSuccess: (translationContent) => {
+									content = Option.some(translationContent);
 
-				loading = false;
+									// Find the book
+									const bookOption = Option.fromNullable(
+										translationContent.books.find(b => b.name === selection.start.book)
+									);
+
+									pipe(
+										bookOption,
+										Option.match({
+											onNone: () => {
+												error = Option.some("Book not found");
+												loading = false;
+											},
+											onSome: (book) => {
+												// Find the chapter
+												const chapterOption = Option.fromNullable(
+													book.chapters.find(c => c.chapter === selection.start.chapter)
+												);
+
+												pipe(
+													chapterOption,
+													Option.match({
+														onNone: () => {
+															error = Option.some("Chapter not found");
+															loading = false;
+														},
+														onSome: (chapter) => {
+															// Get verse(s)
+															pipe(
+																selection.start.verse,
+																Option.match({
+																	onSome: (startVerseNum) => {
+																		// Single verse or verse range
+																		const endVerseNum = pipe(
+																			selection.end,
+																			Option.flatMap(e => e.verse),
+																			Option.getOrElse(() => startVerseNum)
+																		);
+
+																		const verses = chapter.verses.filter(v =>
+																			v.verse >= startVerseNum && v.verse <= endVerseNum
+																		);
+
+																		if (verses.length === 0) {
+																			error = Option.some("Verse not found");
+																		} else {
+																			verseText = verses.map(v => `${v.verse} ${v.text}`).join(" ");
+																			if (startVerseNum !== endVerseNum) {
+																				reference = `${bookName} ${selection.start.chapter}:${startVerseNum}-${endVerseNum}`;
+																			}
+																		}
+																	},
+																	onNone: () => {
+																		// Whole chapter - show first few verses
+																		const preview = chapter.verses.slice(0, 3);
+																		verseText = preview.map(v => `${v.verse} ${v.text}`).join(" ");
+																		if (chapter.verses.length > 3) {
+																			verseText += "...";
+																		}
+																	}
+																})
+															);
+
+															loading = false;
+														}
+													})
+												);
+											}
+										})
+									);
+								}
+							});
+						});
+				}
 			})
-			.catch((err) => {
-				error = "Failed to load";
-				loading = false;
-				console.error("Failed to load translation:", err);
-			});
+		);
 	}
 
 	onMount(() => {
@@ -128,6 +164,9 @@
 
 		return `left: ${adjustedX}px; top: ${adjustedY}px;`;
 	});
+
+	// Derive error text for display
+	let errorText = $derived(Option.getOrNull(error));
 </script>
 
 <div
@@ -137,8 +176,8 @@
 >
 	{#if loading}
 		<div class="text-gray-400 text-sm">Loading...</div>
-	{:else if error}
-		<div class="text-red-400 text-sm">{error}</div>
+	{:else if Option.isSome(error)}
+		<div class="text-red-400 text-sm">{errorText}</div>
 	{:else}
 		<div class="text-blue-400 text-xs font-semibold mb-1">{reference}</div>
 		<div class="text-gray-200 text-sm leading-relaxed">{verseText}</div>
