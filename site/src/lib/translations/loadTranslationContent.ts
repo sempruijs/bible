@@ -1,11 +1,11 @@
 import { Effect } from "effect";
 import type { Translation, TranslationContent } from "./translation";
 import { FetchError, ParseError } from "./storage";
-import type { TranslationV0, BookNameParseError } from "./v0";
+import type { TranslationV0 } from "./v0";
 import { toTranslationContent } from "./v0";
 
 // Load translation content, handling v0 format conversion
-export const loadTranslationContent = (translation: Translation): Effect.Effect<TranslationContent, FetchError | ParseError | BookNameParseError> =>
+export const loadTranslationContent = (translation: Translation): Effect.Effect<TranslationContent, FetchError | ParseError> =>
     Effect.gen(function* () {
         if (translation.content._tag === "Local") {
             return translation.content.data;

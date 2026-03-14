@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Option, pipe } from "effect";
+	import { Option } from "effect";
 	import { VList } from "virtua/svelte";
 	import type { TranslationContent, Chapter } from "$lib/translations/translation";
 	import { BibleBook } from "$lib/book";
@@ -10,16 +10,16 @@
 	let {
 		translationContent,
 		scrollTarget,
-		selection = Option.none() as Option.Option<BibleSelection>,
+		selection = null as BibleSelection | null,
 		onScrollStateChange = () => {},
 		onVerseSelect = (_book: BibleBook, _chapter: number, _verse: number) => {},
 		onWikiLinkClick = (_page: string) => {},
 		isActive = true
 	}: {
 		translationContent: Option.Option<TranslationContent>;
-		scrollTarget: { book: BibleBook; chapter: number; verse: Option.Option<number>; version: number };
-		selection?: Option.Option<BibleSelection>;
-		onScrollStateChange?: (book: BibleBook, chapter: number, verse: Option.Option<number>) => void;
+		scrollTarget: { book: BibleBook; chapter: number; verse: number | null; version: number };
+		selection?: BibleSelection | null;
+		onScrollStateChange?: (book: BibleBook, chapter: number, verse: number | null) => void;
 		onVerseSelect?: (book: BibleBook, chapter: number, verse: number) => void;
 		onWikiLinkClick?: (page: string) => void;
 		isActive?: boolean;
@@ -34,68 +34,56 @@
 		const bookIndexB = getBookIndex(b.book);
 		if (bookIndexA !== bookIndexB) return bookIndexA < bookIndexB ? -1 : 1;
 		if (a.chapter !== b.chapter) return a.chapter < b.chapter ? -1 : 1;
-		const verseA = Option.getOrElse(a.verse, () => 1);
-		const verseB = Option.getOrElse(b.verse, () => 1);
+		const verseA = a.verse ?? 1;
+		const verseB = b.verse ?? 1;
 		if (verseA !== verseB) return verseA < verseB ? -1 : 1;
 		return 0;
 	};
 
 	// Check if a verse is within the selection range
 	const isVerseSelected = (book: BibleBook, chapter: number, verse: number): boolean => {
-		return pipe(
-			selection,
-			Option.match({
-				onNone: () => false,
-				onSome: (sel) => {
-					const ref: BibleReference = { book, chapter, verse: Option.some(verse) };
-					const start = sel.start;
-					const end = Option.getOrElse(sel.end, () => sel.start);
+		if (!selection) return false;
 
-					// Handle single chapter selection (no verse specified)
-					const effectiveStart = { ...start, verse: Option.some(Option.getOrElse(start.verse, () => 1)) };
-					const effectiveEnd = { ...end, verse: Option.some(Option.getOrElse(end.verse, () => 9999)) };
+		const ref: BibleReference = { book, chapter, verse };
+		const start = selection.start;
+		const end = selection.end ?? selection.start;
 
-					return compareRefs(ref, effectiveStart) >= 0 && compareRefs(ref, effectiveEnd) <= 0;
-				}
-			})
-		);
+		// Handle single chapter selection (no verse specified)
+		const effectiveStart = { ...start, verse: start.verse ?? 1 };
+		const effectiveEnd = { ...end, verse: end.verse ?? 9999 }; // Large number to include all verses
+
+		return compareRefs(ref, effectiveStart) >= 0 && compareRefs(ref, effectiveEnd) <= 0;
 	};
 
 	// Get selected verse range for a chapter (returns null if chapter not in selection)
 	const getChapterSelection = (book: BibleBook, chapter: number): { start: number; end: number } | null => {
-		return pipe(
-			selection,
-			Option.match({
-				onNone: () => null,
-				onSome: (sel) => {
-					const start = sel.start;
-					const end = Option.getOrElse(sel.end, () => sel.start);
+		if (!selection) return null;
 
-					const bookIndex = getBookIndex(book);
-					const startBookIndex = getBookIndex(start.book);
-					const endBookIndex = getBookIndex(end.book);
+		const start = selection.start;
+		const end = selection.end ?? selection.start;
 
-					// Check if this chapter is in the selection range
-					if (bookIndex < startBookIndex || bookIndex > endBookIndex) return null;
-					if (bookIndex === startBookIndex && chapter < start.chapter) return null;
-					if (bookIndex === endBookIndex && chapter > end.chapter) return null;
+		const bookIndex = getBookIndex(book);
+		const startBookIndex = getBookIndex(start.book);
+		const endBookIndex = getBookIndex(end.book);
 
-					// Determine start verse for this chapter
-					let startVerse = 1;
-					if (bookIndex === startBookIndex && chapter === start.chapter) {
-						startVerse = Option.getOrElse(start.verse, () => 1);
-					}
+		// Check if this chapter is in the selection range
+		if (bookIndex < startBookIndex || bookIndex > endBookIndex) return null;
+		if (bookIndex === startBookIndex && chapter < start.chapter) return null;
+		if (bookIndex === endBookIndex && chapter > end.chapter) return null;
 
-					// Determine end verse for this chapter (9999 means to end of chapter)
-					let endVerse = 9999;
-					if (bookIndex === endBookIndex && chapter === end.chapter) {
-						endVerse = Option.getOrElse(end.verse, () => 9999);
-					}
+		// Determine start verse for this chapter
+		let startVerse = 1;
+		if (bookIndex === startBookIndex && chapter === start.chapter) {
+			startVerse = start.verse ?? 1;
+		}
 
-					return { start: startVerse, end: endVerse };
-				}
-			})
-		);
+		// Determine end verse for this chapter (9999 means to end of chapter)
+		let endVerse = 9999;
+		if (bookIndex === endBookIndex && chapter === end.chapter) {
+			endVerse = end.verse ?? 9999;
+		}
+
+		return { start: startVerse, end: endVerse };
 	};
 
 	interface ChapterItem {
@@ -165,41 +153,32 @@
 
 				// After scrolling to chapter, scroll to specific verse if specified
 				setTimeout(() => {
-					pipe(
-						scrollTarget.verse,
-						Option.match({
-							onSome: (v) => {
-								const verseId = `verse-${scrollTarget.book}-${scrollTarget.chapter}-${v}`;
-								const verseElement = document.getElementById(verseId);
-								if (verseElement) {
-									verseElement.scrollIntoView({ block: 'start' });
-									verseElement.focus();
-								}
-							},
-							onNone: () => {
-								const headingId = `chapter-${scrollTarget.book}-${scrollTarget.chapter}`;
-								const heading = document.getElementById(headingId);
-								if (heading) {
-									heading.focus();
-								}
-							}
-						})
-					);
+					if (scrollTarget.verse) {
+						const verseId = `verse-${scrollTarget.book}-${scrollTarget.chapter}-${scrollTarget.verse}`;
+						const verseElement = document.getElementById(verseId);
+						if (verseElement) {
+							verseElement.scrollIntoView({ block: 'start' });
+							verseElement.focus();
+						}
+					} else {
+						const headingId = `chapter-${scrollTarget.book}-${scrollTarget.chapter}`;
+						const heading = document.getElementById(headingId);
+						if (heading) {
+							heading.focus();
+						}
+					}
 					setTimeout(() => { isNavigating = false; }, 100);
 				}, 100);
 			} else {
 				// Same chapter - just scroll to the verse directly
-				pipe(
-					scrollTarget.verse,
-					Option.map((v) => {
-						const verseId = `verse-${scrollTarget.book}-${scrollTarget.chapter}-${v}`;
-						const verseElement = document.getElementById(verseId);
-						if (verseElement) {
-							verseElement.scrollIntoView({ block: 'start', behavior: 'smooth' });
-							verseElement.focus();
-						}
-					})
-				);
+				if (scrollTarget.verse) {
+					const verseId = `verse-${scrollTarget.book}-${scrollTarget.chapter}-${scrollTarget.verse}`;
+					const verseElement = document.getElementById(verseId);
+					if (verseElement) {
+						verseElement.scrollIntoView({ block: 'start', behavior: 'smooth' });
+						verseElement.focus();
+					}
+				}
 				setTimeout(() => { isNavigating = false; }, 100);
 			}
 		}
@@ -222,11 +201,11 @@
 	// Track scroll position and update URL/canon explorer (but don't trigger scroll)
 	let lastReportedBook = $state<BibleBook | null>(null);
 	let lastReportedChapter = $state<number | null>(null);
-	let lastReportedVerse = $state<Option.Option<number>>(Option.none());
+	let lastReportedVerse = $state<number | null>(null);
 	let scrollThrottleTimer: ReturnType<typeof setTimeout> | null = null;
 
 	// Find the first visible verse in the viewport
-	function findVisibleVerse(): Option.Option<{ book: BibleBook; chapter: number; verse: number }> {
+	function findVisibleVerse(): { book: BibleBook; chapter: number; verse: number } | null {
 		const verseElements = document.querySelectorAll('.verse-marker');
 		for (const element of verseElements) {
 			const rect = element.getBoundingClientRect();
@@ -235,15 +214,15 @@
 				const id = element.id; // verse-{book}-{chapter}-{verse}
 				const parts = id.replace('verse-', '').match(/^(.+)-(\d+)-(\d+)$/);
 				if (parts) {
-					return Option.some({
+					return {
 						book: parts[1] as BibleBook,
 						chapter: parseInt(parts[2]),
 						verse: parseInt(parts[3])
-					});
+					};
 				}
 			}
 		}
-		return Option.none();
+		return null;
 	}
 
 	function updateScrollState() {
@@ -259,17 +238,11 @@
 				const visibleItem = items[visibleIndex];
 
 				// Try to find the specific verse that's visible
-				const visibleVerseOption = findVisibleVerse();
-				const verse: Option.Option<number> = pipe(
-					visibleVerseOption,
-					Option.map(v => v.verse)
-				);
+				const visibleVerse = findVisibleVerse();
+				const verse = visibleVerse?.verse ?? null;
 
 				// Only update if something changed
-				const lastVerseNum = Option.getOrElse(lastReportedVerse, () => -1);
-				const currentVerseNum = Option.getOrElse(verse, () => -1);
-				const verseChanged = lastVerseNum !== currentVerseNum;
-				if (lastReportedBook !== visibleItem.book || lastReportedChapter !== visibleItem.chapterNumber || verseChanged) {
+				if (lastReportedBook !== visibleItem.book || lastReportedChapter !== visibleItem.chapterNumber || lastReportedVerse !== verse) {
 					lastReportedBook = visibleItem.book;
 					lastReportedChapter = visibleItem.chapterNumber;
 					lastReportedVerse = verse;
@@ -309,7 +282,7 @@
 				book={item.book}
 				chapterNumber={item.chapterNumber}
 				showBookHeader={item.showBookHeader}
-				selectedVerse={isCurrentChapter ? Option.getOrNull(scrollTarget.verse) : null}
+				selectedVerse={isCurrentChapter ? scrollTarget.verse : null}
 				selectionRange={chapterSelection}
 				onVerseClick={(verse) => onVerseSelect(item.book, item.chapterNumber, verse)}
 				{onWikiLinkClick}
