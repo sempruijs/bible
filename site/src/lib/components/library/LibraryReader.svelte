@@ -196,7 +196,10 @@
 	function renderMarkdown(text: string): string {
 		let html = text;
 
-		// Headers
+		// Headers (order matters: most specific first)
+		html = html.replace(/^###### (.+)$/gm, '<h6 class="text-sm font-bold text-gray-100 mt-4 mb-2">$1</h6>');
+		html = html.replace(/^##### (.+)$/gm, '<h5 class="text-base font-bold text-gray-100 mt-4 mb-2">$1</h5>');
+		html = html.replace(/^#### (.+)$/gm, '<h4 class="text-lg font-bold text-gray-100 mt-5 mb-2">$1</h4>');
 		html = html.replace(/^### (.+)$/gm, '<h3 class="text-xl font-bold text-gray-100 mt-6 mb-3">$1</h3>');
 		html = html.replace(/^## (.+)$/gm, '<h2 class="text-2xl font-bold text-gray-100 mt-8 mb-4">$1</h2>');
 		html = html.replace(/^# (.+)$/gm, '<h1 class="text-3xl font-bold text-gray-100 mt-8 mb-4">$1</h1>');
@@ -480,7 +483,10 @@
 
 	.library-content :global(h1),
 	.library-content :global(h2),
-	.library-content :global(h3) {
+	.library-content :global(h3),
+	.library-content :global(h4),
+	.library-content :global(h5),
+	.library-content :global(h6) {
 		color: #f3f4f6;
 	}
 </style>
