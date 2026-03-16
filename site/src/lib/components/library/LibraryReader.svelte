@@ -221,14 +221,15 @@
 			return `<a href="${url}" class="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
 		});
 
-		// Line breaks - convert double newlines to paragraphs
-		html = html.split(/\n\n+/).map(para => {
+		// Convert each line to a paragraph for better screen reader navigation
+		html = html.split(/\n+/).map(para => {
 			para = para.trim();
+			if (!para) return '';
 			if (para.startsWith('<h') || para.startsWith('<ul') || para.startsWith('<ol')) {
 				return para;
 			}
-			return `<p class="text-gray-200 leading-relaxed mb-4">${para.replace(/\n/g, '<br>')}</p>`;
-		}).join('\n');
+			return `<p class="text-gray-200 leading-relaxed mb-4">${para}</p>`;
+		}).filter(Boolean).join('\n');
 
 		return html;
 	}
