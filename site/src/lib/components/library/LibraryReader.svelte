@@ -228,7 +228,7 @@
 			if (para.startsWith('<h') || para.startsWith('<ul') || para.startsWith('<ol')) {
 				return para;
 			}
-			return `<p class="text-gray-200 leading-relaxed mb-4">${para}</p>`;
+			return `<p class="text-gray-200 leading-relaxed inline">${para} </p>`;
 		}).filter(Boolean).join('\n');
 
 		return html;
